@@ -31,7 +31,7 @@ Useful starter endpoints:
 - `GET /api/v1/buildings`
 - `GET /api/v1/buildings/upkeep-preview`
 - `GET /api/v1/buildings/db?user_id=1`
-- `POST /api/v1/buildings/db`
+- `POST /api/v1/buildings/db?user_id=1`
 - `GET /api/v1/buildings/db/{building_id}?user_id=1`
 - `PATCH /api/v1/buildings/db/{building_id}?user_id=1`
 - `DELETE /api/v1/buildings/db/{building_id}?user_id=1`

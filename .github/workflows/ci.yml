@@ -34,6 +34,31 @@ jobs:
       - name: Ruff format check
         run: ruff format --check backend
 
+      - name: Validate rules dataset
+        env:
+          PYTHONPATH: backend
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from app.domains.rules.importer import load_rules_dataset
+
+          dataset = load_rules_dataset(Path("rules/carta-arcanum-2.1.4.rules.json"))
+          print(
+              f"Validated {dataset.game} {dataset.rules_version}: "
+              f"{len(dataset.building_definitions)} buildings, "
+              f"{len(dataset.production_recipes)} recipes"
+          )
+          PY
+
+      - name: Migration and rules import check
+        env:
+          DATABASE_URL: sqlite+pysqlite:///./ci_rules.db
+          PYTHONPATH: backend
+        run: |
+          alembic -c backend/alembic.ini upgrade head
+          python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
+
       - name: Unit tests
         env:
           PYTHONPATH: backend
@@ -43,3 +68,8 @@ jobs:
         env:
           PYTHONPATH: backend
         run: pytest backend/tests -m functional
+
+      - name: Coverage gate
+        env:
+          PYTHONPATH: backend
+        run: pytest backend/tests --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=70

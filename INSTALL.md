@@ -48,8 +48,12 @@ Run the full local CI check:
 ```bash
 PYTHONPATH=backend ruff check backend
 ruff format --check backend
+PYTHONPATH=backend python -c "from pathlib import Path; from app.domains.rules.importer import load_rules_dataset; load_rules_dataset(Path('rules/carta-arcanum-2.1.4.rules.json'))"
+DATABASE_URL=sqlite+pysqlite:///./ci_rules.db PYTHONPATH=backend alembic -c backend/alembic.ini upgrade head
+DATABASE_URL=sqlite+pysqlite:///./ci_rules.db PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
 PYTHONPATH=backend pytest backend/tests -m unit
 PYTHONPATH=backend pytest backend/tests -m functional
+PYTHONPATH=backend pytest backend/tests --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=70
 ```
 
 ## Configuration

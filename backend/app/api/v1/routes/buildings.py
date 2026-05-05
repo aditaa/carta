@@ -12,6 +12,7 @@ from app.domains.buildings.schemas import (
 )
 from app.domains.buildings.service import (
     BuildingRegistryError,
+    BuildingRegistryPermissionError,
     OwnedBuildingRecord,
     get_building_registry_service,
 )
@@ -97,12 +98,19 @@ def list_db_buildings(
 )
 def create_db_building(
     payload: BuildingRegistryCreate,
+    user_id: int = Query(..., ge=1),
     db: Session = Depends(get_db),
 ) -> BuildingRegistryItem:
     building_registry_service = get_building_registry_service()
+    scope = building_registry_service.build_visibility_scope_from_db(db, user_id)
     rules = get_rules_service().load_current_rules()
     try:
-        return building_registry_service.create_in_db(db, payload, rules)
+        return building_registry_service.create_in_db(db, payload, scope, rules)
+    except BuildingRegistryPermissionError as error:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(error),
+        ) from error
     except BuildingRegistryError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

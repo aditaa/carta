@@ -21,6 +21,10 @@ class BuildingRegistryError(ValueError):
     pass
 
 
+class BuildingRegistryPermissionError(PermissionError):
+    pass
+
+
 @dataclass(frozen=True)
 class OwnedBuildingRecord:
     id: int
@@ -65,12 +69,11 @@ class BuildingRegistryService:
         buildings: list[OwnedBuildingRecord],
         visibility_scope: VisibilityScope,
     ) -> list[BuildingRegistryItem]:
-        visible_user_ids = set(visibility_scope.visible_user_ids)
         visible_house_ids = set(visibility_scope.visible_house_ids)
         visible_buildings = [
             building
             for building in buildings
-            if building.owner_user_id in visible_user_ids
+            if building.owner_user_id == visibility_scope.user_id
             or (building.house_id is not None and building.house_id in visible_house_ids)
         ]
 
@@ -113,9 +116,11 @@ class BuildingRegistryService:
         self,
         db: Session,
         payload: BuildingRegistryCreate,
+        visibility_scope: VisibilityScope,
         rules: RulesDataset,
     ) -> BuildingRegistryItem:
         self.validate_building_definition_id(payload.building_definition_id, rules)
+        self.validate_create_permission(payload, visibility_scope)
         record = OwnedBuilding(
             owner_user_id=payload.owner_user_id,
             house_id=payload.house_id,
@@ -175,6 +180,27 @@ class BuildingRegistryService:
             totals[building.owner_user_id][building.building_definition_id] += building.count
 
         return {owner_id: dict(building_totals) for owner_id, building_totals in totals.items()}
+
+    def validate_create_permission(
+        self,
+        payload: BuildingRegistryCreate,
+        visibility_scope: VisibilityScope,
+    ) -> None:
+        if payload.house_id is None:
+            if payload.owner_user_id == visibility_scope.user_id:
+                return
+            raise BuildingRegistryPermissionError(
+                "Cannot create personal building records for another user"
+            )
+
+        if payload.house_id in set(
+            visibility_scope.visible_house_ids
+        ) and payload.owner_user_id in set(visibility_scope.visible_user_ids):
+            return
+
+        raise BuildingRegistryPermissionError(
+            "Cannot create building records outside the caller's visible house scope"
+        )
 
     def validate_building_definition_id(
         self,
@@ -257,7 +283,7 @@ class BuildingRegistryService:
         record: OwnedBuilding,
         visibility_scope: VisibilityScope,
     ) -> bool:
-        return record.owner_user_id in set(visibility_scope.visible_user_ids) or (
+        return record.owner_user_id == visibility_scope.user_id or (
             record.house_id is not None
             and record.house_id in set(visibility_scope.visible_house_ids)
         )

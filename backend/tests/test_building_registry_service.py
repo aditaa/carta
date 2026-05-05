@@ -12,6 +12,7 @@ from app.domains.buildings.models import OwnedBuilding
 from app.domains.buildings.schemas import BuildingRegistryCreate, BuildingRegistryUpdate
 from app.domains.buildings.service import (
     BuildingRegistryError,
+    BuildingRegistryPermissionError,
     BuildingRegistryService,
     OwnedBuildingRecord,
 )
@@ -61,6 +62,19 @@ def seed_registry_db(db) -> None:
                 owner_user_id=3,
                 house_id=20,
                 building_definition_id="watchtower",
+                count=1,
+            ),
+            OwnedBuilding(
+                id=4,
+                owner_user_id=2,
+                building_definition_id="shop",
+                count=1,
+            ),
+            OwnedBuilding(
+                id=5,
+                owner_user_id=2,
+                house_id=20,
+                building_definition_id="tower",
                 count=1,
             ),
         ]
@@ -123,6 +137,42 @@ def test_house_permission_includes_house_buildings() -> None:
     assert [building.id for building in buildings] == [1, 2]
 
 
+def test_house_permission_excludes_house_members_personal_buildings() -> None:
+    service = BuildingRegistryService()
+    scope = VisibilityScope(
+        user_id=1,
+        visible_user_ids=[1, 2],
+        visible_house_ids=[10],
+    )
+
+    buildings = service.list_visible(
+        [
+            OwnedBuildingRecord(
+                id=1,
+                owner_user_id=1,
+                building_definition_id="farm",
+                count=1,
+            ),
+            OwnedBuildingRecord(
+                id=2,
+                owner_user_id=2,
+                building_definition_id="shop",
+                count=1,
+            ),
+            OwnedBuildingRecord(
+                id=3,
+                owner_user_id=2,
+                house_id=20,
+                building_definition_id="tower",
+                count=1,
+            ),
+        ],
+        scope,
+    )
+
+    assert [building.id for building in buildings] == [1]
+
+
 def test_user_without_house_permission_cannot_see_house_buildings() -> None:
     service = BuildingRegistryService()
     scope = VisibilityScope(user_id=1, visible_user_ids=[1], visible_house_ids=[])
@@ -172,6 +222,7 @@ def test_aggregate_counts_by_owner() -> None:
                     OwnedBuildingRecord(
                         id=3,
                         owner_user_id=2,
+                        house_id=10,
                         building_definition_id="market",
                         count=1,
                     ),
@@ -179,7 +230,7 @@ def test_aggregate_counts_by_owner() -> None:
                 VisibilityScope(
                     user_id=1,
                     visible_user_ids=[1, 2],
-                    visible_house_ids=[],
+                    visible_house_ids=[10],
                 ),
             )
         ]
@@ -280,7 +331,7 @@ def test_db_user_without_house_permission_only_sees_own_buildings() -> None:
 
         assert scope.visible_user_ids == [2]
         assert scope.visible_house_ids == []
-        assert [building.id for building in buildings] == [2]
+        assert [building.id for building in buildings] == [2, 4, 5]
     finally:
         db.close()
         Base.metadata.drop_all(engine)
@@ -300,6 +351,7 @@ def test_db_create_rejects_unknown_rule_key() -> None:
                     building_definition_id="missing_building",
                     count=1,
                 ),
+                VisibilityScope(user_id=1, visible_user_ids=[1], visible_house_ids=[]),
                 rules,
             )
         except BuildingRegistryError as error:
@@ -329,9 +381,10 @@ def test_db_create_update_and_delete_visible_building() -> None:
                 display_name="Main Shop",
                 count=1,
             ),
+            scope,
             rules,
         )
-        assert created.id == 4
+        assert created.id == 6
 
         updated = service.update_visible_in_db(
             db,
@@ -346,6 +399,59 @@ def test_db_create_update_and_delete_visible_building() -> None:
 
         assert service.delete_visible_from_db(db, created.id, scope) is True
         assert service.get_visible_from_db(db, created.id, scope) is None
+    finally:
+        db.close()
+        Base.metadata.drop_all(engine)
+
+
+def test_db_create_allows_visible_house_member_asset() -> None:
+    db, engine = build_test_session()
+    try:
+        seed_registry_db(db)
+        rules = load_rules_dataset(RULES_FILE)
+        service = BuildingRegistryService()
+        scope = service.build_visibility_scope_from_db(db, user_id=1)
+
+        created = service.create_in_db(
+            db,
+            BuildingRegistryCreate(
+                owner_user_id=2,
+                house_id=10,
+                building_definition_id="shop",
+                display_name="House Member Shop",
+                count=1,
+            ),
+            scope,
+            rules,
+        )
+
+        assert created.owner_user_id == 2
+        assert created.house_id == 10
+    finally:
+        db.close()
+        Base.metadata.drop_all(engine)
+
+
+def test_db_create_rejects_other_users_personal_building() -> None:
+    db, engine = build_test_session()
+    try:
+        seed_registry_db(db)
+        rules = load_rules_dataset(RULES_FILE)
+        service = BuildingRegistryService()
+        scope = service.build_visibility_scope_from_db(db, user_id=1)
+
+        with pytest.raises(BuildingRegistryPermissionError):
+            service.create_in_db(
+                db,
+                BuildingRegistryCreate(
+                    owner_user_id=2,
+                    building_definition_id="shop",
+                    display_name="Private Shop",
+                    count=1,
+                ),
+                scope,
+                rules,
+            )
     finally:
         db.close()
         Base.metadata.drop_all(engine)
