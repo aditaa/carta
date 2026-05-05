@@ -40,6 +40,15 @@ PYTHONPATH=backend pytest backend/tests -m functional
 PYTHONPATH=backend pytest backend/tests --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=70
 ```
 
+CI also runs MySQL integration checks against MySQL 8. If you have local MySQL
+running, verify that path with:
+
+```bash
+DATABASE_URL=mysql+pymysql://carta:change-me@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend alembic -c backend/alembic.ini upgrade head
+DATABASE_URL=mysql+pymysql://carta:change-me@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
+DATABASE_URL=mysql+pymysql://carta:change-me@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend pytest backend/tests -m integration
+```
+
 ## Contribution Workflow
 
 1. Create a focused branch for the change.

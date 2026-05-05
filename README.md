@@ -103,6 +103,14 @@ PYTHONPATH=backend pytest backend/tests -m functional
 PYTHONPATH=backend pytest backend/tests --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=70
 ```
 
+CI also runs a MySQL integration job with a real MySQL 8 service:
+
+```bash
+DATABASE_URL=mysql+pymysql://carta:carta@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend alembic -c backend/alembic.ini upgrade head
+DATABASE_URL=mysql+pymysql://carta:carta@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
+DATABASE_URL=mysql+pymysql://carta:carta@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend pytest backend/tests -m integration
+```
+
 ## Rules Data
 
 Rules are intentionally kept separate in `rules/` so game changes can be

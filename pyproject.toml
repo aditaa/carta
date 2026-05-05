@@ -20,4 +20,5 @@ known-first-party = ["app"]
 markers = [
     "unit: fast tests for domain logic, validation, and service behavior",
     "functional: API-level tests through FastAPI's test client",
+    "integration: database-backed tests against external services such as MySQL",
 ]

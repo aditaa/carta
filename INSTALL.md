@@ -56,6 +56,15 @@ PYTHONPATH=backend pytest backend/tests -m functional
 PYTHONPATH=backend pytest backend/tests --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=70
 ```
 
+Run the MySQL integration check after local MySQL is running and the
+`carta_arcanum` database/user have been created:
+
+```bash
+DATABASE_URL=mysql+pymysql://carta:change-me@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend alembic -c backend/alembic.ini upgrade head
+DATABASE_URL=mysql+pymysql://carta:change-me@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
+DATABASE_URL=mysql+pymysql://carta:change-me@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend pytest backend/tests -m integration
+```
+
 ## Configuration
 
 Backend configuration is read from environment variables.
