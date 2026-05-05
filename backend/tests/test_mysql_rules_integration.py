@@ -58,7 +58,9 @@ def test_mysql_can_read_core_imported_rule_data() -> None:
             select(RuleBuildingDefinition).where(RuleBuildingDefinition.key == "temple")
         )
         farm_recipe = db.scalar(
-            select(RuleProductionRecipe).where(RuleProductionRecipe.key == "farm_produce_crops")
+            select(RuleProductionRecipe).where(
+                RuleProductionRecipe.key == "farm_victual_from_livestock"
+            )
         )
         carriage = db.scalar(select(RuleTransport).where(RuleTransport.key == "carriage"))
 
@@ -70,8 +72,6 @@ def test_mysql_can_read_core_imported_rule_data() -> None:
     assert temple is not None
     assert temple.build_cost_json == []
     assert farm_recipe is not None
-    assert farm_recipe.outputs_json == [
-        {"item_type": "resource", "item_key": "crops", "amount": 3.0}
-    ]
+    assert farm_recipe.outputs_json == [{"item_type": "unit", "item_key": "victual", "amount": 1.0}]
     assert carriage is not None
     assert carriage.payload_json["transport_type"] == "caravan"
