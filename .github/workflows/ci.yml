@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  backend:
+    name: Backend lint and tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Ruff lint
+        run: ruff check backend
+
+      - name: Ruff format check
+        run: ruff format --check backend
+
+      - name: Validate rules dataset
+        env:
+          PYTHONPATH: backend
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from app.domains.rules.importer import load_rules_dataset
+
+          dataset = load_rules_dataset(Path("rules/carta-arcanum-2.1.4.rules.json"))
+          print(
+              f"Validated {dataset.game} {dataset.rules_version}: "
+              f"{len(dataset.building_definitions)} buildings, "
+              f"{len(dataset.production_recipes)} recipes"
+          )
+          PY
+
+      - name: Migration and rules import check
+        env:
+          DATABASE_URL: sqlite+pysqlite:///./ci_rules.db
+          PYTHONPATH: backend
+        run: |
+          alembic -c backend/alembic.ini upgrade head
+          python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
+
+      - name: Unit tests
+        env:
+          PYTHONPATH: backend
+        run: pytest backend/tests -m unit
+
+      - name: Functional API tests
+        env:
+          PYTHONPATH: backend
+        run: pytest backend/tests -m functional
+
+      - name: Coverage gate
+        env:
+          PYTHONPATH: backend
+        run: pytest backend/tests --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=70
+
+  mysql-integration:
+    name: MySQL integration
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: carta_arcanum
+          MYSQL_USER: carta
+          MYSQL_PASSWORD: carta
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Run MySQL migrations
+        env:
+          DATABASE_URL: mysql+pymysql://carta:carta@127.0.0.1:3306/carta_arcanum
+          PYTHONPATH: backend
+        run: alembic -c backend/alembic.ini upgrade head
+
+      - name: Import rules into MySQL
+        env:
+          DATABASE_URL: mysql+pymysql://carta:carta@127.0.0.1:3306/carta_arcanum
+          PYTHONPATH: backend
+        run: python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
+
+      - name: MySQL integration tests
+        env:
+          DATABASE_URL: mysql+pymysql://carta:carta@127.0.0.1:3306/carta_arcanum
+          PYTHONPATH: backend
+        run: pytest backend/tests -m integration
