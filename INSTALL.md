@@ -8,7 +8,7 @@ WSL with Ubuntu.
 - Linux, preferably Ubuntu 22.04 or newer.
 - Python 3.11 or newer.
 - MySQL 8 or compatible.
-- Node.js 20 or newer once the React frontend is added.
+- Node.js 20 or newer.
 
 ## Backend Quick Start
 
@@ -123,6 +123,33 @@ PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rule
 
 ## Frontend
 
-The React frontend has not been scaffolded yet. Once it exists, this guide
-should include Node.js installation, frontend install, and frontend run
-commands.
+Install Node.js 20 or newer using your preferred Linux package manager or
+NodeSource.
+
+Install frontend dependencies:
+
+```bash
+cd frontend
+npm install
+```
+
+Run the frontend:
+
+```bash
+npm run dev
+```
+
+The app should be available at:
+
+```text
+http://127.0.0.1:5173
+```
+
+Run frontend checks:
+
+```bash
+npm run lint
+npm run typecheck
+npm test -- --run
+npm run build
+```

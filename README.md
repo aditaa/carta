@@ -86,6 +86,20 @@ http://127.0.0.1:8000/api/v1/health
 
 See `INSTALL.md` for the full setup guide.
 
+Frontend quick start:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Then open:
+
+```text
+http://127.0.0.1:5173
+```
+
 ## Quality Checks
 
 CI runs on Ubuntu for pushes to `main` or `master` and for pull requests.
@@ -101,6 +115,16 @@ DATABASE_URL=sqlite+pysqlite:///./ci_rules.db PYTHONPATH=backend python -m app.c
 PYTHONPATH=backend pytest backend/tests -m unit
 PYTHONPATH=backend pytest backend/tests -m functional
 PYTHONPATH=backend pytest backend/tests --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=70
+```
+
+Frontend checks:
+
+```bash
+cd frontend
+npm run lint
+npm run typecheck
+npm test -- --run
+npm run build
 ```
 
 CI also runs a MySQL integration job with a real MySQL 8 service:
@@ -135,12 +159,12 @@ See `ROADMAP.md` for the milestone todo list.
 
 ## Development Status
 
-This repository is in project setup mode. Current backend foundations include
-rules validation/import, auth visibility scaffolding, building registry CRUD,
-and upkeep preview calculations. The next build steps are:
+This repository is in project setup mode. Current foundations include rules
+validation/import, auth visibility scaffolding, building registry CRUD, upkeep
+preview calculations, and a React dashboard shell. The next build steps are:
 
-1. Create the React frontend skeleton.
-2. Add real session or token-based login.
-3. Continue final-checking the manually maintained rules dataset.
-4. Add production totals and deficit/surplus calculations.
+1. Add real session or token-based login.
+2. Continue final-checking the manually maintained rules dataset.
+3. Add production totals and deficit/surplus calculations.
+4. Add editable frontend registry workflows.
 5. Add graph visualization and dependency solving.

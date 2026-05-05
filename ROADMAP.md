@@ -5,8 +5,8 @@ This is the high-level todo list for building Carta Arcanum.
 ## Phase 1: Project Skeleton
 
 - [x] Create FastAPI backend app structure.
-- [ ] Create React frontend app structure.
-- [ ] Add shared development commands for running backend and frontend.
+- [x] Create React frontend app structure.
+- [x] Add shared development commands for running backend and frontend.
 - [x] Add MySQL connection configuration.
 - [x] Add Linux install guide.
 - [x] Add baseline linting and test setup.
@@ -43,7 +43,7 @@ This is the high-level todo list for building Carta Arcanum.
 - [x] Track building counts by owner.
 - [x] Scope registry views by user and house permissions.
 - [x] Add API endpoints for building registry CRUD.
-- [ ] Build the first frontend registry view.
+- [x] Build the first frontend registry view.
 
 ## Phase 5: Upkeep And Resource Totals
 
