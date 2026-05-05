@@ -39,7 +39,8 @@ curl http://127.0.0.1:8000/api/v1/health
 Run backend tests:
 
 ```bash
-PYTHONPATH=backend pytest backend/tests
+PYTHONPATH=backend pytest backend/tests -m unit
+PYTHONPATH=backend pytest backend/tests -m functional
 ```
 
 Run the full local CI check:
@@ -47,7 +48,8 @@ Run the full local CI check:
 ```bash
 PYTHONPATH=backend ruff check backend
 ruff format --check backend
-PYTHONPATH=backend pytest backend/tests
+PYTHONPATH=backend pytest backend/tests -m unit
+PYTHONPATH=backend pytest backend/tests -m functional
 ```
 
 ## Configuration

@@ -32,7 +32,8 @@ Before opening a pull request, run:
 ```bash
 PYTHONPATH=backend ruff check backend
 ruff format --check backend
-PYTHONPATH=backend pytest backend/tests
+PYTHONPATH=backend pytest backend/tests -m unit
+PYTHONPATH=backend pytest backend/tests -m functional
 ```
 
 ## Contribution Workflow

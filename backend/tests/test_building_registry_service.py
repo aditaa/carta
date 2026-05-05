@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -17,6 +18,8 @@ from app.domains.buildings.service import (
 from app.domains.rules.importer import load_rules_dataset
 
 RULES_FILE = Path(__file__).resolve().parents[2] / "rules" / "carta-arcanum-2.1.4.rules.json"
+
+pytestmark = pytest.mark.unit
 
 
 def build_test_session():

@@ -34,7 +34,12 @@ jobs:
       - name: Ruff format check
         run: ruff format --check backend
 
-      - name: Backend tests
+      - name: Unit tests
         env:
           PYTHONPATH: backend
-        run: pytest backend/tests
+        run: pytest backend/tests -m unit
+
+      - name: Functional API tests
+        env:
+          PYTHONPATH: backend
+        run: pytest backend/tests -m functional

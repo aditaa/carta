@@ -16,6 +16,8 @@ from app.domains.rules.schemas import ProductionRecipe, RulesRef
 
 RULES_FILE = Path(__file__).resolve().parents[2] / "rules" / "carta-arcanum-2.1.4.rules.json"
 
+pytestmark = pytest.mark.unit
+
 
 def test_load_rules_dataset_validates_schema_and_references() -> None:
     dataset = load_rules_dataset(RULES_FILE)
