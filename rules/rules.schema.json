@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/carta-arcanum/rules.schema.json",
+  "title": "Carta Arcanum Rules",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "game",
+    "rules_version",
+    "currencies",
+    "resources",
+    "units",
+    "settlement_tiers",
+    "building_definitions",
+    "production_recipes",
+    "ownership_rules"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema_version": { "type": "string" },
+    "game": { "type": "string" },
+    "rules_version": { "type": "string" },
+    "metadata": { "type": "object" },
+    "currencies": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/currency" }
+    },
+    "resources": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/resource" }
+    },
+    "units": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/unit" }
+    },
+    "settlement_tiers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/settlement_tier" }
+    },
+    "building_definitions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/building_definition" }
+    },
+    "production_recipes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/production_recipe" }
+    },
+    "ownership_rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ownership_rule" }
+    },
+    "transports": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "titles": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "phases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/phase" }
+    },
+    "solver_defaults": { "type": "object" },
+    "maintenance_status": { "type": "object" }
+  },
+  "$defs": {
+    "ref": {
+      "type": "object",
+      "required": ["item_type", "item_key", "amount"],
+      "properties": {
+        "item_type": {
+          "type": "string",
+          "enum": ["resource", "currency", "unit", "special"]
+        },
+        "item_key": { "type": "string" },
+        "amount": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "currency": {
+      "type": "object",
+      "required": ["key", "name"],
+      "properties": {
+        "key": { "type": "string" },
+        "name": { "type": "string" },
+        "copper_value": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "resource": {
+      "type": "object",
+      "required": ["key", "name"],
+      "properties": {
+        "key": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "unit": {
+      "type": "object",
+      "required": ["key", "name", "category"],
+      "properties": {
+        "key": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "attack": { "type": "integer" },
+        "defense": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "settlement_tier": {
+      "type": "object",
+      "required": ["key", "name", "min_buildings", "max_buildings"],
+      "properties": {
+        "key": { "type": "string" },
+        "name": { "type": "string" },
+        "min_buildings": { "type": "integer" },
+        "max_buildings": { "type": "integer" },
+        "upgrade_cost": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ref" }
+        },
+        "upkeep": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ref" }
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "building_definition": {
+      "type": "object",
+      "required": ["key", "name", "category"],
+      "properties": {
+        "key": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "map_visible": { "type": "boolean" },
+        "settlement_requirement": { "type": ["string", "null"] },
+        "requirements": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "effects": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "build_cost": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ref" }
+        },
+        "upkeep": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ref" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "production_recipe": {
+      "type": "object",
+      "required": ["key", "building_key", "recipe_type"],
+      "properties": {
+        "key": { "type": "string" },
+        "building_key": { "type": "string" },
+        "recipe_type": { "type": "string" },
+        "inputs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ref" }
+        },
+        "outputs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ref" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ownership_rule": {
+      "type": "object",
+      "required": ["entity_type"],
+      "properties": {
+        "entity_type": { "type": "string" },
+        "allowed": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "not_allowed": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "phase": {
+      "type": "object",
+      "required": ["key", "name"],
+      "properties": {
+        "key": { "type": "string" },
+        "name": { "type": "string" },
+        "requirements": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

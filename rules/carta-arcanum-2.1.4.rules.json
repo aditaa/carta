@@ -1,0 +1,1764 @@
+{
+  "$schema": "./rules.schema.json",
+  "schema_version": "0.2.0",
+  "game": "Carta Arcanum",
+  "rules_version": "2.1.4",
+  "metadata": {
+    "maintained_by": "manual",
+    "notes": "Manual source dataset. SQL records are imported from this file and should not be edited directly. Core settlement, basic building, and advanced building tables have been seeded from the 2.1.4 PDF for review."
+  },
+  "currencies": [
+    { "key": "gold_bar", "name": "Gold Bar", "copper_value": 972 },
+    { "key": "crown", "name": "Crown", "copper_value": 324 },
+    { "key": "bit", "name": "Bit", "copper_value": 54 },
+    { "key": "piece", "name": "Piece", "copper_value": 18 },
+    { "key": "tower", "name": "Tower", "copper_value": 3 },
+    { "key": "copper", "name": "Copper", "copper_value": 1 }
+  ],
+  "resources": [
+    { "key": "wood", "name": "Wood", "category": "basic" },
+    { "key": "stone", "name": "Stone", "category": "basic" },
+    { "key": "metal", "name": "Metal", "category": "basic" },
+    { "key": "crops", "name": "Crops", "category": "basic" },
+    { "key": "livestock", "name": "Livestock", "category": "basic" },
+    { "key": "furs", "name": "Furs", "category": "basic" },
+    { "key": "rarities", "name": "Rarities", "category": "basic" },
+    { "key": "piety", "name": "Piety", "category": "basic" },
+    { "key": "fish", "name": "Fish", "category": "basic" },
+    { "key": "arcana", "name": "Arcana", "category": "basic" },
+    { "key": "gold", "name": "Gold", "category": "wildcard" }
+  ],
+  "units": [
+    { "key": "citizen", "name": "Citizen", "category": "labor" },
+    { "key": "peasant", "name": "Peasant", "category": "labor" },
+    { "key": "lumberjack", "name": "Lumberjack", "category": "production" },
+    { "key": "mason", "name": "Mason", "category": "production" },
+    { "key": "miner", "name": "Miner", "category": "production" },
+    { "key": "farrier", "name": "Farrier", "category": "production" },
+    { "key": "pelter", "name": "Pelter", "category": "production" },
+    { "key": "mercator", "name": "Mercator", "category": "production" },
+    { "key": "fidelis", "name": "Fidelis", "category": "religious" },
+    { "key": "arcanist", "name": "Arcanist", "category": "magic" },
+    { "key": "carpenter", "name": "Carpenter", "category": "production_specialist" },
+    { "key": "master_mason", "name": "Master Mason", "category": "production_specialist" },
+    { "key": "blacksmith", "name": "Blacksmith", "category": "production_specialist" },
+    { "key": "reeve", "name": "Reeve", "category": "support" },
+    { "key": "master_butcher", "name": "Master Butcher", "category": "production_specialist" },
+    { "key": "master_tanner", "name": "Master Tanner", "category": "production_specialist" },
+    { "key": "auctor", "name": "Auctor", "category": "arts" },
+    { "key": "pontifex", "name": "Pontifex", "category": "religious" },
+    { "key": "artifex", "name": "Artifex", "category": "magic" },
+    { "key": "victual", "name": "Victual", "category": "special" },
+    { "key": "weaponworks", "name": "Weaponswork", "category": "special" },
+    { "key": "armor", "name": "Armor", "category": "special" },
+    { "key": "scholar", "name": "Scholar", "category": "scholarly" },
+    { "key": "master_merchant", "name": "Master Merchant", "category": "commerce" },
+    { "key": "ignifer", "name": "Ignifer", "category": "exploration" },
+    { "key": "innkeeper", "name": "Innkeeper", "category": "support" },
+    { "key": "archer", "name": "Archer", "category": "military", "attack": 3, "defense": 1 },
+    { "key": "herberist", "name": "Herberist", "category": "alchemical" },
+    { "key": "malefactor", "name": "Malefactor", "category": "nefarious" },
+    { "key": "spy", "name": "Spy", "category": "nefarious", "attack": 0, "defense": 0 },
+    { "key": "pirate", "name": "Pirate", "category": "nefarious", "attack": 2, "defense": 2 },
+    { "key": "mariner", "name": "Mariner", "category": "maritime", "attack": 1, "defense": 1 },
+    { "key": "scout", "name": "Scout", "category": "military", "attack": 1, "defense": 1 },
+    { "key": "bandit", "name": "Bandit", "category": "nefarious", "attack": 2, "defense": 2 },
+    { "key": "fyrd", "name": "Fyrd", "category": "military", "attack": 1, "defense": 1 },
+    { "key": "ward", "name": "Ward", "category": "military", "attack": 1, "defense": 2 },
+    { "key": "man_at_arms", "name": "Man-At-Arms", "category": "military", "attack": 2, "defense": 2 },
+    { "key": "knight", "name": "Knight", "category": "military", "attack": 5, "defense": 5 },
+    { "key": "mercenary", "name": "Mercenary", "category": "military", "attack": 2, "defense": 2 },
+    { "key": "thegn", "name": "Thegn", "category": "military", "attack": 3, "defense": 5 },
+    { "key": "cataphract", "name": "Cataphract", "category": "military", "attack": 10, "defense": 10 },
+    { "key": "paragon", "name": "Paragon", "category": "military", "attack": 25, "defense": 15 },
+    { "key": "ship_master", "name": "Ship Master", "category": "maritime", "attack": 3, "defense": 3 },
+    { "key": "burgess", "name": "Burgess", "category": "political" },
+    { "key": "tinkerer", "name": "Tinkerer", "category": "support" }
+  ],
+  "settlement_tiers": [
+    {
+      "key": "claimed_land",
+      "name": "Claimed Land",
+      "min_buildings": 0,
+      "max_buildings": 0,
+      "upgrade_cost": [],
+      "upkeep": [],
+      "prerequisites": []
+    },
+    {
+      "key": "homestead",
+      "name": "Homestead",
+      "min_buildings": 1,
+      "max_buildings": 6,
+      "upgrade_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 3 },
+        { "item_type": "resource", "item_key": "furs", "amount": 3 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 },
+        { "item_type": "currency", "item_key": "bit", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 },
+        { "item_type": "resource", "item_key": "crops", "amount": 2 },
+        { "item_type": "currency", "item_key": "piece", "amount": 1 }
+      ],
+      "prerequisites": ["claimed_land"]
+    },
+    {
+      "key": "shire",
+      "name": "Shire",
+      "min_buildings": 7,
+      "max_buildings": 12,
+      "upgrade_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 12 },
+        { "item_type": "resource", "item_key": "stone", "amount": 6 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 12 },
+        { "item_type": "currency", "item_key": "crown", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 5 },
+        { "item_type": "resource", "item_key": "crops", "amount": 5 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 2 },
+        { "item_type": "currency", "item_key": "bit", "amount": 1 }
+      ],
+      "prerequisites": [
+        "homestead",
+        "all_6_surrounding_hexes_settled_and_homestead"
+      ]
+    },
+    {
+      "key": "village",
+      "name": "Village",
+      "min_buildings": 13,
+      "max_buildings": 30,
+      "upgrade_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 12 },
+        { "item_type": "resource", "item_key": "stone", "amount": 24 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 18 },
+        { "item_type": "currency", "item_key": "crown", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 9 },
+        { "item_type": "resource", "item_key": "crops", "amount": 9 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 12 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 }
+      ],
+      "prerequisites": [
+        "shire",
+        "all_6_surrounding_hexes_shires",
+        "12_hexes_beyond_at_least_homesteads"
+      ]
+    },
+    {
+      "key": "city",
+      "name": "City",
+      "min_buildings": 31,
+      "max_buildings": 80,
+      "upgrade_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 24 },
+        { "item_type": "resource", "item_key": "stone", "amount": 24 },
+        { "item_type": "resource", "item_key": "metal", "amount": 12 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 24 },
+        { "item_type": "currency", "item_key": "gold_bar", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 18 },
+        { "item_type": "resource", "item_key": "crops", "amount": 18 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 24 },
+        { "item_type": "currency", "item_key": "crown", "amount": 1 }
+      ],
+      "prerequisites": [
+        "village",
+        "all_6_surrounding_hexes_villages",
+        "12_hexes_beyond_at_least_shires",
+        "18_hexes_beyond_those_at_least_homesteads"
+      ]
+    }
+  ],
+  "building_definitions": [
+    {
+      "key": "orchard",
+      "name": "Orchard",
+      "category": "basic",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Basic building paired with Lumber Mill. Produces Wood."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "crops", "amount": 2 },
+        { "item_type": "resource", "item_key": "wood", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ]
+    },
+    {
+      "key": "quarry",
+      "name": "Quarry",
+      "category": "basic",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Basic building paired with Masonry. Produces Stone."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 3 },
+        { "item_type": "resource", "item_key": "stone", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "stone", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ]
+    },
+    {
+      "key": "mine",
+      "name": "Mine",
+      "category": "basic",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Basic building paired with Smithy. Produces Metal."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 3 },
+        { "item_type": "resource", "item_key": "metal", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "metal", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ]
+    },
+    {
+      "key": "farm",
+      "name": "Farm",
+      "category": "basic",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Basic building paired with Estate. Produces Crops and can convert Citizens into Peasants."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "livestock", "amount": 4 },
+        { "item_type": "resource", "item_key": "crops", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "crops", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ]
+    },
+    {
+      "key": "stable",
+      "name": "Stable",
+      "category": "basic",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Basic building paired with Butcher. Produces Livestock."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 3 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "livestock", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ]
+    },
+    {
+      "key": "camp",
+      "name": "Camp",
+      "category": "basic",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Basic building paired with Tanner. Produces Furs."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "furs", "amount": 3 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "furs", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ]
+    },
+    {
+      "key": "market",
+      "name": "Market",
+      "category": "basic",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Basic building paired with Theater. Produces Rarities."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 2 },
+        { "item_type": "resource", "item_key": "furs", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ]
+    },
+    {
+      "key": "shrine",
+      "name": "Shrine",
+      "category": "basic",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Basic building paired with Temple. Produces Piety."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 3 },
+        { "item_type": "resource", "item_key": "furs", "amount": 3 },
+        { "item_type": "resource", "item_key": "stone", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "piety", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ]
+    },
+    {
+      "key": "arcane_circle",
+      "name": "Arcane Circle",
+      "category": "basic",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Basic building paired with Mage Tower. Produces Arcana."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 5 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 5 },
+        { "item_type": "resource", "item_key": "stone", "amount": 5 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "arcana", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 }
+      ]
+    },
+    {
+      "key": "lumber_mill",
+      "name": "Lumber Mill",
+      "category": "advanced",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Each hex can only have 1 of each type of advanced building."],
+      "effects": ["Advanced pair for Orchard. Gives related basic buildings in the same hex +1 production."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 9 },
+        { "item_type": "resource", "item_key": "metal", "amount": 6 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 8 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "wood", "amount": 3 },
+        { "item_type": "currency", "item_key": "piece", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ]
+    },
+    {
+      "key": "masonry",
+      "name": "Masonry",
+      "category": "advanced",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Each hex can only have 1 of each type of advanced building."],
+      "effects": ["Advanced pair for Quarry. Gives related basic buildings in the same hex +1 production."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 9 },
+        { "item_type": "resource", "item_key": "metal", "amount": 6 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 8 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "stone", "amount": 3 },
+        { "item_type": "currency", "item_key": "piece", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ]
+    },
+    {
+      "key": "smithy",
+      "name": "Smithy",
+      "category": "advanced",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Each hex can only have 1 of each type of advanced building."],
+      "effects": ["Advanced pair for Mine. Gives related basic buildings in the same hex +1 production."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "metal", "amount": 9 },
+        { "item_type": "resource", "item_key": "stone", "amount": 6 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 8 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "metal", "amount": 3 },
+        { "item_type": "currency", "item_key": "piece", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ]
+    },
+    {
+      "key": "estate",
+      "name": "Estate",
+      "category": "advanced",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Each hex can only have 1 of each type of advanced building."],
+      "effects": ["Advanced pair for Farm. Gives related basic buildings in the same hex +1 production."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 9 },
+        { "item_type": "resource", "item_key": "wood", "amount": 6 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 8 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "crops", "amount": 3 },
+        { "item_type": "currency", "item_key": "piece", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ]
+    },
+    {
+      "key": "butcher",
+      "name": "Butcher",
+      "category": "advanced",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Each hex can only have 1 of each type of advanced building."],
+      "effects": ["Advanced pair for Stable. Gives related basic buildings in the same hex +1 production."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "metal", "amount": 9 },
+        { "item_type": "resource", "item_key": "furs", "amount": 6 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 8 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "livestock", "amount": 3 },
+        { "item_type": "currency", "item_key": "piece", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ]
+    },
+    {
+      "key": "tanner",
+      "name": "Tanner",
+      "category": "advanced",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Each hex can only have 1 of each type of advanced building."],
+      "effects": ["Advanced pair for Camp. Gives related basic buildings in the same hex +1 production."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "furs", "amount": 9 },
+        { "item_type": "resource", "item_key": "metal", "amount": 6 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 8 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "furs", "amount": 3 },
+        { "item_type": "currency", "item_key": "piece", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ]
+    },
+    {
+      "key": "theater",
+      "name": "Theater",
+      "category": "advanced",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Each hex can only have 1 of each type of advanced building."],
+      "effects": ["Advanced pair for Market. Gives related basic buildings in the same hex +1 production."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 9 },
+        { "item_type": "resource", "item_key": "stone", "amount": 6 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 8 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 3 },
+        { "item_type": "currency", "item_key": "piece", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ]
+    },
+    {
+      "key": "temple",
+      "name": "Temple",
+      "category": "advanced",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [
+        "Each hex can only have 1 of each type of advanced building.",
+        "Build cost was not visible in the core construction cost table extraction and needs PDF review."
+      ],
+      "effects": ["Advanced pair for Shrine. Gives related basic buildings in the same hex +1 production."],
+      "build_cost": [],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "piety", "amount": 3 },
+        { "item_type": "currency", "item_key": "piece", "amount": 4 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ]
+    },
+    {
+      "key": "mage_tower",
+      "name": "Mage Tower",
+      "category": "advanced",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Each hex can only have 1 of each type of advanced building."],
+      "effects": ["Advanced pair for Arcane Circle. Gives related basic buildings in the same hex +1 production."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "arcana", "amount": 5 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 10 },
+        { "item_type": "resource", "item_key": "stone", "amount": 15 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 15 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 12 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "arcana", "amount": 5 },
+        { "item_type": "currency", "item_key": "bit", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ]
+    },
+    {
+      "key": "university",
+      "name": "University",
+      "category": "unique",
+      "map_visible": true,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Once per event, submit a singular research question to The Archives."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 20 },
+        { "item_type": "resource", "item_key": "metal", "amount": 15 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 10 },
+        { "item_type": "currency", "item_key": "crown", "amount": 5 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 }
+      ],
+      "upkeep": [
+        { "item_type": "currency", "item_key": "crown", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 }
+      ]
+    },
+    {
+      "key": "bazaar",
+      "name": "Bazaar",
+      "category": "unique",
+      "map_visible": false,
+      "settlement_requirement": "shire",
+      "requirements": ["Must be built in a settlement of at least Shire size."],
+      "effects": ["Once per event, exchange any 3 of the same basic resource for 3 of a different basic resource at the Counting House."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 15 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 12 },
+        { "item_type": "resource", "item_key": "wood", "amount": 5 },
+        { "item_type": "currency", "item_key": "crown", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "stone", "amount": 5 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 3 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 }
+      ]
+    },
+    {
+      "key": "lighthouse",
+      "name": "Lighthouse",
+      "category": "unique",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Must be built in a settlement with a Harbor or Port."],
+      "effects": ["Ships traveling to or from the settlement have -2 to maritime calamity rolls."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 4 },
+        { "item_type": "resource", "item_key": "piety", "amount": 1 },
+        { "item_type": "currency", "item_key": "piece", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "piety", "amount": 2 },
+        { "item_type": "resource", "item_key": "stone", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ]
+    },
+    {
+      "key": "inn",
+      "name": "Inn",
+      "category": "unique",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Must be built in a settlement with a Haven or Plaza."],
+      "effects": ["Caravans traveling to or from the settlement have -2 to calamity rolls."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 4 },
+        { "item_type": "resource", "item_key": "piety", "amount": 1 },
+        { "item_type": "currency", "item_key": "piece", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "piety", "amount": 2 },
+        { "item_type": "resource", "item_key": "stone", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ]
+    },
+    {
+      "key": "noble_keep",
+      "name": "Noble Keep",
+      "category": "unique",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Must be owned by an individual."],
+      "effects": ["Once per turn, expand the surrounding claimed land boundary by one hex in total."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "metal", "amount": 6 },
+        { "item_type": "resource", "item_key": "stone", "amount": 3 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 3 },
+        { "item_type": "currency", "item_key": "crown", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "metal", "amount": 2 },
+        { "item_type": "resource", "item_key": "piety", "amount": 2 },
+        { "item_type": "currency", "item_key": "crown", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ]
+    },
+    {
+      "key": "botanical_garden",
+      "name": "Botanical Garden",
+      "category": "unique",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Gain alchemy herb ingredient cards: 6 at Grand Gathering, 2 at expeditions."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "livestock", "amount": 3 },
+        { "item_type": "resource", "item_key": "crops", "amount": 3 },
+        { "item_type": "currency", "item_key": "bit", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "livestock", "amount": 2 },
+        { "item_type": "resource", "item_key": "crops", "amount": 3 },
+        { "item_type": "currency", "item_key": "piece", "amount": 1 }
+      ]
+    },
+    {
+      "key": "gemstone_mine",
+      "name": "Gemstone Mine",
+      "category": "unique",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Gain alchemy gem ingredient cards: 6 at Grand Gathering, 2 at expeditions."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 3 },
+        { "item_type": "resource", "item_key": "metal", "amount": 3 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 3 },
+        { "item_type": "currency", "item_key": "bit", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "stone", "amount": 2 },
+        { "item_type": "resource", "item_key": "metal", "amount": 3 },
+        { "item_type": "currency", "item_key": "piece", "amount": 1 }
+      ]
+    },
+    {
+      "key": "monument",
+      "name": "Monument",
+      "category": "unique",
+      "map_visible": true,
+      "settlement_requirement": "homestead",
+      "requirements": ["Must submit a by-hand drawing or painting of the proposed monument."],
+      "effects": ["Shows on the Carta Arcanum Map for all to see."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 15 },
+        { "item_type": "resource", "item_key": "metal", "amount": 15 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 15 },
+        { "item_type": "currency", "item_key": "crown", "amount": 10 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 5 }
+      ],
+      "upkeep": []
+    },
+    {
+      "key": "dungeon",
+      "name": "Dungeon",
+      "category": "unique",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Enables Malefactors and Nefarious Domain Actions."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 2 },
+        { "item_type": "resource", "item_key": "wood", "amount": 2 },
+        { "item_type": "resource", "item_key": "metal", "amount": 2 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 2 },
+        { "item_type": "resource", "item_key": "piety", "amount": 1 },
+        { "item_type": "currency", "item_key": "crown", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "stone", "amount": 1 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 1 },
+        { "item_type": "currency", "item_key": "bit", "amount": 1 }
+      ]
+    },
+    {
+      "key": "fort",
+      "name": "Fort",
+      "category": "unique",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Fortified military structure where Peasants and Fyrds are drafted into service."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "metal", "amount": 3 },
+        { "item_type": "resource", "item_key": "wood", "amount": 3 },
+        { "item_type": "resource", "item_key": "stone", "amount": 3 },
+        { "item_type": "currency", "item_key": "tower", "amount": 4 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 }
+      ],
+      "upkeep": [
+        { "item_type": "unit", "item_key": "fyrd", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ]
+    },
+    {
+      "key": "barracks",
+      "name": "Barracks",
+      "category": "unique",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": [],
+      "effects": ["Military building for training Knights."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "livestock", "amount": 6 },
+        { "item_type": "resource", "item_key": "stone", "amount": 15 },
+        { "item_type": "resource", "item_key": "metal", "amount": 9 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 10 }
+      ],
+      "upkeep": [
+        { "item_type": "unit", "item_key": "fyrd", "amount": 3 },
+        { "item_type": "currency", "item_key": "piece", "amount": 4 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 }
+      ]
+    },
+    {
+      "key": "road",
+      "name": "Road",
+      "category": "defensive_structure",
+      "map_visible": true,
+      "settlement_requirement": null,
+      "requirements": ["Can be built on claimed and settled lands."],
+      "effects": ["Grants +1 Defense per connected settlement, maximum +6 Defense per hex. Per-hex yearly upkeep: 1 Tower total if one or more Road segments exist."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "livestock", "amount": 1 },
+        { "item_type": "resource", "item_key": "stone", "amount": 1 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "stone", "amount": 1 }
+      ]
+    },
+    {
+      "key": "wall",
+      "name": "Wall",
+      "category": "defensive_structure",
+      "map_visible": true,
+      "settlement_requirement": "homestead",
+      "requirements": ["Up to 6 Walls may be placed around a hex, one per side."],
+      "effects": ["Grants +1 Defense per Wall. Per-hex yearly upkeep: 1 Piece total if one or more Walls exist."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 4 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "stone", "amount": 1 }
+      ]
+    },
+    {
+      "key": "watchtower",
+      "name": "Watchtower",
+      "category": "defensive",
+      "map_visible": true,
+      "settlement_requirement": "homestead",
+      "requirements": ["Maximum 1 Watchtower per Settlement."],
+      "effects": ["Grants +1 Defense."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 4 },
+        { "item_type": "currency", "item_key": "piece", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "stone", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ]
+    },
+    {
+      "key": "motte_and_bailey",
+      "name": "Motte-and-Bailey",
+      "category": "defensive",
+      "map_visible": true,
+      "settlement_requirement": "homestead",
+      "requirements": ["Maximum 1 Motte-and-Bailey per Settlement."],
+      "effects": ["Grants +1 Defense. Fyrds in a garrison on this hex are worth double attack and defense stats."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 3 },
+        { "item_type": "resource", "item_key": "wood", "amount": 2 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "stone", "amount": 1 },
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ]
+    },
+    {
+      "key": "cathedral",
+      "name": "Cathedral",
+      "category": "defensive",
+      "map_visible": true,
+      "settlement_requirement": "homestead",
+      "requirements": ["Maximum 1 Cathedral per Settlement.", "Only one Cathedral per Religion.", "Must be owned by the High Priest of the religion."],
+      "effects": ["Grants +1 Defense. Lowers Peasant upkeep for this settlement by 5."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "piety", "amount": 15 },
+        { "item_type": "resource", "item_key": "furs", "amount": 15 },
+        { "item_type": "resource", "item_key": "metal", "amount": 15 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 15 },
+        { "item_type": "resource", "item_key": "stone", "amount": 15 },
+        { "item_type": "resource", "item_key": "wood", "amount": 15 },
+        { "item_type": "resource", "item_key": "crops", "amount": 6 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 6 },
+        { "item_type": "currency", "item_key": "crown", "amount": 10 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 6 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "furs", "amount": 6 },
+        { "item_type": "resource", "item_key": "stone", "amount": 10 },
+        { "item_type": "resource", "item_key": "piety", "amount": 6 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 5 },
+        { "item_type": "currency", "item_key": "crown", "amount": 2 }
+      ]
+    },
+    {
+      "key": "castle",
+      "name": "Castle",
+      "category": "defensive",
+      "map_visible": true,
+      "settlement_requirement": "homestead",
+      "requirements": ["Maximum 1 Castle per Settlement; 1 Castle per House.", "Must be owned by an individual that is a House Leader.", "Cannot be built in a settlement with a Palace."],
+      "effects": ["Grants +1 Defense. Lowers Peasant upkeep for this settlement by 6."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "furs", "amount": 15 },
+        { "item_type": "resource", "item_key": "metal", "amount": 15 },
+        { "item_type": "resource", "item_key": "stone", "amount": 15 },
+        { "item_type": "resource", "item_key": "wood", "amount": 15 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 15 },
+        { "item_type": "resource", "item_key": "crops", "amount": 6 },
+        { "item_type": "currency", "item_key": "crown", "amount": 10 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 6 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "furs", "amount": 6 },
+        { "item_type": "resource", "item_key": "stone", "amount": 10 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 5 },
+        { "item_type": "currency", "item_key": "crown", "amount": 2 }
+      ]
+    },
+    {
+      "key": "palace",
+      "name": "Palace",
+      "category": "defensive",
+      "map_visible": true,
+      "settlement_requirement": "homestead",
+      "requirements": ["Maximum 1 Palace per Settlement; 1 Palace per Kingdom.", "Must be owned by an individual that is a Monarch.", "Cannot be built in a settlement with a Castle."],
+      "effects": ["Grants +5 Defense. Lowers Peasant upkeep for this settlement by 8."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "furs", "amount": 30 },
+        { "item_type": "resource", "item_key": "metal", "amount": 30 },
+        { "item_type": "resource", "item_key": "stone", "amount": 30 },
+        { "item_type": "resource", "item_key": "wood", "amount": 30 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 30 },
+        { "item_type": "resource", "item_key": "crops", "amount": 30 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 30 },
+        { "item_type": "currency", "item_key": "crown", "amount": 30 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 20 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "furs", "amount": 10 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 10 },
+        { "item_type": "resource", "item_key": "stone", "amount": 20 },
+        { "item_type": "currency", "item_key": "crown", "amount": 6 }
+      ]
+    },
+    {
+      "key": "watch_post",
+      "name": "Watch Post",
+      "category": "garrison",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Only one Garrison building per hex.", "Must match settlement development level.", "Maximum Military Units: 3 plus 1 Commander slot."],
+      "effects": ["Allows Defense Warpost on settled land."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "resource", "item_key": "stone", "amount": 1 },
+        { "item_type": "resource", "item_key": "crops", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "piece", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "unit", "item_key": "victual", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ]
+    },
+    {
+      "key": "garrison_hall",
+      "name": "Garrison Hall",
+      "category": "garrison",
+      "map_visible": false,
+      "settlement_requirement": "shire",
+      "requirements": ["Only one Garrison building per hex.", "Must match settlement development level.", "Maximum Military Units: 6 plus 1 Commander slot."],
+      "effects": ["Allows Defense Warpost on settled land."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 3 },
+        { "item_type": "resource", "item_key": "stone", "amount": 2 },
+        { "item_type": "resource", "item_key": "crops", "amount": 2 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 },
+        { "item_type": "currency", "item_key": "bit", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "unit", "item_key": "victual", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ]
+    },
+    {
+      "key": "bastion_hold",
+      "name": "Bastion Hold",
+      "category": "garrison",
+      "map_visible": false,
+      "settlement_requirement": "village",
+      "requirements": ["Only one Garrison building per hex.", "Must match settlement development level.", "Maximum Military Units: 9 plus 1 Commander slot."],
+      "effects": ["Allows Defense Warpost on settled land."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 4 },
+        { "item_type": "resource", "item_key": "stone", "amount": 3 },
+        { "item_type": "resource", "item_key": "crops", "amount": 3 },
+        { "item_type": "resource", "item_key": "metal", "amount": 2 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 },
+        { "item_type": "currency", "item_key": "bit", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "unit", "item_key": "victual", "amount": 4 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 }
+      ]
+    },
+    {
+      "key": "citadel_keep",
+      "name": "Citadel Keep",
+      "category": "garrison",
+      "map_visible": false,
+      "settlement_requirement": "city",
+      "requirements": ["Only one Garrison building per hex.", "Must match settlement development level.", "Maximum Military Units: 12 plus 1 Commander slot."],
+      "effects": ["Allows Defense Warpost on settled land."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 6 },
+        { "item_type": "resource", "item_key": "stone", "amount": 4 },
+        { "item_type": "resource", "item_key": "crops", "amount": 4 },
+        { "item_type": "resource", "item_key": "metal", "amount": 3 },
+        { "item_type": "resource", "item_key": "rarities", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 }
+      ],
+      "upkeep": [
+        { "item_type": "unit", "item_key": "victual", "amount": 5 },
+        { "item_type": "currency", "item_key": "tower", "amount": 4 }
+      ]
+    },
+    {
+      "key": "shop",
+      "name": "Shop",
+      "category": "mercantilism",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["May be constructed in any hex that contains at least 1 Market building.", "Build cost: Mix of 12 Resources from Wood, Stone, Fur, Metal plus 3 Rarities and 1 Bit."],
+      "effects": ["Generates coin income: Grand Gathering 1d4 Bits; Expeditions 1d4 Pieces."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 3 },
+        { "item_type": "currency", "item_key": "bit", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ]
+    },
+    {
+      "key": "emporium",
+      "name": "Emporium",
+      "category": "mercantilism",
+      "map_visible": false,
+      "settlement_requirement": "village",
+      "requirements": ["Must be built on Village size or higher.", "Must contain at least 1 Theater.", "Build cost: Mix of 24 Resources from Wood, Stone, Fur, Metal plus 3 Rarities and 1 Bit."],
+      "effects": ["Generates coin income: Grand Gathering 1d4 Bits + 4 Bits; Expeditions 1d4 Pieces + 4 Pieces."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 3 },
+        { "item_type": "currency", "item_key": "bit", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 4 },
+        { "item_type": "currency", "item_key": "piece", "amount": 1 }
+      ]
+    },
+    {
+      "key": "harbor",
+      "name": "Harbor",
+      "category": "trade",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Coastal settlement.", "Only 1 trading building of each type for Ships or Caravans in a settlement."],
+      "effects": ["Allows docking 2 small ships or 1 medium ship. Produces 3 Fish at Grand Gathering, 1 Fish at other events."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 4 },
+        { "item_type": "resource", "item_key": "metal", "amount": 2 },
+        { "item_type": "currency", "item_key": "bit", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "currency", "item_key": "piece", "amount": 1 }
+      ]
+    },
+    {
+      "key": "port",
+      "name": "Port",
+      "category": "trade",
+      "map_visible": true,
+      "settlement_requirement": "homestead",
+      "requirements": ["Coastal settlement.", "Only 1 trading building of each type for Ships or Caravans in a settlement."],
+      "effects": ["Allows docking 4 small ships or 2 medium ships. Produces 6 Fish at Grand Gathering, 2 Fish at other events."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 6 },
+        { "item_type": "resource", "item_key": "metal", "amount": 3 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 },
+        { "item_type": "currency", "item_key": "bit", "amount": 1 }
+      ]
+    },
+    {
+      "key": "haven",
+      "name": "Haven",
+      "category": "trade",
+      "map_visible": false,
+      "settlement_requirement": "homestead",
+      "requirements": ["Only 1 trading building of each type for Ships or Caravans in a settlement."],
+      "effects": ["Allows housing 2 Simple Caravans or 1 Extravagant Caravan."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 4 },
+        { "item_type": "resource", "item_key": "metal", "amount": 2 },
+        { "item_type": "currency", "item_key": "bit", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "stone", "amount": 1 },
+        { "item_type": "currency", "item_key": "piece", "amount": 2 }
+      ]
+    },
+    {
+      "key": "plaza",
+      "name": "Plaza",
+      "category": "trade",
+      "map_visible": true,
+      "settlement_requirement": "homestead",
+      "requirements": ["Only 1 trading building of each type for Ships or Caravans in a settlement."],
+      "effects": ["Allows housing 4 Simple Caravans or 2 Extravagant Caravans."],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "stone", "amount": 6 },
+        { "item_type": "resource", "item_key": "metal", "amount": 3 },
+        { "item_type": "currency", "item_key": "bit", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "stone", "amount": 1 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 },
+        { "item_type": "currency", "item_key": "bit", "amount": 1 }
+      ]
+    }
+  ],
+  "production_recipes": [
+    {
+      "key": "orchard_train_lumberjack",
+      "building_key": "orchard",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "lumberjack", "amount": 1 }]
+    },
+    {
+      "key": "quarry_train_mason",
+      "building_key": "quarry",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "mason", "amount": 1 }]
+    },
+    {
+      "key": "mine_train_miner",
+      "building_key": "mine",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "miner", "amount": 1 }]
+    },
+    {
+      "key": "farm_citizen_to_peasants",
+      "building_key": "farm",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "citizen", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "peasant", "amount": 5 }]
+    },
+    {
+      "key": "farm_victual_from_livestock",
+      "building_key": "farm",
+      "recipe_type": "special_output",
+      "inputs": [
+        { "item_type": "resource", "item_key": "crops", "amount": 1 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "victual", "amount": 1 }]
+    },
+    {
+      "key": "farm_victual_from_fish",
+      "building_key": "farm",
+      "recipe_type": "special_output",
+      "inputs": [
+        { "item_type": "resource", "item_key": "crops", "amount": 1 },
+        { "item_type": "resource", "item_key": "fish", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "victual", "amount": 1 }]
+    },
+    {
+      "key": "stable_train_farrier",
+      "building_key": "stable",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "farrier", "amount": 1 }]
+    },
+    {
+      "key": "camp_train_pelter",
+      "building_key": "camp",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "pelter", "amount": 1 }]
+    },
+    {
+      "key": "market_train_mercator",
+      "building_key": "market",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "mercator", "amount": 1 }]
+    },
+    {
+      "key": "shrine_train_fidelis",
+      "building_key": "shrine",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "fidelis", "amount": 1 }]
+    },
+    {
+      "key": "arcane_circle_train_arcanist",
+      "building_key": "arcane_circle",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "arcanist", "amount": 1 }]
+    },
+    {
+      "key": "lumber_mill_train_carpenter",
+      "building_key": "lumber_mill",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "lumberjack", "amount": 2 },
+        { "item_type": "resource", "item_key": "wood", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "carpenter", "amount": 1 }]
+    },
+    {
+      "key": "masonry_train_master_mason",
+      "building_key": "masonry",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "mason", "amount": 2 },
+        { "item_type": "resource", "item_key": "stone", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "master_mason", "amount": 1 }]
+    },
+    {
+      "key": "smithy_train_blacksmith",
+      "building_key": "smithy",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "miner", "amount": 2 },
+        { "item_type": "resource", "item_key": "metal", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "blacksmith", "amount": 1 }]
+    },
+    {
+      "key": "estate_train_reeve",
+      "building_key": "estate",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 },
+        { "item_type": "unit", "item_key": "victual", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "reeve", "amount": 1 }]
+    },
+    {
+      "key": "butcher_train_master_butcher",
+      "building_key": "butcher",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "farrier", "amount": 2 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "master_butcher", "amount": 1 }]
+    },
+    {
+      "key": "tanner_train_master_tanner",
+      "building_key": "tanner",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "pelter", "amount": 2 },
+        { "item_type": "resource", "item_key": "furs", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "master_tanner", "amount": 1 }]
+    },
+    {
+      "key": "theater_train_auctor",
+      "building_key": "theater",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "reeve", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "auctor", "amount": 1 }]
+    },
+    {
+      "key": "temple_train_pontifex",
+      "building_key": "temple",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "fidelis", "amount": 2 },
+        { "item_type": "resource", "item_key": "piety", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "pontifex", "amount": 1 }]
+    },
+    {
+      "key": "mage_tower_train_artifex",
+      "building_key": "mage_tower",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "arcanist", "amount": 2 },
+        { "item_type": "resource", "item_key": "arcana", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "artifex", "amount": 1 }]
+    },
+    {
+      "key": "smithy_create_weaponworks",
+      "building_key": "smithy",
+      "recipe_type": "special_output",
+      "inputs": [
+        { "item_type": "resource", "item_key": "metal", "amount": 1 },
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "weaponworks", "amount": 1 }]
+    },
+    {
+      "key": "tanner_create_armor",
+      "building_key": "tanner",
+      "recipe_type": "special_output",
+      "inputs": [
+        { "item_type": "resource", "item_key": "metal", "amount": 1 },
+        { "item_type": "resource", "item_key": "furs", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "armor", "amount": 1 }]
+    },
+    {
+      "key": "university_train_scholar",
+      "building_key": "university",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 4 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 },
+        { "item_type": "unit", "item_key": "reeve", "amount": 4 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "scholar", "amount": 1 }]
+    },
+    {
+      "key": "bazaar_train_master_merchant",
+      "building_key": "bazaar",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 4 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "master_merchant", "amount": 1 }]
+    },
+    {
+      "key": "lighthouse_train_ignifer",
+      "building_key": "lighthouse",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 4 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "ignifer", "amount": 1 }]
+    },
+    {
+      "key": "inn_train_innkeeper",
+      "building_key": "inn",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 4 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "innkeeper", "amount": 1 }]
+    },
+    {
+      "key": "noble_keep_train_archer",
+      "building_key": "noble_keep",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "weaponworks", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 },
+        { "item_type": "unit", "item_key": "fyrd", "amount": 4 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "archer", "amount": 1 }]
+    },
+    {
+      "key": "botanical_garden_train_herberist",
+      "building_key": "botanical_garden",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 4 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "herberist", "amount": 1 }]
+    },
+    {
+      "key": "dungeon_train_malefactor",
+      "building_key": "dungeon",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 4 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "malefactor", "amount": 1 }]
+    },
+    {
+      "key": "dungeon_train_spy",
+      "building_key": "dungeon",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "spy", "amount": 1 }]
+    },
+    {
+      "key": "dungeon_train_pirate",
+      "building_key": "dungeon",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "currency", "item_key": "tower", "amount": 1 },
+        { "item_type": "unit", "item_key": "malefactor", "amount": 1 },
+        { "item_type": "unit", "item_key": "mariner", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "pirate", "amount": 1 }]
+    },
+    {
+      "key": "dungeon_train_bandit",
+      "building_key": "dungeon",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "currency", "item_key": "tower", "amount": 1 },
+        { "item_type": "unit", "item_key": "scout", "amount": 1 },
+        { "item_type": "unit", "item_key": "malefactor", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "bandit", "amount": 1 }]
+    },
+    {
+      "key": "fort_train_ward",
+      "building_key": "fort",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "resource", "item_key": "furs", "amount": 1 },
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "ward", "amount": 1 }]
+    },
+    {
+      "key": "fort_train_man_at_arms",
+      "building_key": "fort",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "weaponworks", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 },
+        { "item_type": "unit", "item_key": "fyrd", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "man_at_arms", "amount": 1 }]
+    },
+    {
+      "key": "barracks_train_knight",
+      "building_key": "barracks",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "weaponworks", "amount": 2 },
+        { "item_type": "unit", "item_key": "armor", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 },
+        { "item_type": "unit", "item_key": "ward", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "knight", "amount": 1 }]
+    },
+    {
+      "key": "road_train_mercenary",
+      "building_key": "road",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "resource", "item_key": "furs", "amount": 1 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "mercenary", "amount": 1 }]
+    },
+    {
+      "key": "wall_train_fyrd",
+      "building_key": "wall",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "currency", "item_key": "copper", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "fyrd", "amount": 2 }]
+    },
+    {
+      "key": "watchtower_train_scout",
+      "building_key": "watchtower",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "currency", "item_key": "tower", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "scout", "amount": 1 }]
+    },
+    {
+      "key": "motte_and_bailey_train_thegn",
+      "building_key": "motte_and_bailey",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "weaponworks", "amount": 2 },
+        { "item_type": "resource", "item_key": "furs", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 },
+        { "item_type": "unit", "item_key": "man_at_arms", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "thegn", "amount": 1 }]
+    },
+    {
+      "key": "castle_train_cataphract",
+      "building_key": "castle",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "weaponworks", "amount": 2 },
+        { "item_type": "resource", "item_key": "furs", "amount": 2 },
+        { "item_type": "currency", "item_key": "crown", "amount": 1 },
+        { "item_type": "unit", "item_key": "knight", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "cataphract", "amount": 1 }]
+    },
+    {
+      "key": "palace_train_paragon",
+      "building_key": "palace",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "unit", "item_key": "weaponworks", "amount": 4 },
+        { "item_type": "resource", "item_key": "furs", "amount": 2 },
+        { "item_type": "unit", "item_key": "victual", "amount": 2 },
+        { "item_type": "currency", "item_key": "crown", "amount": 2 },
+        { "item_type": "unit", "item_key": "cataphract", "amount": 2 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "paragon", "amount": 1 }]
+    },
+    {
+      "key": "harbor_train_mariner",
+      "building_key": "harbor",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "resource", "item_key": "fish", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "mariner", "amount": 1 }]
+    },
+    {
+      "key": "port_train_ship_master",
+      "building_key": "port",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "resource", "item_key": "fish", "amount": 4 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 },
+        { "item_type": "unit", "item_key": "mariner", "amount": 4 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "ship_master", "amount": 1 }]
+    },
+    {
+      "key": "haven_create_victual",
+      "building_key": "haven",
+      "recipe_type": "special_output",
+      "inputs": [
+        { "item_type": "resource", "item_key": "crops", "amount": 1 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "victual", "amount": 1 }]
+    },
+    {
+      "key": "haven_train_burgess",
+      "building_key": "haven",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "resource", "item_key": "rarities", "amount": 4 },
+        { "item_type": "currency", "item_key": "tower", "amount": 3 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "burgess", "amount": 1 }]
+    },
+    {
+      "key": "plaza_create_victual",
+      "building_key": "plaza",
+      "recipe_type": "special_output",
+      "inputs": [
+        { "item_type": "resource", "item_key": "crops", "amount": 1 },
+        { "item_type": "resource", "item_key": "fish", "amount": 1 },
+        { "item_type": "currency", "item_key": "copper", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "victual", "amount": 1 }]
+    },
+    {
+      "key": "plaza_train_tinkerer",
+      "building_key": "plaza",
+      "recipe_type": "unit_training",
+      "inputs": [
+        { "item_type": "currency", "item_key": "piece", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 },
+        { "item_type": "unit", "item_key": "scholar", "amount": 1 },
+        { "item_type": "unit", "item_key": "scout", "amount": 1 }
+      ],
+      "outputs": [{ "item_type": "unit", "item_key": "tinkerer", "amount": 1 }]
+    }
+  ],
+  "ownership_rules": [
+    {
+      "entity_type": "individual",
+      "allowed": ["all_buildings", "settlements", "transports"],
+      "not_allowed": ["claim_land_action"],
+      "notes": ["Owner means deed owner in app data."]
+    },
+    {
+      "entity_type": "house",
+      "allowed": ["advanced_buildings", "defensive_buildings", "unique_buildings", "claimed_land"],
+      "not_allowed": ["basic_buildings", "transports", "settlements"],
+      "notes": ["Houses may collect output from buildings on House land through treasurer authority."]
+    },
+    {
+      "entity_type": "kingdom",
+      "allowed": ["claimed_land", "defensive_buildings"],
+      "not_allowed": ["unique_buildings", "trade_buildings", "advanced_buildings", "basic_buildings", "transports", "settlements"],
+      "notes": ["Kingdom treasurers may pay upkeep on settlements and buildings within the Kingdom."]
+    }
+  ],
+  "transports": [
+    {
+      "key": "carriage",
+      "name": "Carriage",
+      "transport_type": "caravan",
+      "home_requirement": "Must have a home Haven or Plaza.",
+      "health": 6,
+      "storage": 6,
+      "quarters": 3,
+      "repair_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 }
+      ],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 4 },
+        { "item_type": "resource", "item_key": "metal", "amount": 2 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 4 },
+        { "item_type": "resource", "item_key": "furs", "amount": 4 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 },
+        { "item_type": "currency", "item_key": "piece", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "resource", "item_key": "crops", "amount": 1 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "actions": ["merchant_trading", "fur_trading", "plunder", "hijack", "attack", "raid_settlement"]
+    },
+    {
+      "key": "cortege",
+      "name": "Cortege",
+      "transport_type": "caravan",
+      "home_requirement": "Must have a home Haven or Plaza.",
+      "health": 6,
+      "storage": 9,
+      "quarters": 5,
+      "repair_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 }
+      ],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 6 },
+        { "item_type": "resource", "item_key": "metal", "amount": 4 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 6 },
+        { "item_type": "resource", "item_key": "furs", "amount": 8 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 },
+        { "item_type": "currency", "item_key": "piece", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "wood", "amount": 2 },
+        { "item_type": "resource", "item_key": "crops", "amount": 2 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ],
+      "actions": ["merchant_trading", "fur_trading", "plunder", "hijack", "attack", "raid_settlement"]
+    },
+    {
+      "key": "knull",
+      "name": "Knull",
+      "transport_type": "ship",
+      "home_requirement": "Must have a home Harbor or Port.",
+      "health": 6,
+      "storage": 6,
+      "quarters": 3,
+      "repair_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 }
+      ],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 7 },
+        { "item_type": "resource", "item_key": "metal", "amount": 3 },
+        { "item_type": "resource", "item_key": "furs", "amount": 3 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 1 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 2 },
+        { "item_type": "currency", "item_key": "piece", "amount": 1 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 },
+        { "item_type": "resource", "item_key": "crops", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 1 }
+      ],
+      "actions": ["maritime_trading", "rarity_trading", "piracy", "commandeer", "sink", "raiding"]
+    },
+    {
+      "key": "hulk",
+      "name": "Hulk",
+      "transport_type": "ship",
+      "home_requirement": "Must have a home Harbor or Port.",
+      "health": 6,
+      "storage": 9,
+      "quarters": 5,
+      "repair_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 }
+      ],
+      "build_cost": [
+        { "item_type": "resource", "item_key": "wood", "amount": 10 },
+        { "item_type": "resource", "item_key": "metal", "amount": 6 },
+        { "item_type": "resource", "item_key": "furs", "amount": 6 },
+        { "item_type": "resource", "item_key": "livestock", "amount": 2 },
+        { "item_type": "unit", "item_key": "peasant", "amount": 4 },
+        { "item_type": "currency", "item_key": "piece", "amount": 2 }
+      ],
+      "upkeep": [
+        { "item_type": "resource", "item_key": "wood", "amount": 1 },
+        { "item_type": "resource", "item_key": "metal", "amount": 1 },
+        { "item_type": "resource", "item_key": "crops", "amount": 1 },
+        { "item_type": "currency", "item_key": "tower", "amount": 2 }
+      ],
+      "actions": ["maritime_trading", "rarity_trading", "piracy", "commandeer", "sink", "raiding"]
+    }
+  ],
+  "titles": [],
+  "phases": [],
+  "solver_defaults": {
+    "allow_fractional_buildings": false,
+    "prefer_minimal_building_count": true,
+    "detect_cycles": true
+  },
+  "maintenance_status": {
+    "state": "expanded_rules_seed",
+    "message": "Settlement tiers, basic, advanced, unique, defensive, garrison, mercantilism, trade buildings, core unit recipes, caravans, and ships are seeded for manual PDF review. Temple build cost intentionally remains empty pending game-maker clarification."
+  }
+}
