@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -24,6 +24,11 @@ class Denizen(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     display_name: Mapped[str] = mapped_column(String(120))
+    character_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    pronouns: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    contact: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    profile_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str | None] = mapped_column(String(80), nullable=True)
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     role: Mapped[DenizenRole] = mapped_column(
         Enum(DenizenRole),
@@ -36,6 +41,7 @@ class Denizen(Base):
         nullable=True,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_system_account: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -70,6 +76,10 @@ class Denizen(Base):
         back_populates="grantee",
         cascade="all, delete-orphan",
         foreign_keys="PermissionGrant.grantee_denizen_id",
+    )
+    audit_entries: Mapped[list["AuditLedgerEntry"]] = relationship(
+        back_populates="actor",
+        foreign_keys="AuditLedgerEntry.actor_denizen_id",
     )
 
 
@@ -302,4 +312,30 @@ class PermissionGrant(Base):
     grantee: Mapped[Denizen] = relationship(
         back_populates="granted_permissions",
         foreign_keys=[grantee_denizen_id],
+    )
+
+
+class AuditLedgerEntry(Base):
+    __tablename__ = "audit_ledger_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    actor_denizen_id: Mapped[int | None] = mapped_column(ForeignKey("denizens.id"), index=True)
+    is_system_action: Mapped[bool] = mapped_column(Boolean, default=False)
+    action: Mapped[str] = mapped_column(String(120), index=True)
+    target_type: Mapped[str] = mapped_column(String(80), index=True)
+    target_id: Mapped[int | None] = mapped_column(index=True)
+    scope_type: Mapped[str | None] = mapped_column(String(40), index=True)
+    scope_id: Mapped[int | None] = mapped_column(index=True)
+    item_type: Mapped[str | None] = mapped_column(String(40), index=True)
+    item_key: Mapped[str | None] = mapped_column(String(120), index=True)
+    amount_delta: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+    actor: Mapped[Denizen | None] = relationship(
+        back_populates="audit_entries",
+        foreign_keys=[actor_denizen_id],
     )

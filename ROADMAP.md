@@ -25,8 +25,12 @@ This is the high-level todo list for building Carta Arcanum.
   kingdoms.
 - [x] Add ACL permission grant foundation for scoped house and kingdom
   delegation.
-- [ ] Add room for future roles such as admin, house manager, or read-only
-  member.
+- [x] Add read-only, member, manager, and admin roles.
+- [x] Add denizen profile fields and system account support.
+- [x] Add membership management service for house and kingdom admins.
+- [x] Add audit ledger foundation for future holding and permission changes.
+- [x] Validate holding items against rules-backed currencies, resources, and
+  units.
 - [x] Add tests for permission boundaries.
 - [ ] Replace temporary `denizen_id` query parameters with authenticated denizen
   dependencies.
@@ -35,6 +39,7 @@ This is the high-level todo list for building Carta Arcanum.
 - [ ] Enforce endpoint-level write permissions for Three Crowns accounts:
   denizen self, house admin, kingdom admin.
 - [ ] Add UI and API workflows for granting and revoking scoped permissions.
+- [ ] Add API endpoints for membership management and audit ledger views.
 
 ## Phase 3: Rules Dataset
 

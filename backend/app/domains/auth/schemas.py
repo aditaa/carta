@@ -23,11 +23,17 @@ class AuthDenizen(BaseModel):
     id: int
     email: str
     display_name: str
+    character_name: str | None = None
+    pronouns: str | None = None
+    contact: str | None = None
+    profile_note: str | None = None
+    status: str | None = None
     role: str
     religion: str | None = None
     primary_house_id: int | None = None
     primary_kingdom_id: int | None = None
     is_active: bool
+    is_system_account: bool = False
 
 
 class AuthToken(BaseModel):

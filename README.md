@@ -18,6 +18,8 @@ The goal is to help players answer practical questions quickly:
 - Building registry for farms, shops, markets, towers, and future building
   types.
 - Denizen authentication with permission-scoped visibility.
+- Denizen, house, kingdom, and Three Crowns holdings that accept rules-backed
+  currencies, resources, and units.
 - Ownership tracking for players, groups, or factions.
 - Input and output tracking for crops, currency, rarities, and other resources.
 - Auto-calculated upkeep totals across all owned buildings.
@@ -141,6 +143,9 @@ Create a local login denizen after migrations are applied:
 PYTHONPATH=backend python -m app.cli.create_denizen --email you@example.com --display-name "Your Name"
 ```
 
+System accounts and denizen profile fields can also be seeded through the same
+CLI for admin/setup workflows.
+
 ## Rules Data
 
 Rules are intentionally kept separate in `rules/` so game changes can be
@@ -168,8 +173,10 @@ See `ROADMAP.md` for the milestone todo list.
 This repository is in project setup mode. Current foundations include rules
 validation/import, denizen token login, auth visibility scaffolding, personal,
 house, house-held denizen, kingdom, and Three Crowns Counting House holdings
-foundations, scoped ACL permission grants, building registry CRUD, upkeep
-preview calculations, and a React dashboard shell. The next build steps are:
+foundations, scoped ACL permission grants, membership management services, an
+audit ledger foundation, rules-backed holding item validation, building
+registry CRUD, upkeep preview calculations, and a React dashboard shell. The
+next build steps are:
 
 1. Apply authenticated user scope to database-backed building endpoints.
 2. Continue final-checking the manually maintained rules dataset.

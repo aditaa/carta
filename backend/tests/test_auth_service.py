@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -21,10 +23,14 @@ from app.domains.auth.permissions import SCOPE_HOUSE, SCOPE_KINGDOM, Permission
 from app.domains.auth.schemas import VisibilityScope
 from app.domains.auth.service import (
     AuthenticationService,
+    get_audit_ledger_service,
+    get_holding_rules_service,
+    get_membership_management_service,
     get_permission_service,
     hash_password,
     verify_password,
 )
+from app.domains.rules.importer import load_rules_dataset
 
 pytestmark = pytest.mark.unit
 
@@ -113,9 +119,15 @@ def test_denizen_roles_default_to_read_only_and_serialize_profile_fields() -> No
         denizen = Denizen(
             email="role@example.test",
             display_name="Role Denizen",
+            character_name="Aderyn Vale",
+            pronouns="they/them",
+            contact="Discord: aderyn",
+            profile_note="Keeper-facing note",
+            status="active",
             religion="The Loom",
             primary_house_id=10,
             primary_kingdom_id=100,
+            is_system_account=True,
         )
         db.add(denizen)
         db.commit()
@@ -125,9 +137,15 @@ def test_denizen_roles_default_to_read_only_and_serialize_profile_fields() -> No
 
         assert denizen.role == DenizenRole.read_only
         assert serialized.role == "read_only"
+        assert serialized.character_name == "Aderyn Vale"
+        assert serialized.pronouns == "they/them"
+        assert serialized.contact == "Discord: aderyn"
+        assert serialized.profile_note == "Keeper-facing note"
+        assert serialized.status == "active"
         assert serialized.religion == "The Loom"
         assert serialized.primary_house_id == 10
         assert serialized.primary_kingdom_id == 100
+        assert serialized.is_system_account
     finally:
         db.close()
         Base.metadata.drop_all(engine)
@@ -460,3 +478,147 @@ def test_three_crowns_accounts_use_respective_admin_permissions() -> None:
     finally:
         db.close()
         Base.metadata.drop_all(engine)
+
+
+def test_membership_management_requires_scope_admin_permissions() -> None:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    db = SessionLocal()
+    try:
+        db.add_all(
+            [
+                Kingdom(id=100, name="Managed Kingdom"),
+                House(id=10, name="Managed House", kingdom_id=100),
+                Denizen(id=1, email="house-admin@example.test", display_name="House Admin"),
+                Denizen(id=2, email="member@example.test", display_name="Member"),
+                Denizen(id=3, email="king-admin@example.test", display_name="Kingdom Admin"),
+                HouseMembership(denizen_id=1, house_id=10, role=DenizenRole.admin),
+                HouseMembership(denizen_id=2, house_id=10, role=DenizenRole.member),
+                KingdomMembership(denizen_id=3, kingdom_id=100, role=DenizenRole.admin),
+            ]
+        )
+        db.commit()
+
+        service = get_membership_management_service()
+
+        updated_house_membership = service.set_house_membership(
+            db,
+            actor_denizen_id=1,
+            denizen_id=2,
+            house_id=10,
+            role=DenizenRole.manager,
+            can_view_house=True,
+        )
+        updated_kingdom_membership = service.set_kingdom_membership(
+            db,
+            actor_denizen_id=3,
+            denizen_id=2,
+            kingdom_id=100,
+            role=DenizenRole.member,
+            can_view_kingdom=True,
+        )
+
+        assert updated_house_membership.role == DenizenRole.manager
+        assert updated_house_membership.can_view_house
+        assert updated_kingdom_membership.role == DenizenRole.member
+        assert updated_kingdom_membership.can_view_kingdom
+        with pytest.raises(PermissionError):
+            service.set_house_membership(
+                db,
+                actor_denizen_id=2,
+                denizen_id=1,
+                house_id=10,
+                role=DenizenRole.read_only,
+                can_view_house=False,
+            )
+    finally:
+        db.close()
+        Base.metadata.drop_all(engine)
+
+
+def test_audit_ledger_records_actor_and_system_actions() -> None:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    db = SessionLocal()
+    try:
+        db.add_all(
+            [
+                Denizen(id=1, email="actor@example.test", display_name="Actor"),
+                Denizen(
+                    id=2,
+                    email="system@example.test",
+                    display_name="System",
+                    is_system_account=True,
+                ),
+            ]
+        )
+        db.commit()
+
+        service = get_audit_ledger_service()
+        actor_entry = service.record(
+            db,
+            actor_denizen_id=1,
+            action="holding.adjust",
+            target_type="denizen_holding",
+            target_id=7,
+            scope_type="denizen",
+            scope_id=1,
+            item_type="currency",
+            item_key="tower",
+            amount_delta=5,
+            note="Manual correction",
+        )
+        system_entry = service.record(
+            db,
+            actor_denizen_id=2,
+            action="rules.import",
+            target_type="ruleset",
+            target_id=1,
+            note="Rules refreshed",
+        )
+        anonymous_system_entry = service.record(
+            db,
+            action="system.seed",
+            target_type="bootstrap",
+        )
+
+        assert actor_entry.actor_denizen_id == 1
+        assert not actor_entry.is_system_action
+        assert float(actor_entry.amount_delta) == 5.0
+        assert actor_entry.item_key == "tower"
+        assert system_entry.actor_denizen_id == 2
+        assert system_entry.is_system_action
+        assert anonymous_system_entry.actor_denizen_id is None
+        assert anonymous_system_entry.is_system_action
+    finally:
+        db.close()
+        Base.metadata.drop_all(engine)
+
+
+def test_holding_rules_validate_all_supported_coin_resources_and_units() -> None:
+    rules = load_rules_dataset(
+        Path(__file__).parents[2] / "rules" / "carta-arcanum-2.1.4.rules.json"
+    )
+    service = get_holding_rules_service()
+
+    for currency in rules.currencies:
+        service.validate_item(rules, "currency", currency.key)
+    for resource in rules.resources:
+        service.validate_item(rules, "resource", resource.key)
+    for unit in rules.units:
+        service.validate_item(rules, "unit", unit.key)
+
+    with pytest.raises(ValueError):
+        service.validate_item(rules, "currency", "missing_coin")
+    with pytest.raises(ValueError):
+        service.validate_item(rules, "resource", "missing_resource")

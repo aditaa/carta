@@ -1,5 +1,6 @@
 from app.db.session import Base
 from app.domains.auth.models import (
+    AuditLedgerEntry,
     Denizen,
     DenizenHolding,
     House,
@@ -26,6 +27,7 @@ from app.domains.rules.models import (
 )
 
 __all__ = [
+    "AuditLedgerEntry",
     "Base",
     "Denizen",
     "DenizenHolding",

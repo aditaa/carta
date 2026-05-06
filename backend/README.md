@@ -49,9 +49,10 @@ alembic -c backend/alembic.ini upgrade head
 ```
 
 Alembic reads `DATABASE_URL` when present. The first migration creates
-denizens, houses, kingdoms, memberships, personal holdings, house stash,
-house-held denizen stash, kingdom stash, and Three Crowns Counting House
-accounts. It also creates scoped permission grants for ACL-style delegation.
+denizens, profile fields, system account flags, houses, kingdoms, memberships,
+personal holdings, house stash, house-held denizen stash, kingdom stash, Three
+Crowns Counting House accounts, and audit ledger entries. It also creates
+scoped permission grants for ACL-style delegation.
 The second migration creates owned building records for the building registry.
 The third migration creates imported rules tables.
 
@@ -68,6 +69,10 @@ PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rule
 ```bash
 PYTHONPATH=backend python -m app.cli.create_denizen --email you@example.com --display-name "Your Name"
 ```
+
+Optional profile/setup flags include `--character-name`, `--pronouns`,
+`--contact`, `--profile-note`, `--status`, `--religion`, and
+`--system-account`.
 
 ## Tests
 

@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domains.auth.models import (
+    AuditLedgerEntry,
     Denizen,
     DenizenHolding,
     DenizenRole,
@@ -36,6 +37,7 @@ from app.domains.auth.schemas import (
     VisibilityScope,
     VisibleHoldings,
 )
+from app.domains.rules.schemas import RulesDataset
 
 PASSWORD_ALGORITHM = "pbkdf2_sha256"
 PASSWORD_ITERATIONS = 210_000
@@ -171,11 +173,17 @@ class AuthenticationService:
             id=denizen.id,
             email=denizen.email,
             display_name=denizen.display_name,
+            character_name=denizen.character_name,
+            pronouns=denizen.pronouns,
+            contact=denizen.contact,
+            profile_note=denizen.profile_note,
+            status=denizen.status,
             role=denizen.role.value,
             religion=denizen.religion,
             primary_house_id=denizen.primary_house_id,
             primary_kingdom_id=denizen.primary_kingdom_id,
             is_active=denizen.is_active,
+            is_system_account=denizen.is_system_account,
         )
 
     def build_visibility_scope_from_db(self, db: Session, denizen_id: int) -> VisibilityScope:
@@ -533,12 +541,143 @@ class PermissionService:
         return set()
 
 
+class MembershipManagementService:
+    def set_house_membership(
+        self,
+        db: Session,
+        actor_denizen_id: int,
+        denizen_id: int,
+        house_id: int,
+        role: DenizenRole,
+        can_view_house: bool,
+    ) -> HouseMembership:
+        if not get_permission_service().can(
+            db,
+            denizen_id=actor_denizen_id,
+            permission=Permission.HOUSE_GRANT_PERMISSIONS,
+            scope_type=SCOPE_HOUSE,
+            scope_id=house_id,
+        ):
+            raise PermissionError("Actor cannot manage house membership")
+
+        membership = db.scalar(
+            select(HouseMembership).where(
+                HouseMembership.denizen_id == denizen_id,
+                HouseMembership.house_id == house_id,
+            )
+        )
+        if membership is None:
+            membership = HouseMembership(denizen_id=denizen_id, house_id=house_id)
+            db.add(membership)
+        membership.role = role
+        membership.can_view_house = can_view_house
+        db.commit()
+        db.refresh(membership)
+        return membership
+
+    def set_kingdom_membership(
+        self,
+        db: Session,
+        actor_denizen_id: int,
+        denizen_id: int,
+        kingdom_id: int,
+        role: DenizenRole,
+        can_view_kingdom: bool,
+    ) -> KingdomMembership:
+        if not get_permission_service().can(
+            db,
+            denizen_id=actor_denizen_id,
+            permission=Permission.KINGDOM_GRANT_PERMISSIONS,
+            scope_type=SCOPE_KINGDOM,
+            scope_id=kingdom_id,
+        ):
+            raise PermissionError("Actor cannot manage kingdom membership")
+
+        membership = db.scalar(
+            select(KingdomMembership).where(
+                KingdomMembership.denizen_id == denizen_id,
+                KingdomMembership.kingdom_id == kingdom_id,
+            )
+        )
+        if membership is None:
+            membership = KingdomMembership(denizen_id=denizen_id, kingdom_id=kingdom_id)
+            db.add(membership)
+        membership.role = role
+        membership.can_view_kingdom = can_view_kingdom
+        db.commit()
+        db.refresh(membership)
+        return membership
+
+
+class HoldingRulesService:
+    def validate_item(self, rules: RulesDataset, item_type: str, item_key: str) -> None:
+        known_items = {
+            "currency": {item.key for item in rules.currencies},
+            "resource": {item.key for item in rules.resources},
+            "unit": {item.key for item in rules.units},
+            "special": {"special", "unknown"},
+        }
+        if item_type not in known_items:
+            raise ValueError(f"Unknown holding item type: {item_type}")
+        if item_type != "special" and item_key not in known_items[item_type]:
+            raise ValueError(f"Unknown {item_type} holding item key: {item_key}")
+
+
+class AuditLedgerService:
+    def record(
+        self,
+        db: Session,
+        action: str,
+        target_type: str,
+        actor_denizen_id: int | None = None,
+        target_id: int | None = None,
+        scope_type: str | None = None,
+        scope_id: int | None = None,
+        item_type: str | None = None,
+        item_key: str | None = None,
+        amount_delta: float | None = None,
+        note: str | None = None,
+    ) -> AuditLedgerEntry:
+        actor = db.get(Denizen, actor_denizen_id) if actor_denizen_id is not None else None
+        entry = AuditLedgerEntry(
+            actor_denizen_id=actor_denizen_id,
+            is_system_action=actor.is_system_account
+            if actor is not None
+            else actor_denizen_id is None,
+            action=action,
+            target_type=target_type,
+            target_id=target_id,
+            scope_type=scope_type,
+            scope_id=scope_id,
+            item_type=item_type,
+            item_key=item_key,
+            amount_delta=amount_delta,
+            note=note,
+        )
+        db.add(entry)
+        db.commit()
+        db.refresh(entry)
+        return entry
+
+
 def get_authentication_service() -> AuthenticationService:
     return AuthenticationService()
 
 
 def get_permission_service() -> PermissionService:
     return PermissionService()
+
+
+def get_membership_management_service() -> MembershipManagementService:
+    return MembershipManagementService()
+
+
+def get_holding_rules_service() -> HoldingRulesService:
+    return HoldingRulesService()
+
+
+def get_audit_ledger_service() -> AuditLedgerService:
+    return AuditLedgerService()
 
 
 def _base64url_encode(value: bytes) -> str:
