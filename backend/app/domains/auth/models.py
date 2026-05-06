@@ -66,6 +66,11 @@ class Denizen(Base):
         back_populates="denizen",
         cascade="all, delete-orphan",
     )
+    granted_permissions: Mapped[list["PermissionGrant"]] = relationship(
+        back_populates="grantee",
+        cascade="all, delete-orphan",
+        foreign_keys="PermissionGrant.grantee_denizen_id",
+    )
 
 
 class House(Base):
@@ -276,3 +281,25 @@ class ThreeCrownsHolding(Base):
     denizen: Mapped[Denizen | None] = relationship(back_populates="counting_house_holdings")
     house: Mapped[House | None] = relationship(back_populates="counting_house_holdings")
     kingdom: Mapped[Kingdom | None] = relationship(back_populates="counting_house_holdings")
+
+
+class PermissionGrant(Base):
+    __tablename__ = "permission_grants"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    grantor_denizen_id: Mapped[int] = mapped_column(ForeignKey("denizens.id"), index=True)
+    grantee_denizen_id: Mapped[int] = mapped_column(ForeignKey("denizens.id"), index=True)
+    scope_type: Mapped[str] = mapped_column(String(40), index=True)
+    scope_id: Mapped[int] = mapped_column(index=True)
+    permission: Mapped[str] = mapped_column(String(120), index=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+    grantor: Mapped[Denizen] = relationship(foreign_keys=[grantor_denizen_id])
+    grantee: Mapped[Denizen] = relationship(
+        back_populates="granted_permissions",
+        foreign_keys=[grantee_denizen_id],
+    )

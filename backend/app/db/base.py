@@ -9,6 +9,7 @@ from app.domains.auth.models import (
     Kingdom,
     KingdomHolding,
     KingdomMembership,
+    PermissionGrant,
     ThreeCrownsHolding,
 )
 from app.domains.buildings.models import OwnedBuilding
@@ -35,6 +36,7 @@ __all__ = [
     "Kingdom",
     "KingdomHolding",
     "KingdomMembership",
+    "PermissionGrant",
     "ThreeCrownsHolding",
     "OwnedBuilding",
     "RuleBuildingDefinition",

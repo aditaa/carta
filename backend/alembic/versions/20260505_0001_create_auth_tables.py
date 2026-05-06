@@ -351,8 +351,69 @@ def upgrade() -> None:
         unique=False,
     )
 
+    op.create_table(
+        "permission_grants",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("grantor_denizen_id", sa.Integer(), nullable=False),
+        sa.Column("grantee_denizen_id", sa.Integer(), nullable=False),
+        sa.Column("scope_type", sa.String(length=40), nullable=False),
+        sa.Column("scope_id", sa.Integer(), nullable=False),
+        sa.Column("permission", sa.String(length=120), nullable=False),
+        sa.Column("expires_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.ForeignKeyConstraint(
+            ["grantee_denizen_id"],
+            ["denizens.id"],
+            name=op.f("fk_permission_grants_grantee_denizen_id_denizens"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["grantor_denizen_id"],
+            ["denizens.id"],
+            name=op.f("fk_permission_grants_grantor_denizen_id_denizens"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_permission_grants")),
+    )
+    op.create_index(
+        op.f("ix_permission_grants_grantee_denizen_id"),
+        "permission_grants",
+        ["grantee_denizen_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_permission_grants_grantor_denizen_id"),
+        "permission_grants",
+        ["grantor_denizen_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_permission_grants_permission"),
+        "permission_grants",
+        ["permission"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_permission_grants_scope_id"),
+        "permission_grants",
+        ["scope_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_permission_grants_scope_type"),
+        "permission_grants",
+        ["scope_type"],
+        unique=False,
+    )
+
 
 def downgrade() -> None:
+    op.drop_index(op.f("ix_permission_grants_scope_type"), table_name="permission_grants")
+    op.drop_index(op.f("ix_permission_grants_scope_id"), table_name="permission_grants")
+    op.drop_index(op.f("ix_permission_grants_permission"), table_name="permission_grants")
+    op.drop_index(op.f("ix_permission_grants_grantor_denizen_id"), table_name="permission_grants")
+    op.drop_index(op.f("ix_permission_grants_grantee_denizen_id"), table_name="permission_grants")
+    op.drop_table("permission_grants")
     op.drop_index(op.f("ix_three_crowns_holdings_item_type"), table_name="three_crowns_holdings")
     op.drop_index(op.f("ix_three_crowns_holdings_item_key"), table_name="three_crowns_holdings")
     op.drop_index(op.f("ix_three_crowns_holdings_kingdom_id"), table_name="three_crowns_holdings")

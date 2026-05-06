@@ -18,7 +18,15 @@ from app.domains.auth.models import (
     HouseMembership,
     KingdomHolding,
     KingdomMembership,
+    PermissionGrant,
     ThreeCrownsHolding,
+)
+from app.domains.auth.permissions import (
+    HOUSE_PERMISSIONS,
+    KINGDOM_PERMISSIONS,
+    SCOPE_HOUSE,
+    SCOPE_KINGDOM,
+    Permission,
 )
 from app.domains.auth.schemas import (
     AuthDenizen,
@@ -319,10 +327,22 @@ class AuthenticationService:
         return scope.denizen_id == denizen_id
 
     def can_edit_house_holdings(self, db: Session, denizen_id: int, house_id: int) -> bool:
-        return self._has_house_admin_role(db, denizen_id, house_id)
+        return get_permission_service().can(
+            db,
+            denizen_id=denizen_id,
+            permission=Permission.HOUSE_MANAGE_BANK,
+            scope_type=SCOPE_HOUSE,
+            scope_id=house_id,
+        )
 
     def can_edit_house_denizen_holdings(self, db: Session, denizen_id: int, house_id: int) -> bool:
-        return self._has_house_admin_role(db, denizen_id, house_id)
+        return get_permission_service().can(
+            db,
+            denizen_id=denizen_id,
+            permission=Permission.HOUSE_MANAGE_DENIZEN_HOLDINGS,
+            scope_type=SCOPE_HOUSE,
+            scope_id=house_id,
+        )
 
     def can_edit_three_crowns_denizen_account(
         self,
@@ -337,7 +357,13 @@ class AuthenticationService:
         denizen_id: int,
         house_id: int,
     ) -> bool:
-        return self._has_house_admin_role(db, denizen_id, house_id)
+        return get_permission_service().can(
+            db,
+            denizen_id=denizen_id,
+            permission=Permission.THREE_CROWNS_MANAGE_HOUSE_ACCOUNT,
+            scope_type=SCOPE_HOUSE,
+            scope_id=house_id,
+        )
 
     def can_edit_three_crowns_kingdom_account(
         self,
@@ -345,7 +371,13 @@ class AuthenticationService:
         denizen_id: int,
         kingdom_id: int,
     ) -> bool:
-        return self._has_kingdom_admin_role(db, denizen_id, kingdom_id)
+        return get_permission_service().can(
+            db,
+            denizen_id=denizen_id,
+            permission=Permission.THREE_CROWNS_MANAGE_KINGDOM_ACCOUNT,
+            scope_type=SCOPE_KINGDOM,
+            scope_id=kingdom_id,
+        )
 
     def _has_house_admin_role(self, db: Session, denizen_id: int, house_id: int) -> bool:
         membership = db.scalar(
@@ -375,8 +407,138 @@ class AuthenticationService:
         raise ValueError("Three Crowns holding is missing its account id")
 
 
+class PermissionService:
+    def can(
+        self,
+        db: Session,
+        denizen_id: int,
+        permission: str,
+        scope_type: str,
+        scope_id: int,
+    ) -> bool:
+        if self._role_allows(db, denizen_id, permission, scope_type, scope_id):
+            return True
+        return self._grant_allows(db, denizen_id, permission, scope_type, scope_id)
+
+    def can_grant(
+        self,
+        db: Session,
+        grantor_denizen_id: int,
+        permission: str,
+        scope_type: str,
+        scope_id: int,
+    ) -> bool:
+        grant_permission = self._grant_permission_for_scope(scope_type)
+        return self.can(
+            db,
+            denizen_id=grantor_denizen_id,
+            permission=grant_permission,
+            scope_type=scope_type,
+            scope_id=scope_id,
+        ) and permission in self._valid_permissions_for_scope(scope_type)
+
+    def create_grant(
+        self,
+        db: Session,
+        grantor_denizen_id: int,
+        grantee_denizen_id: int,
+        permission: str,
+        scope_type: str,
+        scope_id: int,
+        expires_at: datetime | None = None,
+    ) -> PermissionGrant:
+        if not self.can_grant(db, grantor_denizen_id, permission, scope_type, scope_id):
+            raise PermissionError("Grantor cannot grant this permission in this scope")
+        grant = PermissionGrant(
+            grantor_denizen_id=grantor_denizen_id,
+            grantee_denizen_id=grantee_denizen_id,
+            permission=permission,
+            scope_type=scope_type,
+            scope_id=scope_id,
+            expires_at=expires_at,
+        )
+        db.add(grant)
+        db.commit()
+        db.refresh(grant)
+        return grant
+
+    def _role_allows(
+        self,
+        db: Session,
+        denizen_id: int,
+        permission: str,
+        scope_type: str,
+        scope_id: int,
+    ) -> bool:
+        if scope_type == SCOPE_HOUSE:
+            membership = db.scalar(
+                select(HouseMembership).where(
+                    HouseMembership.denizen_id == denizen_id,
+                    HouseMembership.house_id == scope_id,
+                )
+            )
+            if membership is None:
+                return False
+            if membership.role == DenizenRole.admin:
+                return permission in HOUSE_PERMISSIONS
+            return permission == Permission.HOUSE_VIEW and membership.can_view_house
+
+        if scope_type == SCOPE_KINGDOM:
+            membership = db.scalar(
+                select(KingdomMembership).where(
+                    KingdomMembership.denizen_id == denizen_id,
+                    KingdomMembership.kingdom_id == scope_id,
+                )
+            )
+            if membership is None:
+                return False
+            if membership.role == DenizenRole.admin:
+                return permission in KINGDOM_PERMISSIONS
+            return permission == Permission.KINGDOM_VIEW and membership.can_view_kingdom
+
+        return False
+
+    def _grant_allows(
+        self,
+        db: Session,
+        denizen_id: int,
+        permission: str,
+        scope_type: str,
+        scope_id: int,
+    ) -> bool:
+        now = datetime.now(UTC)
+        grant = db.scalar(
+            select(PermissionGrant).where(
+                PermissionGrant.grantee_denizen_id == denizen_id,
+                PermissionGrant.permission == permission,
+                PermissionGrant.scope_type == scope_type,
+                PermissionGrant.scope_id == scope_id,
+                (PermissionGrant.expires_at.is_(None)) | (PermissionGrant.expires_at > now),
+            )
+        )
+        return grant is not None
+
+    def _grant_permission_for_scope(self, scope_type: str) -> str:
+        if scope_type == SCOPE_HOUSE:
+            return Permission.HOUSE_GRANT_PERMISSIONS
+        if scope_type == SCOPE_KINGDOM:
+            return Permission.KINGDOM_GRANT_PERMISSIONS
+        raise ValueError(f"Unsupported permission scope: {scope_type}")
+
+    def _valid_permissions_for_scope(self, scope_type: str) -> set[str]:
+        if scope_type == SCOPE_HOUSE:
+            return HOUSE_PERMISSIONS
+        if scope_type == SCOPE_KINGDOM:
+            return KINGDOM_PERMISSIONS
+        return set()
+
+
 def get_authentication_service() -> AuthenticationService:
     return AuthenticationService()
+
+
+def get_permission_service() -> PermissionService:
+    return PermissionService()
 
 
 def _base64url_encode(value: bytes) -> str:

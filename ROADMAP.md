@@ -23,6 +23,8 @@ This is the high-level todo list for building Carta Arcanum.
   future affordability checks.
 - [x] Add Three Crowns Counting House accounts for denizens, houses, and
   kingdoms.
+- [x] Add ACL permission grant foundation for scoped house and kingdom
+  delegation.
 - [ ] Add room for future roles such as admin, house manager, or read-only
   member.
 - [x] Add tests for permission boundaries.
@@ -32,6 +34,7 @@ This is the high-level todo list for building Carta Arcanum.
   holdings.
 - [ ] Enforce endpoint-level write permissions for Three Crowns accounts:
   denizen self, house admin, kingdom admin.
+- [ ] Add UI and API workflows for granting and revoking scoped permissions.
 
 ## Phase 3: Rules Dataset
 

@@ -17,8 +17,14 @@ from app.domains.auth.models import (
     KingdomMembership,
     ThreeCrownsHolding,
 )
+from app.domains.auth.permissions import SCOPE_HOUSE, SCOPE_KINGDOM, Permission
 from app.domains.auth.schemas import VisibilityScope
-from app.domains.auth.service import AuthenticationService, hash_password, verify_password
+from app.domains.auth.service import (
+    AuthenticationService,
+    get_permission_service,
+    hash_password,
+    verify_password,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -294,6 +300,117 @@ def test_house_stashes_require_house_admin_role_to_edit() -> None:
         assert not service.can_edit_denizen_holdings(
             VisibilityScope(denizen_id=2, visible_denizen_ids=[2]),
             denizen_id=1,
+        )
+    finally:
+        db.close()
+        Base.metadata.drop_all(engine)
+
+
+def test_house_admin_can_grant_limited_bank_permission_to_manager() -> None:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    db = SessionLocal()
+    try:
+        db.add_all(
+            [
+                House(id=10, name="Grant House"),
+                Denizen(id=1, email="admin@example.test", display_name="House Admin"),
+                Denizen(id=2, email="manager@example.test", display_name="House Manager"),
+                HouseMembership(denizen_id=1, house_id=10, role=DenizenRole.admin),
+                HouseMembership(denizen_id=2, house_id=10, role=DenizenRole.manager),
+            ]
+        )
+        db.commit()
+
+        permissions = get_permission_service()
+
+        assert not permissions.can(
+            db,
+            denizen_id=2,
+            permission=Permission.HOUSE_MANAGE_BANK,
+            scope_type=SCOPE_HOUSE,
+            scope_id=10,
+        )
+
+        grant = permissions.create_grant(
+            db,
+            grantor_denizen_id=1,
+            grantee_denizen_id=2,
+            permission=Permission.HOUSE_MANAGE_BANK,
+            scope_type=SCOPE_HOUSE,
+            scope_id=10,
+        )
+
+        assert grant.permission == Permission.HOUSE_MANAGE_BANK
+        assert permissions.can(
+            db,
+            denizen_id=2,
+            permission=Permission.HOUSE_MANAGE_BANK,
+            scope_type=SCOPE_HOUSE,
+            scope_id=10,
+        )
+        assert AuthenticationService().can_edit_house_holdings(db, denizen_id=2, house_id=10)
+        assert not permissions.can_grant(
+            db,
+            grantor_denizen_id=2,
+            permission=Permission.HOUSE_MANAGE_DENIZEN_HOLDINGS,
+            scope_type=SCOPE_HOUSE,
+            scope_id=10,
+        )
+        with pytest.raises(PermissionError):
+            permissions.create_grant(
+                db,
+                grantor_denizen_id=2,
+                grantee_denizen_id=1,
+                permission=Permission.HOUSE_GRANT_PERMISSIONS,
+                scope_type=SCOPE_HOUSE,
+                scope_id=10,
+            )
+    finally:
+        db.close()
+        Base.metadata.drop_all(engine)
+
+
+def test_kingdom_admin_can_grant_counting_house_permission() -> None:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    db = SessionLocal()
+    try:
+        db.add_all(
+            [
+                Kingdom(id=100, name="Grant Kingdom"),
+                Denizen(id=1, email="admin@example.test", display_name="Kingdom Admin"),
+                Denizen(id=2, email="manager@example.test", display_name="Kingdom Manager"),
+                KingdomMembership(denizen_id=1, kingdom_id=100, role=DenizenRole.admin),
+                KingdomMembership(denizen_id=2, kingdom_id=100, role=DenizenRole.manager),
+            ]
+        )
+        db.commit()
+
+        permissions = get_permission_service()
+
+        assert permissions.create_grant(
+            db,
+            grantor_denizen_id=1,
+            grantee_denizen_id=2,
+            permission=Permission.THREE_CROWNS_MANAGE_KINGDOM_ACCOUNT,
+            scope_type=SCOPE_KINGDOM,
+            scope_id=100,
+        )
+        assert AuthenticationService().can_edit_three_crowns_kingdom_account(
+            db,
+            denizen_id=2,
+            kingdom_id=100,
         )
     finally:
         db.close()
