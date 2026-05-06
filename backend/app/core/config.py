@@ -16,6 +16,8 @@ class Settings:
     mysql_password: str
     database_url: str
     rules_file: Path
+    auth_secret_key: str
+    access_token_minutes: int
 
     @property
     def mysql_url(self) -> str:
@@ -52,4 +54,6 @@ def get_settings() -> Settings:
         mysql_password=mysql_password,
         database_url=os.getenv("DATABASE_URL", default_database_url),
         rules_file=rules_file.resolve(),
+        auth_secret_key=os.getenv("AUTH_SECRET_KEY", "local-dev-change-me"),
+        access_token_minutes=int(os.getenv("ACCESS_TOKEN_MINUTES", "720")),
     )

@@ -1,5 +1,18 @@
 from app.db.session import Base
-from app.domains.auth.models import House, HouseMembership, User
+from app.domains.auth.models import (
+    AuditLedgerEntry,
+    Denizen,
+    DenizenHolding,
+    House,
+    HouseDenizenHolding,
+    HouseHolding,
+    HouseMembership,
+    Kingdom,
+    KingdomHolding,
+    KingdomMembership,
+    PermissionGrant,
+    ThreeCrownsHolding,
+)
 from app.domains.buildings.models import OwnedBuilding
 from app.domains.rules.models import (
     RuleBuildingDefinition,
@@ -14,9 +27,19 @@ from app.domains.rules.models import (
 )
 
 __all__ = [
+    "AuditLedgerEntry",
     "Base",
+    "Denizen",
+    "DenizenHolding",
     "House",
+    "HouseDenizenHolding",
+    "HouseHolding",
     "HouseMembership",
+    "Kingdom",
+    "KingdomHolding",
+    "KingdomMembership",
+    "PermissionGrant",
+    "ThreeCrownsHolding",
     "OwnedBuilding",
     "RuleBuildingDefinition",
     "RuleCurrency",
@@ -27,5 +50,4 @@ __all__ = [
     "RuleTransport",
     "RuleUnit",
     "Ruleset",
-    "User",
 ]

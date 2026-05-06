@@ -5,7 +5,7 @@ from app.domains.rules.schemas import RulesRef
 
 class BuildingRegistryItem(BaseModel):
     id: int
-    owner_user_id: int
+    owner_denizen_id: int
     building_definition_id: str
     count: int
     house_id: int | None = None
@@ -18,7 +18,7 @@ class BuildingRegistrySummary(BaseModel):
 
 
 class BuildingRegistryCreate(BaseModel):
-    owner_user_id: int
+    owner_denizen_id: int
     building_definition_id: str = Field(min_length=1, max_length=120)
     count: int = Field(default=1, ge=1)
     house_id: int | None = None
@@ -26,7 +26,7 @@ class BuildingRegistryCreate(BaseModel):
 
 
 class BuildingRegistryUpdate(BaseModel):
-    owner_user_id: int | None = None
+    owner_denizen_id: int | None = None
     building_definition_id: str | None = Field(default=None, min_length=1, max_length=120)
     count: int | None = Field(default=None, ge=1)
     house_id: int | None = None

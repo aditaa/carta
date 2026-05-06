@@ -14,14 +14,32 @@ This is the high-level todo list for building Carta Arcanum.
 ## Phase 2: Auth And Permissions
 
 - [x] Create user model and authentication flow foundation.
-- [ ] Add session or token-based login.
+- [x] Add session or token-based login.
 - [x] Define permission scopes for personal data and house data.
 - [x] Implement baseline visibility: a user can see their own data.
 - [x] Implement house visibility: a user with house permission can see their
-  own data plus users and assets in that house.
-- [ ] Add room for future roles such as admin, house manager, or read-only
-  member.
+  own data plus denizens and assets in that house.
+- [x] Add personal, house, house-held denizen, and kingdom holding models for
+  future affordability checks.
+- [x] Add Three Crowns Counting House accounts for denizens, houses, and
+  kingdoms.
+- [x] Add ACL permission grant foundation for scoped house and kingdom
+  delegation.
+- [x] Add read-only, member, manager, and admin roles.
+- [x] Add denizen profile fields and system account support.
+- [x] Add membership management service for house and kingdom admins.
+- [x] Add audit ledger foundation for future holding and permission changes.
+- [x] Validate holding items against rules-backed currencies, resources, and
+  units.
 - [x] Add tests for permission boundaries.
+- [x] Replace temporary `denizen_id` query parameters with authenticated denizen
+  dependencies.
+- [ ] Enforce endpoint-level write permissions for private, house, and kingdom
+  holdings.
+- [ ] Enforce endpoint-level write permissions for Three Crowns accounts:
+  denizen self, house admin, kingdom admin.
+- [ ] Add UI and API workflows for granting and revoking scoped permissions.
+- [ ] Add API endpoints for membership management and audit ledger views.
 
 ## Phase 3: Rules Dataset
 
@@ -71,7 +89,7 @@ This is the high-level todo list for building Carta Arcanum.
 
 ## Phase 8: Dependency Solver
 
-- [ ] Let users select a desired output.
+- [ ] Let denizens select a desired output.
 - [ ] Calculate required buildings and inputs.
 - [ ] Generate the full dependency chain.
 - [ ] Add minimal stable loop generation.

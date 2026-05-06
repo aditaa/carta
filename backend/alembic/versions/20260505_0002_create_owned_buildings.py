@@ -20,7 +20,7 @@ def upgrade() -> None:
     op.create_table(
         "owned_buildings",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("owner_user_id", sa.Integer(), nullable=False),
+        sa.Column("owner_denizen_id", sa.Integer(), nullable=False),
         sa.Column("house_id", sa.Integer(), nullable=True),
         sa.Column("building_definition_id", sa.String(length=120), nullable=False),
         sa.Column("display_name", sa.String(length=120), nullable=True),
@@ -35,7 +35,9 @@ def upgrade() -> None:
             ["house_id"], ["houses.id"], name=op.f("fk_owned_buildings_house_id_houses")
         ),
         sa.ForeignKeyConstraint(
-            ["owner_user_id"], ["users.id"], name=op.f("fk_owned_buildings_owner_user_id_users")
+            ["owner_denizen_id"],
+            ["denizens.id"],
+            name=op.f("fk_owned_buildings_owner_denizen_id_denizens"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_owned_buildings")),
     )
@@ -49,12 +51,15 @@ def upgrade() -> None:
         op.f("ix_owned_buildings_house_id"), "owned_buildings", ["house_id"], unique=False
     )
     op.create_index(
-        op.f("ix_owned_buildings_owner_user_id"), "owned_buildings", ["owner_user_id"], unique=False
+        op.f("ix_owned_buildings_owner_denizen_id"),
+        "owned_buildings",
+        ["owner_denizen_id"],
+        unique=False,
     )
 
 
 def downgrade() -> None:
-    op.drop_index(op.f("ix_owned_buildings_owner_user_id"), table_name="owned_buildings")
+    op.drop_index(op.f("ix_owned_buildings_owner_denizen_id"), table_name="owned_buildings")
     op.drop_index(op.f("ix_owned_buildings_house_id"), table_name="owned_buildings")
     op.drop_index(op.f("ix_owned_buildings_building_definition_id"), table_name="owned_buildings")
     op.drop_table("owned_buildings")

@@ -39,6 +39,12 @@ select {
   border-bottom: 1px solid #d8d2c2;
 }
 
+.top-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
 .top-bar h1,
 .panel h2 {
   margin: 0;
@@ -80,6 +86,76 @@ select {
 .icon-button:disabled {
   cursor: wait;
   opacity: 0.6;
+}
+
+.text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid #b8a36b;
+  border-radius: 6px;
+  color: #2f3d35;
+  background: #fffaf0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.text-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.login-form,
+.session-panel {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #d8d2c2;
+  border-radius: 8px;
+  background: #fffdf7;
+}
+
+.login-form label {
+  display: grid;
+  gap: 4px;
+}
+
+.login-form label span,
+.session-panel span {
+  color: #6f786f;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.login-form input {
+  width: 170px;
+  min-height: 38px;
+  border: 1px solid #c9bea5;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #17201c;
+  background: #ffffff;
+}
+
+.login-form p {
+  max-width: 220px;
+  margin: 0;
+  color: #682f24;
+  font-size: 0.86rem;
+}
+
+.session-panel {
+  align-items: center;
+}
+
+.session-panel strong {
+  display: block;
+  margin-top: 2px;
 }
 
 .status-banner {
@@ -237,9 +313,24 @@ td {
 
   .top-bar {
     align-items: flex-start;
+    flex-direction: column;
   }
 
   .top-bar h1 {
     font-size: 2rem;
+  }
+
+  .top-actions,
+  .login-form {
+    width: 100%;
+  }
+
+  .login-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .login-form input {
+    width: 100%;
   }
 }

@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
-from app.domains.auth.models import House, HouseMembership, User
+from app.domains.auth.models import Denizen, House, HouseMembership
 from app.domains.auth.schemas import VisibilityScope
 from app.domains.buildings.models import OwnedBuilding
 from app.domains.buildings.schemas import BuildingRegistryCreate, BuildingRegistryUpdate
@@ -37,42 +37,42 @@ def build_test_session():
 def seed_registry_db(db) -> None:
     db.add_all(
         [
-            User(id=1, email="one@example.test", display_name="User One"),
-            User(id=2, email="two@example.test", display_name="User Two"),
-            User(id=3, email="three@example.test", display_name="User Three"),
+            Denizen(id=1, email="one@example.test", display_name="Denizen One"),
+            Denizen(id=2, email="two@example.test", display_name="Denizen Two"),
+            Denizen(id=3, email="three@example.test", display_name="Denizen Three"),
             House(id=10, name="House Ten"),
             House(id=20, name="House Twenty"),
-            HouseMembership(user_id=1, house_id=10, can_view_house=True),
-            HouseMembership(user_id=2, house_id=10, can_view_house=False),
+            HouseMembership(denizen_id=1, house_id=10, can_view_house=True),
+            HouseMembership(denizen_id=2, house_id=10, can_view_house=False),
             OwnedBuilding(
                 id=1,
-                owner_user_id=1,
+                owner_denizen_id=1,
                 building_definition_id="farm",
                 count=2,
             ),
             OwnedBuilding(
                 id=2,
-                owner_user_id=2,
+                owner_denizen_id=2,
                 house_id=10,
                 building_definition_id="market",
                 count=1,
             ),
             OwnedBuilding(
                 id=3,
-                owner_user_id=3,
+                owner_denizen_id=3,
                 house_id=20,
                 building_definition_id="watchtower",
                 count=1,
             ),
             OwnedBuilding(
                 id=4,
-                owner_user_id=2,
+                owner_denizen_id=2,
                 building_definition_id="shop",
                 count=1,
             ),
             OwnedBuilding(
                 id=5,
-                owner_user_id=2,
+                owner_denizen_id=2,
                 house_id=20,
                 building_definition_id="tower",
                 count=1,
@@ -84,19 +84,19 @@ def seed_registry_db(db) -> None:
 
 def test_user_sees_own_buildings() -> None:
     service = BuildingRegistryService()
-    scope = VisibilityScope(user_id=1, visible_user_ids=[1], visible_house_ids=[])
+    scope = VisibilityScope(denizen_id=1, visible_denizen_ids=[1], visible_house_ids=[])
 
     buildings = service.list_visible(
         [
             OwnedBuildingRecord(
                 id=1,
-                owner_user_id=1,
+                owner_denizen_id=1,
                 building_definition_id="farm",
                 count=1,
             ),
             OwnedBuildingRecord(
                 id=2,
-                owner_user_id=2,
+                owner_denizen_id=2,
                 building_definition_id="market",
                 count=1,
             ),
@@ -110,8 +110,8 @@ def test_user_sees_own_buildings() -> None:
 def test_house_permission_includes_house_buildings() -> None:
     service = BuildingRegistryService()
     scope = VisibilityScope(
-        user_id=1,
-        visible_user_ids=[1, 2],
+        denizen_id=1,
+        visible_denizen_ids=[1, 2],
         visible_house_ids=[10],
     )
 
@@ -119,13 +119,13 @@ def test_house_permission_includes_house_buildings() -> None:
         [
             OwnedBuildingRecord(
                 id=1,
-                owner_user_id=1,
+                owner_denizen_id=1,
                 building_definition_id="farm",
                 count=1,
             ),
             OwnedBuildingRecord(
                 id=2,
-                owner_user_id=2,
+                owner_denizen_id=2,
                 house_id=10,
                 building_definition_id="market",
                 count=1,
@@ -140,8 +140,8 @@ def test_house_permission_includes_house_buildings() -> None:
 def test_house_permission_excludes_house_members_personal_buildings() -> None:
     service = BuildingRegistryService()
     scope = VisibilityScope(
-        user_id=1,
-        visible_user_ids=[1, 2],
+        denizen_id=1,
+        visible_denizen_ids=[1, 2],
         visible_house_ids=[10],
     )
 
@@ -149,19 +149,19 @@ def test_house_permission_excludes_house_members_personal_buildings() -> None:
         [
             OwnedBuildingRecord(
                 id=1,
-                owner_user_id=1,
+                owner_denizen_id=1,
                 building_definition_id="farm",
                 count=1,
             ),
             OwnedBuildingRecord(
                 id=2,
-                owner_user_id=2,
+                owner_denizen_id=2,
                 building_definition_id="shop",
                 count=1,
             ),
             OwnedBuildingRecord(
                 id=3,
-                owner_user_id=2,
+                owner_denizen_id=2,
                 house_id=20,
                 building_definition_id="tower",
                 count=1,
@@ -175,19 +175,19 @@ def test_house_permission_excludes_house_members_personal_buildings() -> None:
 
 def test_user_without_house_permission_cannot_see_house_buildings() -> None:
     service = BuildingRegistryService()
-    scope = VisibilityScope(user_id=1, visible_user_ids=[1], visible_house_ids=[])
+    scope = VisibilityScope(denizen_id=1, visible_denizen_ids=[1], visible_house_ids=[])
 
     buildings = service.list_visible(
         [
             OwnedBuildingRecord(
                 id=1,
-                owner_user_id=1,
+                owner_denizen_id=1,
                 building_definition_id="farm",
                 count=1,
             ),
             OwnedBuildingRecord(
                 id=2,
-                owner_user_id=2,
+                owner_denizen_id=2,
                 house_id=10,
                 building_definition_id="market",
                 count=1,
@@ -209,27 +209,27 @@ def test_aggregate_counts_by_owner() -> None:
                 [
                     OwnedBuildingRecord(
                         id=1,
-                        owner_user_id=1,
+                        owner_denizen_id=1,
                         building_definition_id="farm",
                         count=2,
                     ),
                     OwnedBuildingRecord(
                         id=2,
-                        owner_user_id=1,
+                        owner_denizen_id=1,
                         building_definition_id="farm",
                         count=1,
                     ),
                     OwnedBuildingRecord(
                         id=3,
-                        owner_user_id=2,
+                        owner_denizen_id=2,
                         house_id=10,
                         building_definition_id="market",
                         count=1,
                     ),
                 ],
                 VisibilityScope(
-                    user_id=1,
-                    visible_user_ids=[1, 2],
+                    denizen_id=1,
+                    visible_denizen_ids=[1, 2],
                     visible_house_ids=[10],
                 ),
             )
@@ -248,7 +248,7 @@ def test_validate_building_definitions_rejects_unknown_keys() -> None:
             [
                 OwnedBuildingRecord(
                     id=1,
-                    owner_user_id=1,
+                    owner_denizen_id=1,
                     building_definition_id="missing_building",
                     count=1,
                 )
@@ -268,26 +268,26 @@ def test_calculate_upkeep_totals_from_rules() -> None:
         [
             OwnedBuildingRecord(
                 id=1,
-                owner_user_id=1,
+                owner_denizen_id=1,
                 building_definition_id="farm",
                 count=2,
             ),
             OwnedBuildingRecord(
                 id=2,
-                owner_user_id=1,
+                owner_denizen_id=1,
                 building_definition_id="market",
                 count=1,
             ),
             OwnedBuildingRecord(
                 id=3,
-                owner_user_id=2,
+                owner_denizen_id=2,
                 building_definition_id="watchtower",
                 count=1,
             ),
         ],
         VisibilityScope(
-            user_id=1,
-            visible_user_ids=[1],
+            denizen_id=1,
+            visible_denizen_ids=[1],
             visible_house_ids=[],
         ),
     )
@@ -309,10 +309,10 @@ def test_db_scope_includes_user_and_house_members() -> None:
         seed_registry_db(db)
         service = BuildingRegistryService()
 
-        scope = service.build_visibility_scope_from_db(db, user_id=1)
+        scope = service.build_visibility_scope_from_db(db, denizen_id=1)
         buildings = service.list_visible_from_db(db, scope)
 
-        assert scope.visible_user_ids == [1, 2]
+        assert scope.visible_denizen_ids == [1, 2]
         assert scope.visible_house_ids == [10]
         assert [building.id for building in buildings] == [1, 2]
     finally:
@@ -326,10 +326,10 @@ def test_db_user_without_house_permission_only_sees_own_buildings() -> None:
         seed_registry_db(db)
         service = BuildingRegistryService()
 
-        scope = service.build_visibility_scope_from_db(db, user_id=2)
+        scope = service.build_visibility_scope_from_db(db, denizen_id=2)
         buildings = service.list_visible_from_db(db, scope)
 
-        assert scope.visible_user_ids == [2]
+        assert scope.visible_denizen_ids == [2]
         assert scope.visible_house_ids == []
         assert [building.id for building in buildings] == [2, 4, 5]
     finally:
@@ -347,11 +347,11 @@ def test_db_create_rejects_unknown_rule_key() -> None:
             service.create_in_db(
                 db,
                 BuildingRegistryCreate(
-                    owner_user_id=1,
+                    owner_denizen_id=1,
                     building_definition_id="missing_building",
                     count=1,
                 ),
-                VisibilityScope(user_id=1, visible_user_ids=[1], visible_house_ids=[]),
+                VisibilityScope(denizen_id=1, visible_denizen_ids=[1], visible_house_ids=[]),
                 rules,
             )
         except BuildingRegistryError as error:
@@ -371,12 +371,12 @@ def test_db_create_update_and_delete_visible_building() -> None:
         seed_registry_db(db)
         rules = load_rules_dataset(RULES_FILE)
         service = BuildingRegistryService()
-        scope = service.build_visibility_scope_from_db(db, user_id=1)
+        scope = service.build_visibility_scope_from_db(db, denizen_id=1)
 
         created = service.create_in_db(
             db,
             BuildingRegistryCreate(
-                owner_user_id=1,
+                owner_denizen_id=1,
                 building_definition_id="shop",
                 display_name="Main Shop",
                 count=1,
@@ -410,12 +410,12 @@ def test_db_create_allows_visible_house_member_asset() -> None:
         seed_registry_db(db)
         rules = load_rules_dataset(RULES_FILE)
         service = BuildingRegistryService()
-        scope = service.build_visibility_scope_from_db(db, user_id=1)
+        scope = service.build_visibility_scope_from_db(db, denizen_id=1)
 
         created = service.create_in_db(
             db,
             BuildingRegistryCreate(
-                owner_user_id=2,
+                owner_denizen_id=2,
                 house_id=10,
                 building_definition_id="shop",
                 display_name="House Member Shop",
@@ -425,26 +425,26 @@ def test_db_create_allows_visible_house_member_asset() -> None:
             rules,
         )
 
-        assert created.owner_user_id == 2
+        assert created.owner_denizen_id == 2
         assert created.house_id == 10
     finally:
         db.close()
         Base.metadata.drop_all(engine)
 
 
-def test_db_create_rejects_other_users_personal_building() -> None:
+def test_db_create_rejects_other_denizens_personal_building() -> None:
     db, engine = build_test_session()
     try:
         seed_registry_db(db)
         rules = load_rules_dataset(RULES_FILE)
         service = BuildingRegistryService()
-        scope = service.build_visibility_scope_from_db(db, user_id=1)
+        scope = service.build_visibility_scope_from_db(db, denizen_id=1)
 
         with pytest.raises(BuildingRegistryPermissionError):
             service.create_in_db(
                 db,
                 BuildingRegistryCreate(
-                    owner_user_id=2,
+                    owner_denizen_id=2,
                     building_definition_id="shop",
                     display_name="Private Shop",
                     count=1,
@@ -463,7 +463,7 @@ def test_db_update_refuses_invisible_building() -> None:
         seed_registry_db(db)
         rules = load_rules_dataset(RULES_FILE)
         service = BuildingRegistryService()
-        scope = service.build_visibility_scope_from_db(db, user_id=1)
+        scope = service.build_visibility_scope_from_db(db, denizen_id=1)
 
         updated = service.update_visible_in_db(
             db,

@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -11,32 +11,75 @@ if TYPE_CHECKING:
     from app.domains.buildings.models import OwnedBuilding
 
 
-class HouseRole(enum.StrEnum):
+class DenizenRole(enum.StrEnum):
+    read_only = "read_only"
     member = "member"
     manager = "manager"
     admin = "admin"
-    read_only = "read_only"
 
 
-class User(Base):
-    __tablename__ = "users"
+class Denizen(Base):
+    __tablename__ = "denizens"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     display_name: Mapped[str] = mapped_column(String(120))
+    character_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    pronouns: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    contact: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    profile_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    role: Mapped[DenizenRole] = mapped_column(
+        Enum(DenizenRole),
+        default=DenizenRole.read_only,
+    )
+    religion: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    primary_house_id: Mapped[int | None] = mapped_column(ForeignKey("houses.id"), nullable=True)
+    primary_kingdom_id: Mapped[int | None] = mapped_column(
+        ForeignKey("kingdoms.id"),
+        nullable=True,
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_system_account: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
     )
 
     memberships: Mapped[list["HouseMembership"]] = relationship(
-        back_populates="user",
+        back_populates="denizen",
         cascade="all, delete-orphan",
     )
     owned_buildings: Mapped[list["OwnedBuilding"]] = relationship(
         back_populates="owner",
         cascade="all, delete-orphan",
+    )
+    kingdom_memberships: Mapped[list["KingdomMembership"]] = relationship(
+        back_populates="denizen",
+        cascade="all, delete-orphan",
+        foreign_keys="KingdomMembership.denizen_id",
+    )
+    holdings: Mapped[list["DenizenHolding"]] = relationship(
+        back_populates="denizen",
+        cascade="all, delete-orphan",
+    )
+    house_held_holdings: Mapped[list["HouseDenizenHolding"]] = relationship(
+        back_populates="denizen",
+        cascade="all, delete-orphan",
+    )
+    counting_house_holdings: Mapped[list["ThreeCrownsHolding"]] = relationship(
+        back_populates="denizen",
+        cascade="all, delete-orphan",
+    )
+    granted_permissions: Mapped[list["PermissionGrant"]] = relationship(
+        back_populates="grantee",
+        cascade="all, delete-orphan",
+        foreign_keys="PermissionGrant.grantee_denizen_id",
+    )
+    audit_entries: Mapped[list["AuditLedgerEntry"]] = relationship(
+        back_populates="actor",
+        foreign_keys="AuditLedgerEntry.actor_denizen_id",
     )
 
 
@@ -45,6 +88,7 @@ class House(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    kingdom_id: Mapped[int | None] = mapped_column(ForeignKey("kingdoms.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -58,20 +102,240 @@ class House(Base):
         back_populates="house",
         cascade="all, delete-orphan",
     )
+    kingdom: Mapped["Kingdom | None"] = relationship(back_populates="houses")
+    holdings: Mapped[list["HouseHolding"]] = relationship(
+        back_populates="house",
+        cascade="all, delete-orphan",
+    )
+    denizen_holdings: Mapped[list["HouseDenizenHolding"]] = relationship(
+        back_populates="house",
+        cascade="all, delete-orphan",
+    )
+    counting_house_holdings: Mapped[list["ThreeCrownsHolding"]] = relationship(
+        back_populates="house",
+        cascade="all, delete-orphan",
+    )
+
+
+class Kingdom(Base):
+    __tablename__ = "kingdoms"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+    houses: Mapped[list["House"]] = relationship(back_populates="kingdom")
+    memberships: Mapped[list["KingdomMembership"]] = relationship(
+        back_populates="kingdom",
+        cascade="all, delete-orphan",
+    )
+    holdings: Mapped[list["KingdomHolding"]] = relationship(
+        back_populates="kingdom",
+        cascade="all, delete-orphan",
+    )
+    counting_house_holdings: Mapped[list["ThreeCrownsHolding"]] = relationship(
+        back_populates="kingdom",
+        cascade="all, delete-orphan",
+    )
 
 
 class HouseMembership(Base):
     __tablename__ = "house_memberships"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    denizen_id: Mapped[int] = mapped_column(ForeignKey("denizens.id"), index=True)
     house_id: Mapped[int] = mapped_column(ForeignKey("houses.id"), index=True)
-    role: Mapped[HouseRole] = mapped_column(Enum(HouseRole), default=HouseRole.member)
+    role: Mapped[DenizenRole] = mapped_column(Enum(DenizenRole), default=DenizenRole.read_only)
     can_view_house: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
     )
 
-    user: Mapped[User] = relationship(back_populates="memberships")
+    denizen: Mapped[Denizen] = relationship(back_populates="memberships")
     house: Mapped[House] = relationship(back_populates="memberships")
+
+
+class KingdomMembership(Base):
+    __tablename__ = "kingdom_memberships"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    denizen_id: Mapped[int] = mapped_column(ForeignKey("denizens.id"), index=True)
+    kingdom_id: Mapped[int] = mapped_column(ForeignKey("kingdoms.id"), index=True)
+    role: Mapped[DenizenRole] = mapped_column(Enum(DenizenRole), default=DenizenRole.read_only)
+    can_view_kingdom: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+    denizen: Mapped[Denizen] = relationship(back_populates="kingdom_memberships")
+    kingdom: Mapped[Kingdom] = relationship(back_populates="memberships")
+
+
+class DenizenHolding(Base):
+    __tablename__ = "denizen_holdings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    denizen_id: Mapped[int] = mapped_column(ForeignKey("denizens.id"), index=True)
+    item_type: Mapped[str] = mapped_column(String(40), index=True)
+    item_key: Mapped[str] = mapped_column(String(120), index=True)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    denizen: Mapped[Denizen] = relationship(back_populates="holdings")
+
+
+class HouseHolding(Base):
+    __tablename__ = "house_holdings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    house_id: Mapped[int] = mapped_column(ForeignKey("houses.id"), index=True)
+    item_type: Mapped[str] = mapped_column(String(40), index=True)
+    item_key: Mapped[str] = mapped_column(String(120), index=True)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    house: Mapped[House] = relationship(back_populates="holdings")
+
+
+class HouseDenizenHolding(Base):
+    __tablename__ = "house_denizen_holdings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    house_id: Mapped[int] = mapped_column(ForeignKey("houses.id"), index=True)
+    denizen_id: Mapped[int] = mapped_column(ForeignKey("denizens.id"), index=True)
+    item_type: Mapped[str] = mapped_column(String(40), index=True)
+    item_key: Mapped[str] = mapped_column(String(120), index=True)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    house: Mapped[House] = relationship(back_populates="denizen_holdings")
+    denizen: Mapped[Denizen] = relationship(back_populates="house_held_holdings")
+
+
+class KingdomHolding(Base):
+    __tablename__ = "kingdom_holdings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kingdom_id: Mapped[int] = mapped_column(ForeignKey("kingdoms.id"), index=True)
+    item_type: Mapped[str] = mapped_column(String(40), index=True)
+    item_key: Mapped[str] = mapped_column(String(120), index=True)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    kingdom: Mapped[Kingdom] = relationship(back_populates="holdings")
+
+
+class ThreeCrownsHolding(Base):
+    __tablename__ = "three_crowns_holdings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    account_type: Mapped[str] = mapped_column(String(40), index=True)
+    denizen_id: Mapped[int | None] = mapped_column(ForeignKey("denizens.id"), index=True)
+    house_id: Mapped[int | None] = mapped_column(ForeignKey("houses.id"), index=True)
+    kingdom_id: Mapped[int | None] = mapped_column(ForeignKey("kingdoms.id"), index=True)
+    item_type: Mapped[str] = mapped_column(String(40), index=True)
+    item_key: Mapped[str] = mapped_column(String(120), index=True)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    denizen: Mapped[Denizen | None] = relationship(back_populates="counting_house_holdings")
+    house: Mapped[House | None] = relationship(back_populates="counting_house_holdings")
+    kingdom: Mapped[Kingdom | None] = relationship(back_populates="counting_house_holdings")
+
+
+class PermissionGrant(Base):
+    __tablename__ = "permission_grants"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    grantor_denizen_id: Mapped[int] = mapped_column(ForeignKey("denizens.id"), index=True)
+    grantee_denizen_id: Mapped[int] = mapped_column(ForeignKey("denizens.id"), index=True)
+    scope_type: Mapped[str] = mapped_column(String(40), index=True)
+    scope_id: Mapped[int] = mapped_column(index=True)
+    permission: Mapped[str] = mapped_column(String(120), index=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+    grantor: Mapped[Denizen] = relationship(foreign_keys=[grantor_denizen_id])
+    grantee: Mapped[Denizen] = relationship(
+        back_populates="granted_permissions",
+        foreign_keys=[grantee_denizen_id],
+    )
+
+
+class AuditLedgerEntry(Base):
+    __tablename__ = "audit_ledger_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    actor_denizen_id: Mapped[int | None] = mapped_column(ForeignKey("denizens.id"), index=True)
+    is_system_action: Mapped[bool] = mapped_column(Boolean, default=False)
+    action: Mapped[str] = mapped_column(String(120), index=True)
+    target_type: Mapped[str] = mapped_column(String(80), index=True)
+    target_id: Mapped[int | None] = mapped_column(index=True)
+    scope_type: Mapped[str | None] = mapped_column(String(40), index=True)
+    scope_id: Mapped[int | None] = mapped_column(index=True)
+    item_type: Mapped[str | None] = mapped_column(String(40), index=True)
+    item_key: Mapped[str | None] = mapped_column(String(120), index=True)
+    amount_delta: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+    actor: Mapped[Denizen | None] = relationship(
+        back_populates="audit_entries",
+        foreign_keys=[actor_denizen_id],
+    )
