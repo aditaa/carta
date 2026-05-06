@@ -8,6 +8,7 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.domains.auth.models import Denizen, House, HouseMembership
 from app.domains.auth.service import hash_password
+from app.domains.buildings.models import OwnedBuilding
 from app.main import app
 
 pytestmark = pytest.mark.functional
@@ -27,7 +28,12 @@ def db_client():
     db = SessionLocal()
     db.add_all(
         [
-            Denizen(id=1, email="one@example.test", display_name="Denizen One"),
+            Denizen(
+                id=1,
+                email="one@example.test",
+                display_name="Denizen One",
+                password_hash=hash_password("swordfish"),
+            ),
             Denizen(
                 id=2,
                 email="two@example.test",
@@ -37,6 +43,13 @@ def db_client():
             House(id=10, name="House Ten"),
             HouseMembership(denizen_id=1, house_id=10, can_view_house=True),
             HouseMembership(denizen_id=2, house_id=10, can_view_house=False),
+            OwnedBuilding(
+                id=1,
+                owner_denizen_id=1,
+                house_id=None,
+                building_definition_id="farm",
+                count=1,
+            ),
         ]
     )
     db.commit()
@@ -51,6 +64,15 @@ def db_client():
         app.dependency_overrides.clear()
         db.close()
         Base.metadata.drop_all(engine)
+
+
+def auth_headers(test_client: TestClient, email: str) -> dict[str, str]:
+    response = test_client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": "swordfish"},
+    )
+    assert response.status_code == 200
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
 def test_health_endpoint() -> None:
@@ -90,9 +112,35 @@ def test_building_upkeep_preview_uses_visible_demo_buildings() -> None:
     ]
 
 
+@pytest.mark.parametrize(
+    ("method", "url", "json"),
+    [
+        ("get", "/api/v1/buildings/db", None),
+        (
+            "post",
+            "/api/v1/buildings/db",
+            {"owner_denizen_id": 1, "building_definition_id": "shop", "count": 1},
+        ),
+        ("get", "/api/v1/buildings/db/1", None),
+        ("patch", "/api/v1/buildings/db/1", {"count": 2}),
+        ("delete", "/api/v1/buildings/db/1", None),
+    ],
+)
+def test_db_building_endpoints_require_bearer_token(
+    db_client,
+    method: str,
+    url: str,
+    json: dict[str, object] | None,
+) -> None:
+    response = db_client.request(method, url, json=json)
+
+    assert response.status_code == 401
+
+
 def test_create_db_building_rejects_other_user_personal_asset(db_client) -> None:
     response = db_client.post(
-        "/api/v1/buildings/db?denizen_id=1",
+        "/api/v1/buildings/db",
+        headers=auth_headers(db_client, "one@example.test"),
         json={
             "owner_denizen_id": 2,
             "building_definition_id": "shop",
@@ -105,7 +153,8 @@ def test_create_db_building_rejects_other_user_personal_asset(db_client) -> None
 
 def test_create_db_building_allows_visible_house_asset(db_client) -> None:
     response = db_client.post(
-        "/api/v1/buildings/db?denizen_id=1",
+        "/api/v1/buildings/db",
+        headers=auth_headers(db_client, "one@example.test"),
         json={
             "owner_denizen_id": 2,
             "house_id": 10,
@@ -118,6 +167,21 @@ def test_create_db_building_allows_visible_house_asset(db_client) -> None:
     payload = response.json()
     assert payload["owner_denizen_id"] == 2
     assert payload["house_id"] == 10
+
+
+def test_db_building_endpoints_ignore_spoofed_denizen_id_query_param(db_client) -> None:
+    response = db_client.post(
+        "/api/v1/buildings/db?denizen_id=1",
+        headers=auth_headers(db_client, "two@example.test"),
+        json={
+            "owner_denizen_id": 1,
+            "house_id": 10,
+            "building_definition_id": "shop",
+            "count": 1,
+        },
+    )
+
+    assert response.status_code == 403
 
 
 def test_login_returns_token_and_current_user(db_client) -> None:

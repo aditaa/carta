@@ -178,8 +178,8 @@ audit ledger foundation, rules-backed holding item validation, building
 registry CRUD, upkeep preview calculations, and a React dashboard shell. The
 next build steps are:
 
-1. Apply authenticated user scope to database-backed building endpoints.
-2. Continue final-checking the manually maintained rules dataset.
-3. Add production totals and deficit/surplus calculations.
-4. Add editable frontend registry workflows.
+1. Continue final-checking the manually maintained rules dataset.
+2. Add production totals and deficit/surplus calculations.
+3. Add editable frontend registry workflows using authenticated endpoints.
+4. Enforce endpoint-level write permissions for holdings and Three Crowns.
 5. Add graph visualization and dependency solving.

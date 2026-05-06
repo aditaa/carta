@@ -32,7 +32,7 @@ This is the high-level todo list for building Carta Arcanum.
 - [x] Validate holding items against rules-backed currencies, resources, and
   units.
 - [x] Add tests for permission boundaries.
-- [ ] Replace temporary `denizen_id` query parameters with authenticated denizen
+- [x] Replace temporary `denizen_id` query parameters with authenticated denizen
   dependencies.
 - [ ] Enforce endpoint-level write permissions for private, house, and kingdom
   holdings.

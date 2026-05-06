@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.api.v1.dependencies import get_current_denizen
 from app.core.config import get_settings
 from app.db.session import get_db
+from app.domains.auth.models import Denizen
 from app.domains.auth.schemas import (
     AuthDenizen,
     AuthToken,
@@ -19,7 +20,6 @@ from app.domains.auth.service import (
 )
 
 router = APIRouter()
-bearer_scheme = HTTPBearer(auto_error=False)
 
 
 @router.get("/visibility-preview", response_model=VisibilityPreview)
@@ -84,25 +84,6 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthToken:
 
 @router.get("/me", response_model=AuthDenizen)
 def current_denizen(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    db: Session = Depends(get_db),
+    denizen: Denizen = Depends(get_current_denizen),
 ) -> AuthDenizen:
-    if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing bearer token",
-        )
-
-    settings = get_settings()
-    auth_service = get_authentication_service()
-    denizen = auth_service.denizen_from_token(
-        db,
-        credentials.credentials,
-        settings.auth_secret_key,
-    )
-    if denizen is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired bearer token",
-        )
-    return auth_service.serialize_denizen(denizen)
+    return get_authentication_service().serialize_denizen(denizen)

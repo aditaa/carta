@@ -32,15 +32,15 @@ Useful starter endpoints:
 - `GET /api/v1/auth/sample-scope`
 - `GET /api/v1/buildings`
 - `GET /api/v1/buildings/upkeep-preview`
-- `GET /api/v1/buildings/db?denizen_id=1`
-- `POST /api/v1/buildings/db?denizen_id=1`
-- `GET /api/v1/buildings/db/{building_id}?denizen_id=1`
-- `PATCH /api/v1/buildings/db/{building_id}?denizen_id=1`
-- `DELETE /api/v1/buildings/db/{building_id}?denizen_id=1`
+- `GET /api/v1/buildings/db`
+- `POST /api/v1/buildings/db`
+- `GET /api/v1/buildings/db/{building_id}`
+- `PATCH /api/v1/buildings/db/{building_id}`
+- `DELETE /api/v1/buildings/db/{building_id}`
 
-The `/api/v1/buildings/db` routes are database-backed. They use temporary
-`denizen_id` query parameter visibility until full login/session auth is wired
-into registry calls.
+The `/api/v1/buildings/db` routes are database-backed and require a bearer
+token from `POST /api/v1/auth/login`; visibility is derived from the
+authenticated denizen.
 
 ## Migrations
 

@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.api.v1.dependencies import get_current_denizen
 from app.db.session import get_db
+from app.domains.auth.models import Denizen
 from app.domains.auth.schemas import VisibilityScope
 from app.domains.buildings.schemas import (
     BuildingRegistryCreate,
@@ -80,14 +82,14 @@ def upkeep_preview() -> BuildingUpkeepSummary:
 
 @router.get("/db", response_model=BuildingRegistrySummary)
 def list_db_buildings(
-    denizen_id: int = Query(..., ge=1),
+    current_denizen: Denizen = Depends(get_current_denizen),
     db: Session = Depends(get_db),
 ) -> BuildingRegistrySummary:
     building_registry_service = get_building_registry_service()
-    scope = building_registry_service.build_visibility_scope_from_db(db, denizen_id)
+    scope = building_registry_service.build_visibility_scope_from_db(db, current_denizen.id)
     return BuildingRegistrySummary(
         items=building_registry_service.list_visible_from_db(db, scope),
-        note="Temporary query-param auth until authenticated denizen scope is fully wired.",
+        note="Authenticated registry view scoped to the current denizen.",
     )
 
 
@@ -98,11 +100,11 @@ def list_db_buildings(
 )
 def create_db_building(
     payload: BuildingRegistryCreate,
-    denizen_id: int = Query(..., ge=1),
+    current_denizen: Denizen = Depends(get_current_denizen),
     db: Session = Depends(get_db),
 ) -> BuildingRegistryItem:
     building_registry_service = get_building_registry_service()
-    scope = building_registry_service.build_visibility_scope_from_db(db, denizen_id)
+    scope = building_registry_service.build_visibility_scope_from_db(db, current_denizen.id)
     rules = get_rules_service().load_current_rules()
     try:
         return building_registry_service.create_in_db(db, payload, scope, rules)
@@ -121,11 +123,11 @@ def create_db_building(
 @router.get("/db/{building_id}", response_model=BuildingRegistryItem)
 def get_db_building(
     building_id: int,
-    denizen_id: int = Query(..., ge=1),
+    current_denizen: Denizen = Depends(get_current_denizen),
     db: Session = Depends(get_db),
 ) -> BuildingRegistryItem:
     building_registry_service = get_building_registry_service()
-    scope = building_registry_service.build_visibility_scope_from_db(db, denizen_id)
+    scope = building_registry_service.build_visibility_scope_from_db(db, current_denizen.id)
     building = building_registry_service.get_visible_from_db(db, building_id, scope)
     if building is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Building not found")
@@ -136,11 +138,11 @@ def get_db_building(
 def update_db_building(
     building_id: int,
     payload: BuildingRegistryUpdate,
-    denizen_id: int = Query(..., ge=1),
+    current_denizen: Denizen = Depends(get_current_denizen),
     db: Session = Depends(get_db),
 ) -> BuildingRegistryItem:
     building_registry_service = get_building_registry_service()
-    scope = building_registry_service.build_visibility_scope_from_db(db, denizen_id)
+    scope = building_registry_service.build_visibility_scope_from_db(db, current_denizen.id)
     rules = get_rules_service().load_current_rules()
     try:
         building = building_registry_service.update_visible_in_db(
@@ -163,10 +165,10 @@ def update_db_building(
 @router.delete("/db/{building_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_db_building(
     building_id: int,
-    denizen_id: int = Query(..., ge=1),
+    current_denizen: Denizen = Depends(get_current_denizen),
     db: Session = Depends(get_db),
 ) -> None:
     building_registry_service = get_building_registry_service()
-    scope = building_registry_service.build_visibility_scope_from_db(db, denizen_id)
+    scope = building_registry_service.build_visibility_scope_from_db(db, current_denizen.id)
     if not building_registry_service.delete_visible_from_db(db, building_id, scope):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Building not found")
