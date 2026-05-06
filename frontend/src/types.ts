@@ -47,3 +47,16 @@ export type BuildingUpkeepSummary = {
   lines: BuildingUpkeepLine[];
   totals: RulesRef[];
 };
+
+export type AuthUser = {
+  id: number;
+  email: string;
+  display_name: string;
+  is_active: boolean;
+};
+
+export type AuthToken = {
+  access_token: string;
+  token_type: "bearer";
+  user: AuthUser;
+};

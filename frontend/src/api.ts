@@ -1,13 +1,33 @@
-import type { BuildingRegistrySummary, BuildingUpkeepSummary, RulesDataset } from "./types";
+import type {
+  AuthToken,
+  AuthUser,
+  BuildingRegistrySummary,
+  BuildingUpkeepSummary,
+  RulesDataset,
+} from "./types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 
-async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`);
+async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, init);
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status} ${response.statusText}`);
   }
   return response.json() as Promise<T>;
+}
+
+export function login(email: string, password: string): Promise<AuthToken> {
+  return fetchJson<AuthToken>("/auth/login", {
+    body: JSON.stringify({ email, password }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+}
+
+export function getCurrentUser(accessToken: string): Promise<AuthUser> {
+  return fetchJson<AuthUser>("/auth/me", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 }
 
 export function getCurrentRules(): Promise<RulesDataset> {

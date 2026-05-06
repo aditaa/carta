@@ -14,7 +14,7 @@ This is the high-level todo list for building Carta Arcanum.
 ## Phase 2: Auth And Permissions
 
 - [x] Create user model and authentication flow foundation.
-- [ ] Add session or token-based login.
+- [x] Add session or token-based login.
 - [x] Define permission scopes for personal data and house data.
 - [x] Implement baseline visibility: a user can see their own data.
 - [x] Implement house visibility: a user with house permission can see their
@@ -22,6 +22,8 @@ This is the high-level todo list for building Carta Arcanum.
 - [ ] Add room for future roles such as admin, house manager, or read-only
   member.
 - [x] Add tests for permission boundaries.
+- [ ] Replace temporary `user_id` query parameters with authenticated user
+  dependencies.
 
 ## Phase 3: Rules Dataset
 

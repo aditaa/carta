@@ -7,6 +7,7 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base
 from app.db.session import get_db
 from app.domains.auth.models import House, HouseMembership, User
+from app.domains.auth.service import hash_password
 from app.main import app
 
 pytestmark = pytest.mark.functional
@@ -27,7 +28,12 @@ def db_client():
     db.add_all(
         [
             User(id=1, email="one@example.test", display_name="User One"),
-            User(id=2, email="two@example.test", display_name="User Two"),
+            User(
+                id=2,
+                email="two@example.test",
+                display_name="User Two",
+                password_hash=hash_password("swordfish"),
+            ),
             House(id=10, name="House Ten"),
             HouseMembership(user_id=1, house_id=10, can_view_house=True),
             HouseMembership(user_id=2, house_id=10, can_view_house=False),
@@ -112,3 +118,32 @@ def test_create_db_building_allows_visible_house_asset(db_client) -> None:
     payload = response.json()
     assert payload["owner_user_id"] == 2
     assert payload["house_id"] == 10
+
+
+def test_login_returns_token_and_current_user(db_client) -> None:
+    response = db_client.post(
+        "/api/v1/auth/login",
+        json={"email": "two@example.test", "password": "swordfish"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["token_type"] == "bearer"
+    assert payload["user"]["email"] == "two@example.test"
+
+    me_response = db_client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {payload['access_token']}"},
+    )
+
+    assert me_response.status_code == 200
+    assert me_response.json()["display_name"] == "User Two"
+
+
+def test_login_rejects_bad_password(db_client) -> None:
+    response = db_client.post(
+        "/api/v1/auth/login",
+        json={"email": "two@example.test", "password": "wrong"},
+    )
+
+    assert response.status_code == 401

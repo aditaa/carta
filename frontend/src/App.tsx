@@ -1,8 +1,19 @@
-import { AlertCircle, Database, Factory, RefreshCw } from "lucide-react";
+import { AlertCircle, Database, Factory, LogIn, LogOut, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { getBuildingRegistry, getCurrentRules, getUpkeepPreview } from "./api";
-import type { BuildingRegistrySummary, BuildingUpkeepSummary, RulesDataset } from "./types";
+import {
+  getBuildingRegistry,
+  getCurrentRules,
+  getCurrentUser,
+  getUpkeepPreview,
+  login,
+} from "./api";
+import type {
+  AuthUser,
+  BuildingRegistrySummary,
+  BuildingUpkeepSummary,
+  RulesDataset,
+} from "./types";
 
 type LoadState = {
   rules?: RulesDataset;
@@ -16,8 +27,14 @@ const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
+const TOKEN_STORAGE_KEY = "carta-auth-token";
+
 export function App() {
   const [state, setState] = useState<LoadState>({ isLoading: true });
+  const [authToken, setAuthToken] = useState(() => localStorage.getItem(TOKEN_STORAGE_KEY));
+  const [currentUser, setCurrentUser] = useState<AuthUser | undefined>();
+  const [authError, setAuthError] = useState<string | undefined>();
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     setState((current) => ({ ...current, error: undefined, isLoading: true }));
@@ -38,6 +55,65 @@ export function App() {
     void loadDashboard();
   }, [loadDashboard]);
 
+  useEffect(() => {
+    if (!authToken) {
+      setCurrentUser(undefined);
+      return;
+    }
+
+    let isMounted = true;
+    setIsAuthLoading(true);
+    getCurrentUser(authToken)
+      .then((user) => {
+        if (!isMounted) {
+          return;
+        }
+        setCurrentUser(user);
+        setAuthError(undefined);
+      })
+      .catch(() => {
+        if (!isMounted) {
+          return;
+        }
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        setAuthToken(null);
+        setCurrentUser(undefined);
+        setAuthError("Session expired. Sign in again.");
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsAuthLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authToken]);
+
+  const handleLogin = async (email: string, password: string) => {
+    setIsAuthLoading(true);
+    setAuthError(undefined);
+    try {
+      const session = await login(email, password);
+      localStorage.setItem(TOKEN_STORAGE_KEY, session.access_token);
+      setAuthToken(session.access_token);
+      setCurrentUser(session.user);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to sign in";
+      setAuthError(message);
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    setAuthToken(null);
+    setCurrentUser(undefined);
+    setAuthError(undefined);
+  };
+
   const buildingNames = useMemo(() => {
     return new Map(
       state.rules?.building_definitions.map((building) => [building.key, building.name]) ?? [],
@@ -53,16 +129,25 @@ export function App() {
           <p className="eyebrow">Carta Arcanum</p>
           <h1>Settlement planning dashboard</h1>
         </div>
-        <button
-          aria-label="Refresh dashboard data"
-          className="icon-button"
-          disabled={state.isLoading}
-          onClick={() => void loadDashboard()}
-          title="Refresh dashboard data"
-          type="button"
-        >
-          <RefreshCw aria-hidden="true" size={20} />
-        </button>
+        <div className="top-actions">
+          <SessionPanel
+            authError={authError}
+            currentUser={currentUser}
+            isLoading={isAuthLoading}
+            onLogin={handleLogin}
+            onLogout={handleLogout}
+          />
+          <button
+            aria-label="Refresh dashboard data"
+            className="icon-button"
+            disabled={state.isLoading}
+            onClick={() => void loadDashboard()}
+            title="Refresh dashboard data"
+            type="button"
+          >
+            <RefreshCw aria-hidden="true" size={20} />
+          </button>
+        </div>
       </header>
 
       {state.error ? (
@@ -176,5 +261,73 @@ function Metric({ label, value }: { label: string; value: number | string }) {
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+function SessionPanel({
+  authError,
+  currentUser,
+  isLoading,
+  onLogin,
+  onLogout,
+}: {
+  authError?: string;
+  currentUser?: AuthUser;
+  isLoading: boolean;
+  onLogin: (email: string, password: string) => Promise<void>;
+  onLogout: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  if (currentUser) {
+    return (
+      <section className="session-panel" aria-label="Current session">
+        <div>
+          <span>Signed in</span>
+          <strong>{currentUser.display_name}</strong>
+        </div>
+        <button className="text-button" onClick={onLogout} type="button">
+          <LogOut aria-hidden="true" size={16} />
+          Sign out
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <form
+      className="login-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void onLogin(email, password);
+      }}
+    >
+      <label>
+        <span>Email</span>
+        <input
+          autoComplete="email"
+          onChange={(event) => setEmail(event.target.value)}
+          required
+          type="email"
+          value={email}
+        />
+      </label>
+      <label>
+        <span>Password</span>
+        <input
+          autoComplete="current-password"
+          onChange={(event) => setPassword(event.target.value)}
+          required
+          type="password"
+          value={password}
+        />
+      </label>
+      <button className="text-button" disabled={isLoading} type="submit">
+        <LogIn aria-hidden="true" size={16} />
+        Sign in
+      </button>
+      {authError ? <p role="alert">{authError}</p> : null}
+    </form>
   );
 }

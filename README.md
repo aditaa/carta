@@ -90,7 +90,7 @@ Frontend quick start:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -135,6 +135,12 @@ DATABASE_URL=mysql+pymysql://carta:carta@127.0.0.1:3306/carta_arcanum PYTHONPATH
 DATABASE_URL=mysql+pymysql://carta:carta@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend pytest backend/tests -m integration
 ```
 
+Create a local login user after migrations are applied:
+
+```bash
+PYTHONPATH=backend python -m app.cli.create_user --email you@example.com --display-name "Your Name"
+```
+
 ## Rules Data
 
 Rules are intentionally kept separate in `rules/` so game changes can be
@@ -160,10 +166,11 @@ See `ROADMAP.md` for the milestone todo list.
 ## Development Status
 
 This repository is in project setup mode. Current foundations include rules
-validation/import, auth visibility scaffolding, building registry CRUD, upkeep
-preview calculations, and a React dashboard shell. The next build steps are:
+validation/import, token login, auth visibility scaffolding, building registry
+CRUD, upkeep preview calculations, and a React dashboard shell. The next build
+steps are:
 
-1. Add real session or token-based login.
+1. Apply authenticated user scope to database-backed building endpoints.
 2. Continue final-checking the manually maintained rules dataset.
 3. Add production totals and deficit/surplus calculations.
 4. Add editable frontend registry workflows.

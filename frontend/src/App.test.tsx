@@ -48,11 +48,23 @@ const upkeepPayload = {
   ],
 };
 
+const authPayload = {
+  access_token: "test-token",
+  token_type: "bearer",
+  user: {
+    id: 2,
+    email: "two@example.test",
+    display_name: "User Two",
+    is_active: true,
+  },
+};
+
 describe("App", () => {
   beforeEach(() => {
+    localStorage.clear();
     vi.stubGlobal(
       "fetch",
-      vi.fn((url: string) => {
+      vi.fn((url: string, init?: RequestInit) => {
         if (url.endsWith("/rules/current")) {
           return Promise.resolve(jsonResponse(rulesPayload));
         }
@@ -61,6 +73,12 @@ describe("App", () => {
         }
         if (url.endsWith("/buildings")) {
           return Promise.resolve(jsonResponse(buildingsPayload));
+        }
+        if (url.endsWith("/auth/login") && init?.method === "POST") {
+          return Promise.resolve(jsonResponse(authPayload));
+        }
+        if (url.endsWith("/auth/me")) {
+          return Promise.resolve(jsonResponse(authPayload.user));
         }
         return Promise.resolve(new Response(null, { status: 404 }));
       }),
@@ -92,6 +110,23 @@ describe("App", () => {
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledTimes(6);
     });
+  });
+
+  it("signs in and signs out with the auth API", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.type(screen.getByLabelText("Email"), "two@example.test");
+    await user.type(screen.getByLabelText("Password"), "swordfish");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(await screen.findByText("User Two")).toBeInTheDocument();
+    expect(localStorage.getItem("carta-auth-token")).toBe("test-token");
+
+    await user.click(screen.getByRole("button", { name: "Sign out" }));
+
+    expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    expect(localStorage.getItem("carta-auth-token")).toBeNull();
   });
 });
 

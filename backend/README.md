@@ -26,6 +26,8 @@ Useful starter endpoints:
 
 - `GET /api/v1/health`
 - `GET /api/v1/rules/current`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
 - `GET /api/v1/auth/visibility-preview`
 - `GET /api/v1/auth/sample-scope`
 - `GET /api/v1/buildings`
@@ -56,6 +58,12 @@ Rules are maintained manually in JSON, then imported into SQL:
 
 ```bash
 PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
+```
+
+## Local User
+
+```bash
+PYTHONPATH=backend python -m app.cli.create_user --email you@example.com --display-name "Your Name"
 ```
 
 ## Tests

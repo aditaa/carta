@@ -11,3 +11,21 @@ class VisibilityScope(BaseModel):
     user_id: int
     visible_user_ids: list[int] = Field(default_factory=list)
     visible_house_ids: list[int] = Field(default_factory=list)
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class AuthUser(BaseModel):
+    id: int
+    email: str
+    display_name: str
+    is_active: bool
+
+
+class AuthToken(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: AuthUser
