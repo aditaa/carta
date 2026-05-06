@@ -19,11 +19,14 @@ This is the high-level todo list for building Carta Arcanum.
 - [x] Implement baseline visibility: a user can see their own data.
 - [x] Implement house visibility: a user with house permission can see their
   own data plus denizens and assets in that house.
+- [x] Add personal, house, and kingdom holding models for future affordability
+  checks.
 - [ ] Add room for future roles such as admin, house manager, or read-only
   member.
 - [x] Add tests for permission boundaries.
 - [ ] Replace temporary `denizen_id` query parameters with authenticated denizen
   dependencies.
+- [ ] Enforce manager/admin write permissions for house and kingdom holdings.
 
 ## Phase 3: Rules Dataset
 

@@ -49,9 +49,9 @@ alembic -c backend/alembic.ini upgrade head
 ```
 
 Alembic reads `DATABASE_URL` when present. The first migration creates
-denizens, houses, kingdoms, memberships, and denizen holdings. The second
-migration creates owned building records for the building registry. The third
-migration creates imported rules tables.
+denizens, houses, kingdoms, memberships, and personal/house/kingdom holdings.
+The second migration creates owned building records for the building registry.
+The third migration creates imported rules tables.
 
 ## Rules Import
 

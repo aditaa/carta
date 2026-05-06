@@ -80,6 +80,10 @@ class House(Base):
         cascade="all, delete-orphan",
     )
     kingdom: Mapped["Kingdom | None"] = relationship(back_populates="houses")
+    holdings: Mapped[list["HouseHolding"]] = relationship(
+        back_populates="house",
+        cascade="all, delete-orphan",
+    )
 
 
 class Kingdom(Base):
@@ -94,6 +98,10 @@ class Kingdom(Base):
 
     houses: Mapped[list["House"]] = relationship(back_populates="kingdom")
     memberships: Mapped[list["KingdomMembership"]] = relationship(
+        back_populates="kingdom",
+        cascade="all, delete-orphan",
+    )
+    holdings: Mapped[list["KingdomHolding"]] = relationship(
         back_populates="kingdom",
         cascade="all, delete-orphan",
     )
@@ -153,3 +161,47 @@ class DenizenHolding(Base):
     )
 
     denizen: Mapped[Denizen] = relationship(back_populates="holdings")
+
+
+class HouseHolding(Base):
+    __tablename__ = "house_holdings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    house_id: Mapped[int] = mapped_column(ForeignKey("houses.id"), index=True)
+    item_type: Mapped[str] = mapped_column(String(40), index=True)
+    item_key: Mapped[str] = mapped_column(String(120), index=True)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    house: Mapped[House] = relationship(back_populates="holdings")
+
+
+class KingdomHolding(Base):
+    __tablename__ = "kingdom_holdings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kingdom_id: Mapped[int] = mapped_column(ForeignKey("kingdoms.id"), index=True)
+    item_type: Mapped[str] = mapped_column(String(40), index=True)
+    item_key: Mapped[str] = mapped_column(String(120), index=True)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    kingdom: Mapped[Kingdom] = relationship(back_populates="holdings")

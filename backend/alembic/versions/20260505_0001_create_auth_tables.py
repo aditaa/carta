@@ -169,8 +169,79 @@ def upgrade() -> None:
         op.f("ix_denizen_holdings_item_type"), "denizen_holdings", ["item_type"], unique=False
     )
 
+    op.create_table(
+        "house_holdings",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("house_id", sa.Integer(), nullable=False),
+        sa.Column("item_type", sa.String(length=40), nullable=False),
+        sa.Column("item_key", sa.String(length=120), nullable=False),
+        sa.Column("amount", sa.Numeric(12, 2), nullable=False),
+        sa.Column("note", sa.String(length=255), nullable=True),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.ForeignKeyConstraint(
+            ["house_id"], ["houses.id"], name=op.f("fk_house_holdings_house_id_houses")
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_house_holdings")),
+    )
+    op.create_index(
+        op.f("ix_house_holdings_house_id"), "house_holdings", ["house_id"], unique=False
+    )
+    op.create_index(
+        op.f("ix_house_holdings_item_key"), "house_holdings", ["item_key"], unique=False
+    )
+    op.create_index(
+        op.f("ix_house_holdings_item_type"), "house_holdings", ["item_type"], unique=False
+    )
+
+    op.create_table(
+        "kingdom_holdings",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("kingdom_id", sa.Integer(), nullable=False),
+        sa.Column("item_type", sa.String(length=40), nullable=False),
+        sa.Column("item_key", sa.String(length=120), nullable=False),
+        sa.Column("amount", sa.Numeric(12, 2), nullable=False),
+        sa.Column("note", sa.String(length=255), nullable=True),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.ForeignKeyConstraint(
+            ["kingdom_id"],
+            ["kingdoms.id"],
+            name=op.f("fk_kingdom_holdings_kingdom_id_kingdoms"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_kingdom_holdings")),
+    )
+    op.create_index(
+        op.f("ix_kingdom_holdings_kingdom_id"),
+        "kingdom_holdings",
+        ["kingdom_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_kingdom_holdings_item_key"), "kingdom_holdings", ["item_key"], unique=False
+    )
+    op.create_index(
+        op.f("ix_kingdom_holdings_item_type"), "kingdom_holdings", ["item_type"], unique=False
+    )
+
 
 def downgrade() -> None:
+    op.drop_index(op.f("ix_kingdom_holdings_item_type"), table_name="kingdom_holdings")
+    op.drop_index(op.f("ix_kingdom_holdings_item_key"), table_name="kingdom_holdings")
+    op.drop_index(op.f("ix_kingdom_holdings_kingdom_id"), table_name="kingdom_holdings")
+    op.drop_table("kingdom_holdings")
+    op.drop_index(op.f("ix_house_holdings_item_type"), table_name="house_holdings")
+    op.drop_index(op.f("ix_house_holdings_item_key"), table_name="house_holdings")
+    op.drop_index(op.f("ix_house_holdings_house_id"), table_name="house_holdings")
+    op.drop_table("house_holdings")
     op.drop_index(op.f("ix_denizen_holdings_item_type"), table_name="denizen_holdings")
     op.drop_index(op.f("ix_denizen_holdings_item_key"), table_name="denizen_holdings")
     op.drop_index(op.f("ix_denizen_holdings_denizen_id"), table_name="denizen_holdings")

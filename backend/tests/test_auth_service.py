@@ -9,8 +9,10 @@ from app.domains.auth.models import (
     DenizenHolding,
     DenizenRole,
     House,
+    HouseHolding,
     HouseMembership,
     Kingdom,
+    KingdomHolding,
     KingdomMembership,
 )
 from app.domains.auth.service import AuthenticationService, hash_password, verify_password
@@ -164,12 +166,27 @@ def test_denizen_can_link_to_house_kingdom_and_hold_resources() -> None:
                     amount=12,
                     note="Personal hold",
                 ),
+                HouseHolding(
+                    house_id=10,
+                    item_type="currency",
+                    item_key="tower",
+                    amount=7,
+                    note="House bank",
+                ),
+                KingdomHolding(
+                    kingdom_id=100,
+                    item_type="resource",
+                    item_key="rarities",
+                    amount=3,
+                    note="Kingdom stash",
+                ),
             ]
         )
         db.commit()
 
         service = AuthenticationService()
         scope = service.build_visibility_scope_from_db(db, denizen_id=1)
+        holdings = service.list_visible_holdings(db, scope)
         denizen = db.get(Denizen, 1)
 
         assert scope.visible_house_ids == [10]
@@ -178,6 +195,13 @@ def test_denizen_can_link_to_house_kingdom_and_hold_resources() -> None:
         assert denizen is not None
         assert denizen.holdings[0].item_key == "crops"
         assert denizen.memberships[0].role == DenizenRole.manager
+        assert [(item.item_key, item.amount) for item in holdings.denizen] == [("crops", 12.0)]
+        assert [(item.scope_id, item.item_key, item.amount) for item in holdings.house] == [
+            (10, "tower", 7.0)
+        ]
+        assert [(item.scope_id, item.item_key, item.amount) for item in holdings.kingdom] == [
+            (100, "rarities", 3.0)
+        ]
     finally:
         db.close()
         Base.metadata.drop_all(engine)

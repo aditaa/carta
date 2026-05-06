@@ -9,8 +9,21 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.domains.auth.models import Denizen, HouseMembership, KingdomMembership
-from app.domains.auth.schemas import AuthDenizen, VisibilityScope
+from app.domains.auth.models import (
+    Denizen,
+    DenizenHolding,
+    HouseHolding,
+    HouseMembership,
+    KingdomHolding,
+    KingdomMembership,
+)
+from app.domains.auth.schemas import (
+    AuthDenizen,
+    DenizenHoldingItem,
+    SharedHoldingItem,
+    VisibilityScope,
+    VisibleHoldings,
+)
 
 PASSWORD_ALGORITHM = "pbkdf2_sha256"
 PASSWORD_ITERATIONS = 210_000
@@ -195,6 +208,60 @@ class AuthenticationService:
             visible_denizen_ids=sorted(visible_denizen_ids),
             visible_house_ids=sorted(set(house_ids)),
             visible_kingdom_ids=sorted(set(kingdom_ids)),
+        )
+
+    def list_visible_holdings(self, db: Session, scope: VisibilityScope) -> VisibleHoldings:
+        denizen_holdings = db.scalars(
+            select(DenizenHolding).where(DenizenHolding.denizen_id == scope.denizen_id)
+        ).all()
+        house_holdings = []
+        if scope.visible_house_ids:
+            house_holdings = db.scalars(
+                select(HouseHolding).where(HouseHolding.house_id.in_(scope.visible_house_ids))
+            ).all()
+        kingdom_holdings = []
+        if scope.visible_kingdom_ids:
+            kingdom_holdings = db.scalars(
+                select(KingdomHolding).where(
+                    KingdomHolding.kingdom_id.in_(scope.visible_kingdom_ids)
+                )
+            ).all()
+
+        return VisibleHoldings(
+            denizen=[
+                DenizenHoldingItem(
+                    id=holding.id,
+                    item_type=holding.item_type,
+                    item_key=holding.item_key,
+                    amount=float(holding.amount),
+                    note=holding.note,
+                )
+                for holding in denizen_holdings
+            ],
+            house=[
+                SharedHoldingItem(
+                    id=holding.id,
+                    scope_type="house",
+                    scope_id=holding.house_id,
+                    item_type=holding.item_type,
+                    item_key=holding.item_key,
+                    amount=float(holding.amount),
+                    note=holding.note,
+                )
+                for holding in house_holdings
+            ],
+            kingdom=[
+                SharedHoldingItem(
+                    id=holding.id,
+                    scope_type="kingdom",
+                    scope_id=holding.kingdom_id,
+                    item_type=holding.item_type,
+                    item_key=holding.item_key,
+                    amount=float(holding.amount),
+                    note=holding.note,
+                )
+                for holding in kingdom_holdings
+            ],
         )
 
 

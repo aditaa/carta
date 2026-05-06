@@ -3,8 +3,10 @@ from app.domains.auth.models import (
     Denizen,
     DenizenHolding,
     House,
+    HouseHolding,
     HouseMembership,
     Kingdom,
+    KingdomHolding,
     KingdomMembership,
 )
 from app.domains.buildings.models import OwnedBuilding
@@ -25,8 +27,10 @@ __all__ = [
     "Denizen",
     "DenizenHolding",
     "House",
+    "HouseHolding",
     "HouseMembership",
     "Kingdom",
+    "KingdomHolding",
     "KingdomMembership",
     "OwnedBuilding",
     "RuleBuildingDefinition",

@@ -166,9 +166,9 @@ See `ROADMAP.md` for the milestone todo list.
 ## Development Status
 
 This repository is in project setup mode. Current foundations include rules
-validation/import, denizen token login, auth visibility scaffolding, building registry
-CRUD, upkeep preview calculations, and a React dashboard shell. The next build
-steps are:
+validation/import, denizen token login, auth visibility scaffolding, personal
+and shared holdings foundations, building registry CRUD, upkeep preview
+calculations, and a React dashboard shell. The next build steps are:
 
 1. Apply authenticated user scope to database-backed building endpoints.
 2. Continue final-checking the manually maintained rules dataset.
