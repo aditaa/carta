@@ -1,6 +1,6 @@
 import type {
   AuthToken,
-  AuthUser,
+  AuthDenizen,
   BuildingRegistrySummary,
   BuildingUpkeepSummary,
   RulesDataset,
@@ -24,8 +24,8 @@ export function login(email: string, password: string): Promise<AuthToken> {
   });
 }
 
-export function getCurrentUser(accessToken: string): Promise<AuthUser> {
-  return fetchJson<AuthUser>("/auth/me", {
+export function getCurrentDenizen(accessToken: string): Promise<AuthDenizen> {
+  return fetchJson<AuthDenizen>("/auth/me", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 }

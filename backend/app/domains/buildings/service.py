@@ -28,7 +28,7 @@ class BuildingRegistryPermissionError(PermissionError):
 @dataclass(frozen=True)
 class OwnedBuildingRecord:
     id: int
-    owner_user_id: int
+    owner_denizen_id: int
     building_definition_id: str
     count: int
     house_id: int | None = None
@@ -39,28 +39,30 @@ class BuildingRegistryService:
     def build_visibility_scope_from_db(
         self,
         db: Session,
-        user_id: int,
+        denizen_id: int,
     ) -> VisibilityScope:
         house_ids = [
             row.house_id
             for row in db.scalars(
                 select(HouseMembership).where(
-                    HouseMembership.user_id == user_id,
+                    HouseMembership.denizen_id == denizen_id,
                     HouseMembership.can_view_house.is_(True),
                 )
             )
         ]
-        visible_user_ids = {user_id}
+        visible_denizen_ids = {denizen_id}
         if house_ids:
-            visible_user_ids.update(
+            visible_denizen_ids.update(
                 db.scalars(
-                    select(HouseMembership.user_id).where(HouseMembership.house_id.in_(house_ids))
+                    select(HouseMembership.denizen_id).where(
+                        HouseMembership.house_id.in_(house_ids)
+                    )
                 )
             )
 
         return VisibilityScope(
-            user_id=user_id,
-            visible_user_ids=sorted(visible_user_ids),
+            denizen_id=denizen_id,
+            visible_denizen_ids=sorted(visible_denizen_ids),
             visible_house_ids=sorted(set(house_ids)),
         )
 
@@ -73,14 +75,14 @@ class BuildingRegistryService:
         visible_buildings = [
             building
             for building in buildings
-            if building.owner_user_id == visibility_scope.user_id
+            if building.owner_denizen_id == visibility_scope.denizen_id
             or (building.house_id is not None and building.house_id in visible_house_ids)
         ]
 
         return [
             BuildingRegistryItem(
                 id=building.id,
-                owner_user_id=building.owner_user_id,
+                owner_denizen_id=building.owner_denizen_id,
                 house_id=building.house_id,
                 building_definition_id=building.building_definition_id,
                 display_name=building.display_name,
@@ -122,7 +124,7 @@ class BuildingRegistryService:
         self.validate_building_definition_id(payload.building_definition_id, rules)
         self.validate_create_permission(payload, visibility_scope)
         record = OwnedBuilding(
-            owner_user_id=payload.owner_user_id,
+            owner_denizen_id=payload.owner_denizen_id,
             house_id=payload.house_id,
             building_definition_id=payload.building_definition_id,
             display_name=payload.display_name,
@@ -177,7 +179,7 @@ class BuildingRegistryService:
     ) -> dict[int, dict[str, int]]:
         totals: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
         for building in buildings:
-            totals[building.owner_user_id][building.building_definition_id] += building.count
+            totals[building.owner_denizen_id][building.building_definition_id] += building.count
 
         return {owner_id: dict(building_totals) for owner_id, building_totals in totals.items()}
 
@@ -187,15 +189,15 @@ class BuildingRegistryService:
         visibility_scope: VisibilityScope,
     ) -> None:
         if payload.house_id is None:
-            if payload.owner_user_id == visibility_scope.user_id:
+            if payload.owner_denizen_id == visibility_scope.denizen_id:
                 return
             raise BuildingRegistryPermissionError(
-                "Cannot create personal building records for another user"
+                "Cannot create personal building records for another denizen"
             )
 
         if payload.house_id in set(
             visibility_scope.visible_house_ids
-        ) and payload.owner_user_id in set(visibility_scope.visible_user_ids):
+        ) and payload.owner_denizen_id in set(visibility_scope.visible_denizen_ids):
             return
 
         raise BuildingRegistryPermissionError(
@@ -271,7 +273,7 @@ class BuildingRegistryService:
     def _item_from_model(self, record: OwnedBuilding) -> BuildingRegistryItem:
         return BuildingRegistryItem(
             id=record.id,
-            owner_user_id=record.owner_user_id,
+            owner_denizen_id=record.owner_denizen_id,
             house_id=record.house_id,
             building_definition_id=record.building_definition_id,
             display_name=record.display_name,
@@ -283,7 +285,7 @@ class BuildingRegistryService:
         record: OwnedBuilding,
         visibility_scope: VisibilityScope,
     ) -> bool:
-        return record.owner_user_id == visibility_scope.user_id or (
+        return record.owner_denizen_id == visibility_scope.denizen_id or (
             record.house_id is not None
             and record.house_id in set(visibility_scope.visible_house_ids)
         )

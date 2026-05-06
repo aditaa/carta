@@ -6,7 +6,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
 from app.db.session import get_db
-from app.domains.auth.models import House, HouseMembership, User
+from app.domains.auth.models import Denizen, House, HouseMembership
 from app.domains.auth.service import hash_password
 from app.main import app
 
@@ -27,16 +27,16 @@ def db_client():
     db = SessionLocal()
     db.add_all(
         [
-            User(id=1, email="one@example.test", display_name="User One"),
-            User(
+            Denizen(id=1, email="one@example.test", display_name="Denizen One"),
+            Denizen(
                 id=2,
                 email="two@example.test",
-                display_name="User Two",
+                display_name="Denizen Two",
                 password_hash=hash_password("swordfish"),
             ),
             House(id=10, name="House Ten"),
-            HouseMembership(user_id=1, house_id=10, can_view_house=True),
-            HouseMembership(user_id=2, house_id=10, can_view_house=False),
+            HouseMembership(denizen_id=1, house_id=10, can_view_house=True),
+            HouseMembership(denizen_id=2, house_id=10, can_view_house=False),
         ]
     )
     db.commit()
@@ -92,9 +92,9 @@ def test_building_upkeep_preview_uses_visible_demo_buildings() -> None:
 
 def test_create_db_building_rejects_other_user_personal_asset(db_client) -> None:
     response = db_client.post(
-        "/api/v1/buildings/db?user_id=1",
+        "/api/v1/buildings/db?denizen_id=1",
         json={
-            "owner_user_id": 2,
+            "owner_denizen_id": 2,
             "building_definition_id": "shop",
             "count": 1,
         },
@@ -105,9 +105,9 @@ def test_create_db_building_rejects_other_user_personal_asset(db_client) -> None
 
 def test_create_db_building_allows_visible_house_asset(db_client) -> None:
     response = db_client.post(
-        "/api/v1/buildings/db?user_id=1",
+        "/api/v1/buildings/db?denizen_id=1",
         json={
-            "owner_user_id": 2,
+            "owner_denizen_id": 2,
             "house_id": 10,
             "building_definition_id": "shop",
             "count": 1,
@@ -116,7 +116,7 @@ def test_create_db_building_allows_visible_house_asset(db_client) -> None:
 
     assert response.status_code == 201
     payload = response.json()
-    assert payload["owner_user_id"] == 2
+    assert payload["owner_denizen_id"] == 2
     assert payload["house_id"] == 10
 
 
@@ -129,7 +129,7 @@ def test_login_returns_token_and_current_user(db_client) -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["token_type"] == "bearer"
-    assert payload["user"]["email"] == "two@example.test"
+    assert payload["denizen"]["email"] == "two@example.test"
 
     me_response = db_client.get(
         "/api/v1/auth/me",
@@ -137,7 +137,7 @@ def test_login_returns_token_and_current_user(db_client) -> None:
     )
 
     assert me_response.status_code == 200
-    assert me_response.json()["display_name"] == "User Two"
+    assert me_response.json()["display_name"] == "Denizen Two"
 
 
 def test_login_rejects_bad_password(db_client) -> None:

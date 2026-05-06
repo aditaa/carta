@@ -15,42 +15,72 @@ down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
-house_role = sa.Enum("member", "manager", "admin", "read_only", name="houserole")
+denizen_role = sa.Enum("read_only", "member", "manager", "admin", name="denizenrole")
 
 
 def upgrade() -> None:
+    denizen_role.create(op.get_bind(), checkfirst=True)
     op.create_table(
-        "houses",
+        "kingdoms",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=120), nullable=False),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_kingdoms")),
+        sa.UniqueConstraint("name", name=op.f("uq_kingdoms_name")),
+    )
+    op.create_index(op.f("ix_kingdoms_name"), "kingdoms", ["name"], unique=False)
+
+    op.create_table(
+        "houses",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(length=120), nullable=False),
+        sa.Column("kingdom_id", sa.Integer(), nullable=True),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.ForeignKeyConstraint(
+            ["kingdom_id"], ["kingdoms.id"], name=op.f("fk_houses_kingdom_id_kingdoms")
+        ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_houses")),
         sa.UniqueConstraint("name", name=op.f("uq_houses_name")),
     )
+    op.create_index(op.f("ix_houses_kingdom_id"), "houses", ["kingdom_id"], unique=False)
     op.create_index(op.f("ix_houses_name"), "houses", ["name"], unique=False)
 
     op.create_table(
-        "users",
+        "denizens",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("email", sa.String(length=255), nullable=False),
         sa.Column("display_name", sa.String(length=120), nullable=False),
+        sa.Column("role", denizen_role, nullable=False),
+        sa.Column("religion", sa.String(length=120), nullable=True),
+        sa.Column("primary_house_id", sa.Integer(), nullable=True),
+        sa.Column("primary_kingdom_id", sa.Integer(), nullable=True),
         sa.Column("is_active", sa.Boolean(), nullable=False),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_users")),
-        sa.UniqueConstraint("email", name=op.f("uq_users_email")),
+        sa.ForeignKeyConstraint(
+            ["primary_house_id"], ["houses.id"], name=op.f("fk_denizens_primary_house_id_houses")
+        ),
+        sa.ForeignKeyConstraint(
+            ["primary_kingdom_id"],
+            ["kingdoms.id"],
+            name=op.f("fk_denizens_primary_kingdom_id_kingdoms"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_denizens")),
+        sa.UniqueConstraint("email", name=op.f("uq_denizens_email")),
     )
-    op.create_index(op.f("ix_users_email"), "users", ["email"], unique=False)
+    op.create_index(op.f("ix_denizens_email"), "denizens", ["email"], unique=False)
 
     op.create_table(
         "house_memberships",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.Column("denizen_id", sa.Integer(), nullable=False),
         sa.Column("house_id", sa.Integer(), nullable=False),
-        sa.Column("role", house_role, nullable=False),
+        sa.Column("role", denizen_role, nullable=False),
         sa.Column("can_view_house", sa.Boolean(), nullable=False),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
@@ -59,7 +89,9 @@ def upgrade() -> None:
             ["house_id"], ["houses.id"], name=op.f("fk_house_memberships_house_id_houses")
         ),
         sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"], name=op.f("fk_house_memberships_user_id_users")
+            ["denizen_id"],
+            ["denizens.id"],
+            name=op.f("fk_house_memberships_denizen_id_denizens"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_house_memberships")),
     )
@@ -67,16 +99,93 @@ def upgrade() -> None:
         op.f("ix_house_memberships_house_id"), "house_memberships", ["house_id"], unique=False
     )
     op.create_index(
-        op.f("ix_house_memberships_user_id"), "house_memberships", ["user_id"], unique=False
+        op.f("ix_house_memberships_denizen_id"),
+        "house_memberships",
+        ["denizen_id"],
+        unique=False,
+    )
+
+    op.create_table(
+        "kingdom_memberships",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("denizen_id", sa.Integer(), nullable=False),
+        sa.Column("kingdom_id", sa.Integer(), nullable=False),
+        sa.Column("role", denizen_role, nullable=False),
+        sa.Column("can_view_kingdom", sa.Boolean(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.ForeignKeyConstraint(
+            ["denizen_id"],
+            ["denizens.id"],
+            name=op.f("fk_kingdom_memberships_denizen_id_denizens"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["kingdom_id"],
+            ["kingdoms.id"],
+            name=op.f("fk_kingdom_memberships_kingdom_id_kingdoms"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_kingdom_memberships")),
+    )
+    op.create_index(
+        op.f("ix_kingdom_memberships_denizen_id"),
+        "kingdom_memberships",
+        ["denizen_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_kingdom_memberships_kingdom_id"),
+        "kingdom_memberships",
+        ["kingdom_id"],
+        unique=False,
+    )
+
+    op.create_table(
+        "denizen_holdings",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("denizen_id", sa.Integer(), nullable=False),
+        sa.Column("item_type", sa.String(length=40), nullable=False),
+        sa.Column("item_key", sa.String(length=120), nullable=False),
+        sa.Column("amount", sa.Numeric(12, 2), nullable=False),
+        sa.Column("note", sa.String(length=255), nullable=True),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.ForeignKeyConstraint(
+            ["denizen_id"], ["denizens.id"], name=op.f("fk_denizen_holdings_denizen_id_denizens")
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_denizen_holdings")),
+    )
+    op.create_index(
+        op.f("ix_denizen_holdings_denizen_id"), "denizen_holdings", ["denizen_id"], unique=False
+    )
+    op.create_index(
+        op.f("ix_denizen_holdings_item_key"), "denizen_holdings", ["item_key"], unique=False
+    )
+    op.create_index(
+        op.f("ix_denizen_holdings_item_type"), "denizen_holdings", ["item_type"], unique=False
     )
 
 
 def downgrade() -> None:
-    op.drop_index(op.f("ix_house_memberships_user_id"), table_name="house_memberships")
+    op.drop_index(op.f("ix_denizen_holdings_item_type"), table_name="denizen_holdings")
+    op.drop_index(op.f("ix_denizen_holdings_item_key"), table_name="denizen_holdings")
+    op.drop_index(op.f("ix_denizen_holdings_denizen_id"), table_name="denizen_holdings")
+    op.drop_table("denizen_holdings")
+    op.drop_index(op.f("ix_kingdom_memberships_kingdom_id"), table_name="kingdom_memberships")
+    op.drop_index(op.f("ix_kingdom_memberships_denizen_id"), table_name="kingdom_memberships")
+    op.drop_table("kingdom_memberships")
+    op.drop_index(op.f("ix_house_memberships_denizen_id"), table_name="house_memberships")
     op.drop_index(op.f("ix_house_memberships_house_id"), table_name="house_memberships")
     op.drop_table("house_memberships")
-    op.drop_index(op.f("ix_users_email"), table_name="users")
-    op.drop_table("users")
+    op.drop_index(op.f("ix_denizens_email"), table_name="denizens")
+    op.drop_table("denizens")
     op.drop_index(op.f("ix_houses_name"), table_name="houses")
+    op.drop_index(op.f("ix_houses_kingdom_id"), table_name="houses")
     op.drop_table("houses")
-    house_role.drop(op.get_bind(), checkfirst=True)
+    op.drop_index(op.f("ix_kingdoms_name"), table_name="kingdoms")
+    op.drop_table("kingdoms")
+    denizen_role.drop(op.get_bind(), checkfirst=True)

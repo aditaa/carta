@@ -24,7 +24,7 @@ export type RulesDataset = {
 
 export type BuildingRegistryItem = {
   id: number;
-  owner_user_id: number;
+  owner_denizen_id: number;
   building_definition_id: string;
   count: number;
   house_id?: number | null;
@@ -48,15 +48,19 @@ export type BuildingUpkeepSummary = {
   totals: RulesRef[];
 };
 
-export type AuthUser = {
+export type AuthDenizen = {
   id: number;
   email: string;
   display_name: string;
+  role: string;
+  religion?: string | null;
+  primary_house_id?: number | null;
+  primary_kingdom_id?: number | null;
   is_active: boolean;
 };
 
 export type AuthToken = {
   access_token: string;
   token_type: "bearer";
-  user: AuthUser;
+  denizen: AuthDenizen;
 };

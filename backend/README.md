@@ -32,14 +32,15 @@ Useful starter endpoints:
 - `GET /api/v1/auth/sample-scope`
 - `GET /api/v1/buildings`
 - `GET /api/v1/buildings/upkeep-preview`
-- `GET /api/v1/buildings/db?user_id=1`
-- `POST /api/v1/buildings/db?user_id=1`
-- `GET /api/v1/buildings/db/{building_id}?user_id=1`
-- `PATCH /api/v1/buildings/db/{building_id}?user_id=1`
-- `DELETE /api/v1/buildings/db/{building_id}?user_id=1`
+- `GET /api/v1/buildings/db?denizen_id=1`
+- `POST /api/v1/buildings/db?denizen_id=1`
+- `GET /api/v1/buildings/db/{building_id}?denizen_id=1`
+- `PATCH /api/v1/buildings/db/{building_id}?denizen_id=1`
+- `DELETE /api/v1/buildings/db/{building_id}?denizen_id=1`
 
 The `/api/v1/buildings/db` routes are database-backed. They use temporary
-`user_id` query parameter visibility until full login/session auth is added.
+`denizen_id` query parameter visibility until full login/session auth is wired
+into registry calls.
 
 ## Migrations
 
@@ -47,10 +48,10 @@ The `/api/v1/buildings/db` routes are database-backed. They use temporary
 alembic -c backend/alembic.ini upgrade head
 ```
 
-Alembic reads `DATABASE_URL` when present. The first migration creates users,
-houses, and house memberships. The second migration creates owned building
-records for the building registry. The third migration creates imported rules
-tables.
+Alembic reads `DATABASE_URL` when present. The first migration creates
+denizens, houses, kingdoms, memberships, and denizen holdings. The second
+migration creates owned building records for the building registry. The third
+migration creates imported rules tables.
 
 ## Rules Import
 
@@ -60,10 +61,10 @@ Rules are maintained manually in JSON, then imported into SQL:
 PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
 ```
 
-## Local User
+## Local Denizen
 
 ```bash
-PYTHONPATH=backend python -m app.cli.create_user --email you@example.com --display-name "Your Name"
+PYTHONPATH=backend python -m app.cli.create_denizen --email you@example.com --display-name "Your Name"
 ```
 
 ## Tests

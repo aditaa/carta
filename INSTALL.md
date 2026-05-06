@@ -114,10 +114,10 @@ Import the current rules dataset:
 PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
 ```
 
-Create or update a local login user:
+Create or update a local login denizen:
 
 ```bash
-PYTHONPATH=backend python -m app.cli.create_user --email you@example.com --display-name "Your Name"
+PYTHONPATH=backend python -m app.cli.create_denizen --email you@example.com --display-name "Your Name"
 ```
 
 ## Useful Backend Endpoints

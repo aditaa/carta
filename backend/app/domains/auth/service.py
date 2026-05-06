@@ -9,8 +9,8 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.domains.auth.models import User
-from app.domains.auth.schemas import AuthUser, VisibilityScope
+from app.domains.auth.models import Denizen, HouseMembership, KingdomMembership
+from app.domains.auth.schemas import AuthDenizen, VisibilityScope
 
 PASSWORD_ALGORITHM = "pbkdf2_sha256"
 PASSWORD_ITERATIONS = 210_000
@@ -19,29 +19,45 @@ PASSWORD_ITERATIONS = 210_000
 @dataclass(frozen=True)
 class MembershipVisibility:
     house_id: int
-    user_ids: set[int]
+    denizen_ids: set[int]
     can_view_house: bool
+
+
+@dataclass(frozen=True)
+class KingdomVisibility:
+    kingdom_id: int
+    denizen_ids: set[int]
+    can_view_kingdom: bool
 
 
 class VisibilityService:
     def build_scope(
         self,
-        user_id: int,
+        denizen_id: int,
         memberships: list[MembershipVisibility],
+        kingdom_memberships: list[KingdomVisibility] | None = None,
     ) -> VisibilityScope:
-        visible_user_ids = {user_id}
+        visible_denizen_ids = {denizen_id}
         visible_house_ids: set[int] = set()
+        visible_kingdom_ids: set[int] = set()
 
         for membership in memberships:
             if not membership.can_view_house:
                 continue
             visible_house_ids.add(membership.house_id)
-            visible_user_ids.update(membership.user_ids)
+            visible_denizen_ids.update(membership.denizen_ids)
+
+        for membership in kingdom_memberships or []:
+            if not membership.can_view_kingdom:
+                continue
+            visible_kingdom_ids.add(membership.kingdom_id)
+            visible_denizen_ids.update(membership.denizen_ids)
 
         return VisibilityScope(
-            user_id=user_id,
-            visible_user_ids=sorted(visible_user_ids),
+            denizen_id=denizen_id,
+            visible_denizen_ids=sorted(visible_denizen_ids),
             visible_house_ids=sorted(visible_house_ids),
+            visible_kingdom_ids=sorted(visible_kingdom_ids),
         )
 
 
@@ -83,23 +99,28 @@ def verify_password(password: str, stored_hash: str | None) -> bool:
 
 
 class AuthenticationService:
-    def authenticate_user(self, db: Session, email: str, password: str) -> User | None:
-        user = db.scalar(select(User).where(User.email == email.lower()))
-        if user is None or not user.is_active:
+    def authenticate_denizen(self, db: Session, email: str, password: str) -> Denizen | None:
+        denizen = db.scalar(select(Denizen).where(Denizen.email == email.lower()))
+        if denizen is None or not denizen.is_active:
             return None
-        if not verify_password(password, user.password_hash):
+        if not verify_password(password, denizen.password_hash):
             return None
-        return user
+        return denizen
 
-    def create_access_token(self, user: User, secret_key: str, expires_minutes: int) -> str:
+    def create_access_token(
+        self,
+        denizen: Denizen,
+        secret_key: str,
+        expires_minutes: int,
+    ) -> str:
         expires_at = datetime.now(UTC) + timedelta(minutes=expires_minutes)
-        payload = {"sub": user.id, "exp": int(expires_at.timestamp())}
+        payload = {"sub": denizen.id, "exp": int(expires_at.timestamp())}
         payload_bytes = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         encoded_payload = _base64url_encode(payload_bytes)
         signature = _sign(encoded_payload, secret_key)
         return f"{encoded_payload}.{signature}"
 
-    def user_from_token(self, db: Session, token: str, secret_key: str) -> User | None:
+    def denizen_from_token(self, db: Session, token: str, secret_key: str) -> Denizen | None:
         try:
             encoded_payload, signature = token.split(".", maxsplit=1)
         except ValueError:
@@ -112,20 +133,68 @@ class AuthenticationService:
             return None
         if int(payload.get("exp", 0)) < int(datetime.now(UTC).timestamp()):
             return None
-        user_id = payload.get("sub")
-        if not isinstance(user_id, int):
+        denizen_id = payload.get("sub")
+        if not isinstance(denizen_id, int):
             return None
-        user = db.get(User, user_id)
-        if user is None or not user.is_active:
+        denizen = db.get(Denizen, denizen_id)
+        if denizen is None or not denizen.is_active:
             return None
-        return user
+        return denizen
 
-    def serialize_user(self, user: User) -> AuthUser:
-        return AuthUser(
-            id=user.id,
-            email=user.email,
-            display_name=user.display_name,
-            is_active=user.is_active,
+    def serialize_denizen(self, denizen: Denizen) -> AuthDenizen:
+        return AuthDenizen(
+            id=denizen.id,
+            email=denizen.email,
+            display_name=denizen.display_name,
+            role=denizen.role.value,
+            religion=denizen.religion,
+            primary_house_id=denizen.primary_house_id,
+            primary_kingdom_id=denizen.primary_kingdom_id,
+            is_active=denizen.is_active,
+        )
+
+    def build_visibility_scope_from_db(self, db: Session, denizen_id: int) -> VisibilityScope:
+        house_ids = [
+            row.house_id
+            for row in db.scalars(
+                select(HouseMembership).where(
+                    HouseMembership.denizen_id == denizen_id,
+                    HouseMembership.can_view_house.is_(True),
+                )
+            )
+        ]
+        kingdom_ids = [
+            row.kingdom_id
+            for row in db.scalars(
+                select(KingdomMembership).where(
+                    KingdomMembership.denizen_id == denizen_id,
+                    KingdomMembership.can_view_kingdom.is_(True),
+                )
+            )
+        ]
+        visible_denizen_ids = {denizen_id}
+        if house_ids:
+            visible_denizen_ids.update(
+                db.scalars(
+                    select(HouseMembership.denizen_id).where(
+                        HouseMembership.house_id.in_(house_ids)
+                    )
+                )
+            )
+        if kingdom_ids:
+            visible_denizen_ids.update(
+                db.scalars(
+                    select(KingdomMembership.denizen_id).where(
+                        KingdomMembership.kingdom_id.in_(kingdom_ids)
+                    )
+                )
+            )
+
+        return VisibilityScope(
+            denizen_id=denizen_id,
+            visible_denizen_ids=sorted(visible_denizen_ids),
+            visible_house_ids=sorted(set(house_ids)),
+            visible_kingdom_ids=sorted(set(kingdom_ids)),
         )
 
 

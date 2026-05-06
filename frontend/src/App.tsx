@@ -3,13 +3,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   getBuildingRegistry,
+  getCurrentDenizen,
   getCurrentRules,
-  getCurrentUser,
   getUpkeepPreview,
   login,
 } from "./api";
 import type {
-  AuthUser,
+  AuthDenizen,
   BuildingRegistrySummary,
   BuildingUpkeepSummary,
   RulesDataset,
@@ -32,7 +32,7 @@ const TOKEN_STORAGE_KEY = "carta-auth-token";
 export function App() {
   const [state, setState] = useState<LoadState>({ isLoading: true });
   const [authToken, setAuthToken] = useState(() => localStorage.getItem(TOKEN_STORAGE_KEY));
-  const [currentUser, setCurrentUser] = useState<AuthUser | undefined>();
+  const [currentDenizen, setCurrentDenizen] = useState<AuthDenizen | undefined>();
   const [authError, setAuthError] = useState<string | undefined>();
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
@@ -57,18 +57,18 @@ export function App() {
 
   useEffect(() => {
     if (!authToken) {
-      setCurrentUser(undefined);
+      setCurrentDenizen(undefined);
       return;
     }
 
     let isMounted = true;
     setIsAuthLoading(true);
-    getCurrentUser(authToken)
-      .then((user) => {
+    getCurrentDenizen(authToken)
+      .then((denizen) => {
         if (!isMounted) {
           return;
         }
-        setCurrentUser(user);
+        setCurrentDenizen(denizen);
         setAuthError(undefined);
       })
       .catch(() => {
@@ -77,7 +77,7 @@ export function App() {
         }
         localStorage.removeItem(TOKEN_STORAGE_KEY);
         setAuthToken(null);
-        setCurrentUser(undefined);
+        setCurrentDenizen(undefined);
         setAuthError("Session expired. Sign in again.");
       })
       .finally(() => {
@@ -98,7 +98,7 @@ export function App() {
       const session = await login(email, password);
       localStorage.setItem(TOKEN_STORAGE_KEY, session.access_token);
       setAuthToken(session.access_token);
-      setCurrentUser(session.user);
+      setCurrentDenizen(session.denizen);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to sign in";
       setAuthError(message);
@@ -110,7 +110,7 @@ export function App() {
   const handleLogout = () => {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     setAuthToken(null);
-    setCurrentUser(undefined);
+    setCurrentDenizen(undefined);
     setAuthError(undefined);
   };
 
@@ -132,7 +132,7 @@ export function App() {
         <div className="top-actions">
           <SessionPanel
             authError={authError}
-            currentUser={currentUser}
+            currentDenizen={currentDenizen}
             isLoading={isAuthLoading}
             onLogin={handleLogin}
             onLogout={handleLogout}
@@ -178,7 +178,7 @@ export function App() {
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th>Owner</th>
+                  <th>Denizen</th>
                   <th>House</th>
                   <th>Count</th>
                 </tr>
@@ -191,7 +191,7 @@ export function App() {
                         buildingNames.get(building.building_definition_id) ??
                         building.building_definition_id}
                     </td>
-                    <td>{building.owner_user_id}</td>
+                    <td>{building.owner_denizen_id}</td>
                     <td>{building.house_id ?? "Personal"}</td>
                     <td>{building.count}</td>
                   </tr>
@@ -266,13 +266,13 @@ function Metric({ label, value }: { label: string; value: number | string }) {
 
 function SessionPanel({
   authError,
-  currentUser,
+  currentDenizen,
   isLoading,
   onLogin,
   onLogout,
 }: {
   authError?: string;
-  currentUser?: AuthUser;
+  currentDenizen?: AuthDenizen;
   isLoading: boolean;
   onLogin: (email: string, password: string) => Promise<void>;
   onLogout: () => void;
@@ -280,12 +280,12 @@ function SessionPanel({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  if (currentUser) {
+  if (currentDenizen) {
     return (
       <section className="session-panel" aria-label="Current session">
         <div>
           <span>Signed in</span>
-          <strong>{currentUser.display_name}</strong>
+          <strong>{currentDenizen.display_name}</strong>
         </div>
         <button className="text-button" onClick={onLogout} type="button">
           <LogOut aria-hidden="true" size={16} />

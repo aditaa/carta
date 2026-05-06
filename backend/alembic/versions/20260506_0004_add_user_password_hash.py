@@ -1,4 +1,4 @@
-"""add user password hash
+"""add denizen password hash
 
 Revision ID: 20260506_0004
 Revises: 20260505_0003
@@ -17,8 +17,8 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column("users", sa.Column("password_hash", sa.String(length=255), nullable=True))
+    op.add_column("denizens", sa.Column("password_hash", sa.String(length=255), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column("users", "password_hash")
+    op.drop_column("denizens", "password_hash")

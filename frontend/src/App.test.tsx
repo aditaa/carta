@@ -24,14 +24,14 @@ const buildingsPayload = {
   items: [
     {
       id: 1,
-      owner_user_id: 1,
+      owner_denizen_id: 1,
       building_definition_id: "farm",
       count: 2,
       display_name: "North Farm",
     },
     {
       id: 2,
-      owner_user_id: 2,
+      owner_denizen_id: 2,
       house_id: 10,
       building_definition_id: "market",
       count: 1,
@@ -51,10 +51,12 @@ const upkeepPayload = {
 const authPayload = {
   access_token: "test-token",
   token_type: "bearer",
-  user: {
+  denizen: {
     id: 2,
     email: "two@example.test",
-    display_name: "User Two",
+    display_name: "Denizen Two",
+    role: "read_only",
+    religion: "The Loom",
     is_active: true,
   },
 };
@@ -78,7 +80,7 @@ describe("App", () => {
           return Promise.resolve(jsonResponse(authPayload));
         }
         if (url.endsWith("/auth/me")) {
-          return Promise.resolve(jsonResponse(authPayload.user));
+          return Promise.resolve(jsonResponse(authPayload.denizen));
         }
         return Promise.resolve(new Response(null, { status: 404 }));
       }),
@@ -120,7 +122,7 @@ describe("App", () => {
     await user.type(screen.getByLabelText("Password"), "swordfish");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(await screen.findByText("User Two")).toBeInTheDocument();
+    expect(await screen.findByText("Denizen Two")).toBeInTheDocument();
     expect(localStorage.getItem("carta-auth-token")).toBe("test-token");
 
     await user.click(screen.getByRole("button", { name: "Sign out" }));

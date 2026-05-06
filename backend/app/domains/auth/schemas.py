@@ -8,9 +8,10 @@ class VisibilityPreview(BaseModel):
 
 
 class VisibilityScope(BaseModel):
-    user_id: int
-    visible_user_ids: list[int] = Field(default_factory=list)
+    denizen_id: int
+    visible_denizen_ids: list[int] = Field(default_factory=list)
     visible_house_ids: list[int] = Field(default_factory=list)
+    visible_kingdom_ids: list[int] = Field(default_factory=list)
 
 
 class LoginRequest(BaseModel):
@@ -18,14 +19,26 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class AuthUser(BaseModel):
+class AuthDenizen(BaseModel):
     id: int
     email: str
     display_name: str
+    role: str
+    religion: str | None = None
+    primary_house_id: int | None = None
+    primary_kingdom_id: int | None = None
     is_active: bool
 
 
 class AuthToken(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    user: AuthUser
+    denizen: AuthDenizen
+
+
+class DenizenHoldingItem(BaseModel):
+    id: int
+    item_type: str
+    item_key: str
+    amount: float
+    note: str | None = None

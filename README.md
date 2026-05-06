@@ -17,7 +17,7 @@ The goal is to help players answer practical questions quickly:
 
 - Building registry for farms, shops, markets, towers, and future building
   types.
-- User authentication with permission-scoped visibility.
+- Denizen authentication with permission-scoped visibility.
 - Ownership tracking for players, groups, or factions.
 - Input and output tracking for crops, currency, rarities, and other resources.
 - Auto-calculated upkeep totals across all owned buildings.
@@ -135,10 +135,10 @@ DATABASE_URL=mysql+pymysql://carta:carta@127.0.0.1:3306/carta_arcanum PYTHONPATH
 DATABASE_URL=mysql+pymysql://carta:carta@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend pytest backend/tests -m integration
 ```
 
-Create a local login user after migrations are applied:
+Create a local login denizen after migrations are applied:
 
 ```bash
-PYTHONPATH=backend python -m app.cli.create_user --email you@example.com --display-name "Your Name"
+PYTHONPATH=backend python -m app.cli.create_denizen --email you@example.com --display-name "Your Name"
 ```
 
 ## Rules Data
@@ -166,7 +166,7 @@ See `ROADMAP.md` for the milestone todo list.
 ## Development Status
 
 This repository is in project setup mode. Current foundations include rules
-validation/import, token login, auth visibility scaffolding, building registry
+validation/import, denizen token login, auth visibility scaffolding, building registry
 CRUD, upkeep preview calculations, and a React dashboard shell. The next build
 steps are:
 

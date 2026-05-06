@@ -18,11 +18,11 @@ This is the high-level todo list for building Carta Arcanum.
 - [x] Define permission scopes for personal data and house data.
 - [x] Implement baseline visibility: a user can see their own data.
 - [x] Implement house visibility: a user with house permission can see their
-  own data plus users and assets in that house.
+  own data plus denizens and assets in that house.
 - [ ] Add room for future roles such as admin, house manager, or read-only
   member.
 - [x] Add tests for permission boundaries.
-- [ ] Replace temporary `user_id` query parameters with authenticated user
+- [ ] Replace temporary `denizen_id` query parameters with authenticated denizen
   dependencies.
 
 ## Phase 3: Rules Dataset
@@ -73,7 +73,7 @@ This is the high-level todo list for building Carta Arcanum.
 
 ## Phase 8: Dependency Solver
 
-- [ ] Let users select a desired output.
+- [ ] Let denizens select a desired output.
 - [ ] Calculate required buildings and inputs.
 - [ ] Generate the full dependency chain.
 - [ ] Add minimal stable loop generation.
