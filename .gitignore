@@ -24,6 +24,9 @@ backend/.env
 node_modules/
 dist/
 build/
+*.tsbuildinfo
+frontend/vite.config.d.ts
+frontend/vite.config.js
 
 # Local editor files
 .idea/
