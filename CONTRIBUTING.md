@@ -40,6 +40,16 @@ PYTHONPATH=backend pytest backend/tests -m functional
 PYTHONPATH=backend pytest backend/tests --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=70
 ```
 
+For frontend changes, run:
+
+```bash
+cd frontend
+npm run lint
+npm run typecheck
+npm test -- --run
+npm run build
+```
+
 CI also runs MySQL integration checks against MySQL 8. If you have local MySQL
 running, verify that path with:
 

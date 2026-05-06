@@ -74,6 +74,39 @@ jobs:
           PYTHONPATH: backend
         run: pytest backend/tests --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=70
 
+  frontend:
+    name: Frontend lint and tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Frontend typecheck
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Frontend tests
+        working-directory: frontend
+        run: npm test -- --run
+
+      - name: Frontend build
+        working-directory: frontend
+        run: npm run build
+
   mysql-integration:
     name: MySQL integration
     runs-on: ubuntu-latest
