@@ -270,6 +270,59 @@ def test_db_building_endpoints_ignore_spoofed_denizen_id_query_param(db_client) 
     assert response.status_code == 403
 
 
+def test_update_db_building_rejects_move_outside_visible_scope(db_client) -> None:
+    response = db_client.patch(
+        "/api/v1/buildings/db/2",
+        headers=auth_headers(db_client, "one@example.test"),
+        json={"owner_denizen_id": 2, "house_id": 20},
+    )
+
+    assert response.status_code == 403
+
+    unchanged_response = db_client.get(
+        "/api/v1/buildings/db/2",
+        headers=auth_headers(db_client, "one@example.test"),
+    )
+    assert unchanged_response.status_code == 200
+    assert unchanged_response.json()["house_id"] == 10
+
+
+def test_update_db_building_rejects_move_to_other_denizens_personal_registry(db_client) -> None:
+    response = db_client.patch(
+        "/api/v1/buildings/db/2",
+        headers=auth_headers(db_client, "one@example.test"),
+        json={"owner_denizen_id": 2, "house_id": None},
+    )
+
+    assert response.status_code == 403
+
+    unchanged_response = db_client.get(
+        "/api/v1/buildings/db/2",
+        headers=auth_headers(db_client, "one@example.test"),
+    )
+    assert unchanged_response.status_code == 200
+    assert unchanged_response.json()["house_id"] == 10
+
+
+def test_update_db_building_rejects_unknown_rule_key_without_mutating(db_client) -> None:
+    response = db_client.patch(
+        "/api/v1/buildings/db/1",
+        headers=auth_headers(db_client, "one@example.test"),
+        json={"building_definition_id": "missing_building", "count": 5},
+    )
+
+    assert response.status_code == 400
+
+    unchanged_response = db_client.get(
+        "/api/v1/buildings/db/1",
+        headers=auth_headers(db_client, "one@example.test"),
+    )
+    assert unchanged_response.status_code == 200
+    payload = unchanged_response.json()
+    assert payload["building_definition_id"] == "farm"
+    assert payload["count"] == 1
+
+
 @pytest.mark.parametrize(
     ("method", "url", "json"),
     [

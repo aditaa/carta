@@ -130,6 +130,33 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
     expect(localStorage.getItem("carta-auth-token")).toBeNull();
   });
+
+  it("clears a stored token when the session lookup fails", async () => {
+    localStorage.setItem("carta-auth-token", "expired-token");
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = input instanceof Request ? input.url : input.toString();
+
+      if (url.endsWith("/rules/current")) {
+        return Promise.resolve(jsonResponse(rulesPayload));
+      }
+      if (url.endsWith("/buildings/upkeep-preview")) {
+        return Promise.resolve(jsonResponse(upkeepPayload));
+      }
+      if (url.endsWith("/buildings")) {
+        return Promise.resolve(jsonResponse(buildingsPayload));
+      }
+      if (url.endsWith("/auth/me")) {
+        return Promise.resolve(new Response(null, { status: 401 }));
+      }
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText("Session expired. Sign in again.")).toBeInTheDocument();
+    expect(localStorage.getItem("carta-auth-token")).toBeNull();
+    expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+  });
 });
 
 function jsonResponse(payload: unknown) {

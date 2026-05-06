@@ -152,6 +152,14 @@ class BuildingRegistryService:
         if building_definition_id is not None:
             self.validate_building_definition_id(building_definition_id, rules)
 
+        proposed_owner_denizen_id = changes.get("owner_denizen_id", record.owner_denizen_id)
+        proposed_house_id = changes.get("house_id", record.house_id)
+        self.validate_update_permission(
+            owner_denizen_id=proposed_owner_denizen_id,
+            house_id=proposed_house_id,
+            visibility_scope=visibility_scope,
+        )
+
         for key, value in changes.items():
             setattr(record, key, value)
 
@@ -202,6 +210,28 @@ class BuildingRegistryService:
 
         raise BuildingRegistryPermissionError(
             "Cannot create building records outside the caller's visible house scope"
+        )
+
+    def validate_update_permission(
+        self,
+        owner_denizen_id: int,
+        house_id: int | None,
+        visibility_scope: VisibilityScope,
+    ) -> None:
+        if house_id is None:
+            if owner_denizen_id == visibility_scope.denizen_id:
+                return
+            raise BuildingRegistryPermissionError(
+                "Cannot move building records into another denizen's personal registry"
+            )
+
+        if house_id in set(visibility_scope.visible_house_ids) and owner_denizen_id in set(
+            visibility_scope.visible_denizen_ids
+        ):
+            return
+
+        raise BuildingRegistryPermissionError(
+            "Cannot move building records outside the caller's visible house scope"
         )
 
     def validate_building_definition_id(

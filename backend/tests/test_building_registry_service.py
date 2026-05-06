@@ -480,3 +480,81 @@ def test_db_update_refuses_invisible_building() -> None:
     finally:
         db.close()
         Base.metadata.drop_all(engine)
+
+
+def test_db_update_rejects_move_outside_visible_scope() -> None:
+    db, engine = build_test_session()
+    try:
+        seed_registry_db(db)
+        rules = load_rules_dataset(RULES_FILE)
+        service = BuildingRegistryService()
+        scope = service.build_visibility_scope_from_db(db, denizen_id=1)
+
+        with pytest.raises(BuildingRegistryPermissionError):
+            service.update_visible_in_db(
+                db,
+                2,
+                BuildingRegistryUpdate(owner_denizen_id=3, house_id=20),
+                scope,
+                rules,
+            )
+
+        unchanged = db.get(OwnedBuilding, 2)
+        assert unchanged is not None
+        assert unchanged.owner_denizen_id == 2
+        assert unchanged.house_id == 10
+    finally:
+        db.close()
+        Base.metadata.drop_all(engine)
+
+
+def test_db_update_rejects_move_to_other_denizens_personal_registry() -> None:
+    db, engine = build_test_session()
+    try:
+        seed_registry_db(db)
+        rules = load_rules_dataset(RULES_FILE)
+        service = BuildingRegistryService()
+        scope = service.build_visibility_scope_from_db(db, denizen_id=1)
+
+        with pytest.raises(BuildingRegistryPermissionError):
+            service.update_visible_in_db(
+                db,
+                2,
+                BuildingRegistryUpdate(owner_denizen_id=2, house_id=None),
+                scope,
+                rules,
+            )
+
+        unchanged = db.get(OwnedBuilding, 2)
+        assert unchanged is not None
+        assert unchanged.owner_denizen_id == 2
+        assert unchanged.house_id == 10
+    finally:
+        db.close()
+        Base.metadata.drop_all(engine)
+
+
+def test_db_update_rejects_unknown_rule_key_without_mutating_record() -> None:
+    db, engine = build_test_session()
+    try:
+        seed_registry_db(db)
+        rules = load_rules_dataset(RULES_FILE)
+        service = BuildingRegistryService()
+        scope = service.build_visibility_scope_from_db(db, denizen_id=1)
+
+        with pytest.raises(BuildingRegistryError):
+            service.update_visible_in_db(
+                db,
+                1,
+                BuildingRegistryUpdate(building_definition_id="missing_building", count=7),
+                scope,
+                rules,
+            )
+
+        unchanged = db.get(OwnedBuilding, 1)
+        assert unchanged is not None
+        assert unchanged.building_definition_id == "farm"
+        assert unchanged.count == 2
+    finally:
+        db.close()
+        Base.metadata.drop_all(engine)
