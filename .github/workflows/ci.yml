@@ -72,7 +72,7 @@ jobs:
       - name: Authenticated endpoint security tests
         env:
           PYTHONPATH: backend
-        run: pytest backend/tests/test_api_functional.py -k "db_building_endpoints"
+        run: pytest backend/tests/test_api_functional.py
 
       - name: Coverage gate
         env:
