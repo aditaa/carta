@@ -55,8 +55,19 @@ class SharedHoldingItem(BaseModel):
     note: str | None = None
 
 
+class ThreeCrownsHoldingItem(BaseModel):
+    id: int
+    account_type: str
+    account_id: int
+    item_type: str
+    item_key: str
+    amount: float
+    note: str | None = None
+
+
 class VisibleHoldings(BaseModel):
     denizen: list[DenizenHoldingItem] = Field(default_factory=list)
     house: list[SharedHoldingItem] = Field(default_factory=list)
     house_denizen: list[SharedHoldingItem] = Field(default_factory=list)
     kingdom: list[SharedHoldingItem] = Field(default_factory=list)
+    three_crowns: list[ThreeCrownsHoldingItem] = Field(default_factory=list)

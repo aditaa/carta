@@ -15,6 +15,7 @@ from app.domains.auth.models import (
     Kingdom,
     KingdomHolding,
     KingdomMembership,
+    ThreeCrownsHolding,
 )
 from app.domains.auth.schemas import VisibilityScope
 from app.domains.auth.service import AuthenticationService, hash_password, verify_password
@@ -158,7 +159,7 @@ def test_denizen_can_link_to_house_kingdom_and_hold_resources() -> None:
                 KingdomMembership(
                     denizen_id=1,
                     kingdom_id=100,
-                    role=DenizenRole.read_only,
+                    role=DenizenRole.admin,
                     can_view_kingdom=True,
                 ),
                 DenizenHolding(
@@ -190,6 +191,30 @@ def test_denizen_can_link_to_house_kingdom_and_hold_resources() -> None:
                     amount=3,
                     note="Kingdom stash",
                 ),
+                ThreeCrownsHolding(
+                    account_type="denizen",
+                    denizen_id=1,
+                    item_type="currency",
+                    item_key="gold",
+                    amount=2,
+                    note="Three Crowns personal account",
+                ),
+                ThreeCrownsHolding(
+                    account_type="house",
+                    house_id=10,
+                    item_type="resource",
+                    item_key="crops",
+                    amount=20,
+                    note="Three Crowns house account",
+                ),
+                ThreeCrownsHolding(
+                    account_type="kingdom",
+                    kingdom_id=100,
+                    item_type="currency",
+                    item_key="tower",
+                    amount=11,
+                    note="Three Crowns kingdom account",
+                ),
             ]
         )
         db.commit()
@@ -216,9 +241,20 @@ def test_denizen_can_link_to_house_kingdom_and_hold_resources() -> None:
         assert [(item.scope_id, item.item_key, item.amount) for item in holdings.kingdom] == [
             (100, "rarities", 3.0)
         ]
+        assert [
+            (item.account_type, item.account_id, item.item_key, item.amount)
+            for item in holdings.three_crowns
+        ] == [
+            ("denizen", 1, "gold", 2.0),
+            ("house", 10, "crops", 20.0),
+            ("kingdom", 100, "tower", 11.0),
+        ]
         assert service.can_edit_denizen_holdings(scope, denizen_id=1)
         assert service.can_edit_house_holdings(db, denizen_id=1, house_id=10)
         assert service.can_edit_house_denizen_holdings(db, denizen_id=1, house_id=10)
+        assert service.can_edit_three_crowns_denizen_account(scope, account_denizen_id=1)
+        assert service.can_edit_three_crowns_house_account(db, denizen_id=1, house_id=10)
+        assert service.can_edit_three_crowns_kingdom_account(db, denizen_id=1, kingdom_id=100)
     finally:
         db.close()
         Base.metadata.drop_all(engine)
@@ -259,6 +295,51 @@ def test_house_stashes_require_house_admin_role_to_edit() -> None:
             VisibilityScope(denizen_id=2, visible_denizen_ids=[2]),
             denizen_id=1,
         )
+    finally:
+        db.close()
+        Base.metadata.drop_all(engine)
+
+
+def test_three_crowns_accounts_use_respective_admin_permissions() -> None:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    db = SessionLocal()
+    try:
+        db.add_all(
+            [
+                Kingdom(id=100, name="Crown Kingdom"),
+                House(id=10, name="Crown House", kingdom_id=100),
+                Denizen(id=1, email="denizen@example.test", display_name="Denizen"),
+                Denizen(id=2, email="house-admin@example.test", display_name="House Admin"),
+                Denizen(id=3, email="kingdom-admin@example.test", display_name="Kingdom Admin"),
+                Denizen(id=4, email="member@example.test", display_name="Member"),
+                HouseMembership(denizen_id=2, house_id=10, role=DenizenRole.admin),
+                HouseMembership(denizen_id=4, house_id=10, role=DenizenRole.member),
+                KingdomMembership(denizen_id=3, kingdom_id=100, role=DenizenRole.admin),
+                KingdomMembership(denizen_id=4, kingdom_id=100, role=DenizenRole.manager),
+            ]
+        )
+        db.commit()
+
+        service = AuthenticationService()
+
+        assert service.can_edit_three_crowns_denizen_account(
+            VisibilityScope(denizen_id=1, visible_denizen_ids=[1]),
+            account_denizen_id=1,
+        )
+        assert not service.can_edit_three_crowns_denizen_account(
+            VisibilityScope(denizen_id=4, visible_denizen_ids=[4]),
+            account_denizen_id=1,
+        )
+        assert service.can_edit_three_crowns_house_account(db, denizen_id=2, house_id=10)
+        assert not service.can_edit_three_crowns_house_account(db, denizen_id=4, house_id=10)
+        assert service.can_edit_three_crowns_kingdom_account(db, denizen_id=3, kingdom_id=100)
+        assert not service.can_edit_three_crowns_kingdom_account(db, denizen_id=4, kingdom_id=100)
     finally:
         db.close()
         Base.metadata.drop_all(engine)

@@ -21,6 +21,8 @@ This is the high-level todo list for building Carta Arcanum.
   own data plus denizens and assets in that house.
 - [x] Add personal, house, house-held denizen, and kingdom holding models for
   future affordability checks.
+- [x] Add Three Crowns Counting House accounts for denizens, houses, and
+  kingdoms.
 - [ ] Add room for future roles such as admin, house manager, or read-only
   member.
 - [x] Add tests for permission boundaries.
@@ -28,6 +30,8 @@ This is the high-level todo list for building Carta Arcanum.
   dependencies.
 - [ ] Enforce endpoint-level write permissions for private, house, and kingdom
   holdings.
+- [ ] Enforce endpoint-level write permissions for Three Crowns accounts:
+  denizen self, house admin, kingdom admin.
 
 ## Phase 3: Rules Dataset
 

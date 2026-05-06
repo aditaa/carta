@@ -62,6 +62,10 @@ class Denizen(Base):
         back_populates="denizen",
         cascade="all, delete-orphan",
     )
+    counting_house_holdings: Mapped[list["ThreeCrownsHolding"]] = relationship(
+        back_populates="denizen",
+        cascade="all, delete-orphan",
+    )
 
 
 class House(Base):
@@ -92,6 +96,10 @@ class House(Base):
         back_populates="house",
         cascade="all, delete-orphan",
     )
+    counting_house_holdings: Mapped[list["ThreeCrownsHolding"]] = relationship(
+        back_populates="house",
+        cascade="all, delete-orphan",
+    )
 
 
 class Kingdom(Base):
@@ -110,6 +118,10 @@ class Kingdom(Base):
         cascade="all, delete-orphan",
     )
     holdings: Mapped[list["KingdomHolding"]] = relationship(
+        back_populates="kingdom",
+        cascade="all, delete-orphan",
+    )
+    counting_house_holdings: Mapped[list["ThreeCrownsHolding"]] = relationship(
         back_populates="kingdom",
         cascade="all, delete-orphan",
     )
@@ -237,3 +249,30 @@ class KingdomHolding(Base):
     )
 
     kingdom: Mapped[Kingdom] = relationship(back_populates="holdings")
+
+
+class ThreeCrownsHolding(Base):
+    __tablename__ = "three_crowns_holdings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    account_type: Mapped[str] = mapped_column(String(40), index=True)
+    denizen_id: Mapped[int | None] = mapped_column(ForeignKey("denizens.id"), index=True)
+    house_id: Mapped[int | None] = mapped_column(ForeignKey("houses.id"), index=True)
+    kingdom_id: Mapped[int | None] = mapped_column(ForeignKey("kingdoms.id"), index=True)
+    item_type: Mapped[str] = mapped_column(String(40), index=True)
+    item_key: Mapped[str] = mapped_column(String(120), index=True)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    denizen: Mapped[Denizen | None] = relationship(back_populates="counting_house_holdings")
+    house: Mapped[House | None] = relationship(back_populates="counting_house_holdings")
+    kingdom: Mapped[Kingdom | None] = relationship(back_populates="counting_house_holdings")

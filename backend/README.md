@@ -50,9 +50,9 @@ alembic -c backend/alembic.ini upgrade head
 
 Alembic reads `DATABASE_URL` when present. The first migration creates
 denizens, houses, kingdoms, memberships, personal holdings, house stash,
-house-held denizen stash, and kingdom stash. The second migration creates owned
-building records for the building registry. The third migration creates
-imported rules tables.
+house-held denizen stash, kingdom stash, and Three Crowns Counting House
+accounts. The second migration creates owned building records for the building
+registry. The third migration creates imported rules tables.
 
 ## Rules Import
 

@@ -282,8 +282,84 @@ def upgrade() -> None:
         op.f("ix_kingdom_holdings_item_type"), "kingdom_holdings", ["item_type"], unique=False
     )
 
+    op.create_table(
+        "three_crowns_holdings",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("account_type", sa.String(length=40), nullable=False),
+        sa.Column("denizen_id", sa.Integer(), nullable=True),
+        sa.Column("house_id", sa.Integer(), nullable=True),
+        sa.Column("kingdom_id", sa.Integer(), nullable=True),
+        sa.Column("item_type", sa.String(length=40), nullable=False),
+        sa.Column("item_key", sa.String(length=120), nullable=False),
+        sa.Column("amount", sa.Numeric(12, 2), nullable=False),
+        sa.Column("note", sa.String(length=255), nullable=True),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.ForeignKeyConstraint(
+            ["denizen_id"],
+            ["denizens.id"],
+            name=op.f("fk_three_crowns_holdings_denizen_id_denizens"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["house_id"], ["houses.id"], name=op.f("fk_three_crowns_holdings_house_id_houses")
+        ),
+        sa.ForeignKeyConstraint(
+            ["kingdom_id"],
+            ["kingdoms.id"],
+            name=op.f("fk_three_crowns_holdings_kingdom_id_kingdoms"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_three_crowns_holdings")),
+    )
+    op.create_index(
+        op.f("ix_three_crowns_holdings_account_type"),
+        "three_crowns_holdings",
+        ["account_type"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_three_crowns_holdings_denizen_id"),
+        "three_crowns_holdings",
+        ["denizen_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_three_crowns_holdings_house_id"),
+        "three_crowns_holdings",
+        ["house_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_three_crowns_holdings_kingdom_id"),
+        "three_crowns_holdings",
+        ["kingdom_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_three_crowns_holdings_item_key"),
+        "three_crowns_holdings",
+        ["item_key"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_three_crowns_holdings_item_type"),
+        "three_crowns_holdings",
+        ["item_type"],
+        unique=False,
+    )
+
 
 def downgrade() -> None:
+    op.drop_index(op.f("ix_three_crowns_holdings_item_type"), table_name="three_crowns_holdings")
+    op.drop_index(op.f("ix_three_crowns_holdings_item_key"), table_name="three_crowns_holdings")
+    op.drop_index(op.f("ix_three_crowns_holdings_kingdom_id"), table_name="three_crowns_holdings")
+    op.drop_index(op.f("ix_three_crowns_holdings_house_id"), table_name="three_crowns_holdings")
+    op.drop_index(op.f("ix_three_crowns_holdings_denizen_id"), table_name="three_crowns_holdings")
+    op.drop_index(op.f("ix_three_crowns_holdings_account_type"), table_name="three_crowns_holdings")
+    op.drop_table("three_crowns_holdings")
     op.drop_index(op.f("ix_kingdom_holdings_item_type"), table_name="kingdom_holdings")
     op.drop_index(op.f("ix_kingdom_holdings_item_key"), table_name="kingdom_holdings")
     op.drop_index(op.f("ix_kingdom_holdings_kingdom_id"), table_name="kingdom_holdings")

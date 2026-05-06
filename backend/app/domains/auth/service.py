@@ -18,11 +18,13 @@ from app.domains.auth.models import (
     HouseMembership,
     KingdomHolding,
     KingdomMembership,
+    ThreeCrownsHolding,
 )
 from app.domains.auth.schemas import (
     AuthDenizen,
     DenizenHoldingItem,
     SharedHoldingItem,
+    ThreeCrownsHoldingItem,
     VisibilityScope,
     VisibleHoldings,
 )
@@ -214,27 +216,40 @@ class AuthenticationService:
 
     def list_visible_holdings(self, db: Session, scope: VisibilityScope) -> VisibleHoldings:
         denizen_holdings = db.scalars(
-            select(DenizenHolding).where(DenizenHolding.denizen_id == scope.denizen_id)
+            select(DenizenHolding)
+            .where(DenizenHolding.denizen_id == scope.denizen_id)
+            .order_by(DenizenHolding.id)
         ).all()
         house_holdings = []
         if scope.visible_house_ids:
             house_holdings = db.scalars(
-                select(HouseHolding).where(HouseHolding.house_id.in_(scope.visible_house_ids))
+                select(HouseHolding)
+                .where(HouseHolding.house_id.in_(scope.visible_house_ids))
+                .order_by(HouseHolding.id)
             ).all()
         house_denizen_holdings = []
         if scope.visible_house_ids:
             house_denizen_holdings = db.scalars(
-                select(HouseDenizenHolding).where(
-                    HouseDenizenHolding.house_id.in_(scope.visible_house_ids)
-                )
+                select(HouseDenizenHolding)
+                .where(HouseDenizenHolding.house_id.in_(scope.visible_house_ids))
+                .order_by(HouseDenizenHolding.id)
             ).all()
         kingdom_holdings = []
         if scope.visible_kingdom_ids:
             kingdom_holdings = db.scalars(
-                select(KingdomHolding).where(
-                    KingdomHolding.kingdom_id.in_(scope.visible_kingdom_ids)
-                )
+                select(KingdomHolding)
+                .where(KingdomHolding.kingdom_id.in_(scope.visible_kingdom_ids))
+                .order_by(KingdomHolding.id)
             ).all()
+        three_crowns_holdings = db.scalars(
+            select(ThreeCrownsHolding)
+            .where(
+                (ThreeCrownsHolding.denizen_id == scope.denizen_id)
+                | (ThreeCrownsHolding.house_id.in_(scope.visible_house_ids))
+                | (ThreeCrownsHolding.kingdom_id.in_(scope.visible_kingdom_ids))
+            )
+            .order_by(ThreeCrownsHolding.id)
+        ).all()
 
         return VisibleHoldings(
             denizen=[
@@ -286,6 +301,18 @@ class AuthenticationService:
                 )
                 for holding in kingdom_holdings
             ],
+            three_crowns=[
+                ThreeCrownsHoldingItem(
+                    id=holding.id,
+                    account_type=holding.account_type,
+                    account_id=self._three_crowns_account_id(holding),
+                    item_type=holding.item_type,
+                    item_key=holding.item_key,
+                    amount=float(holding.amount),
+                    note=holding.note,
+                )
+                for holding in three_crowns_holdings
+            ],
         )
 
     def can_edit_denizen_holdings(self, scope: VisibilityScope, denizen_id: int) -> bool:
@@ -297,6 +324,29 @@ class AuthenticationService:
     def can_edit_house_denizen_holdings(self, db: Session, denizen_id: int, house_id: int) -> bool:
         return self._has_house_admin_role(db, denizen_id, house_id)
 
+    def can_edit_three_crowns_denizen_account(
+        self,
+        scope: VisibilityScope,
+        account_denizen_id: int,
+    ) -> bool:
+        return scope.denizen_id == account_denizen_id
+
+    def can_edit_three_crowns_house_account(
+        self,
+        db: Session,
+        denizen_id: int,
+        house_id: int,
+    ) -> bool:
+        return self._has_house_admin_role(db, denizen_id, house_id)
+
+    def can_edit_three_crowns_kingdom_account(
+        self,
+        db: Session,
+        denizen_id: int,
+        kingdom_id: int,
+    ) -> bool:
+        return self._has_kingdom_admin_role(db, denizen_id, kingdom_id)
+
     def _has_house_admin_role(self, db: Session, denizen_id: int, house_id: int) -> bool:
         membership = db.scalar(
             select(HouseMembership).where(
@@ -305,6 +355,24 @@ class AuthenticationService:
             )
         )
         return membership is not None and membership.role == DenizenRole.admin
+
+    def _has_kingdom_admin_role(self, db: Session, denizen_id: int, kingdom_id: int) -> bool:
+        membership = db.scalar(
+            select(KingdomMembership).where(
+                KingdomMembership.denizen_id == denizen_id,
+                KingdomMembership.kingdom_id == kingdom_id,
+            )
+        )
+        return membership is not None and membership.role == DenizenRole.admin
+
+    def _three_crowns_account_id(self, holding: ThreeCrownsHolding) -> int:
+        if holding.account_type == "denizen" and holding.denizen_id is not None:
+            return holding.denizen_id
+        if holding.account_type == "house" and holding.house_id is not None:
+            return holding.house_id
+        if holding.account_type == "kingdom" and holding.kingdom_id is not None:
+            return holding.kingdom_id
+        raise ValueError("Three Crowns holding is missing its account id")
 
 
 def get_authentication_service() -> AuthenticationService:

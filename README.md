@@ -167,9 +167,9 @@ See `ROADMAP.md` for the milestone todo list.
 
 This repository is in project setup mode. Current foundations include rules
 validation/import, denizen token login, auth visibility scaffolding, personal,
-house, house-held denizen, and kingdom holdings foundations, building registry
-CRUD, upkeep preview calculations, and a React dashboard shell. The next build
-steps are:
+house, house-held denizen, kingdom, and Three Crowns Counting House holdings
+foundations, building registry CRUD, upkeep preview calculations, and a React
+dashboard shell. The next build steps are:
 
 1. Apply authenticated user scope to database-backed building endpoints.
 2. Continue final-checking the manually maintained rules dataset.
