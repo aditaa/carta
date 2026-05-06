@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, delete, func, select
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
-from app.domains.auth.models import House, HouseMembership, User
+from app.domains.auth.models import Denizen, House, HouseMembership
 from app.domains.buildings.models import OwnedBuilding
 from app.domains.buildings.schemas import BuildingRegistryCreate
 from app.domains.buildings.service import BuildingRegistryPermissionError, BuildingRegistryService
@@ -35,9 +35,9 @@ def mysql_database_url() -> str:
 
 
 def cleanup_registry_rows(db: Session) -> None:
-    db.execute(delete(OwnedBuilding).where(OwnedBuilding.owner_user_id.in_([9001, 9002, 9003])))
-    db.execute(delete(HouseMembership).where(HouseMembership.user_id.in_([9001, 9002, 9003])))
-    db.execute(delete(User).where(User.id.in_([9001, 9002, 9003])))
+    db.execute(delete(OwnedBuilding).where(OwnedBuilding.owner_denizen_id.in_([9001, 9002, 9003])))
+    db.execute(delete(HouseMembership).where(HouseMembership.denizen_id.in_([9001, 9002, 9003])))
+    db.execute(delete(Denizen).where(Denizen.id.in_([9001, 9002, 9003])))
     db.execute(delete(House).where(House.id.in_([9010, 9020])))
     db.commit()
 
@@ -99,31 +99,31 @@ def test_mysql_building_registry_visibility_and_create_permissions() -> None:
         rules = get_rules_service().load_current_rules()
         db.add_all(
             [
-                User(id=9001, email="mysql-one@example.test", display_name="MySQL One"),
-                User(id=9002, email="mysql-two@example.test", display_name="MySQL Two"),
-                User(id=9003, email="mysql-three@example.test", display_name="MySQL Three"),
+                Denizen(id=9001, email="mysql-one@example.test", display_name="MySQL One"),
+                Denizen(id=9002, email="mysql-two@example.test", display_name="MySQL Two"),
+                Denizen(id=9003, email="mysql-three@example.test", display_name="MySQL Three"),
                 House(id=9010, name="MySQL House Ten"),
                 House(id=9020, name="MySQL House Twenty"),
-                HouseMembership(user_id=9001, house_id=9010, can_view_house=True),
-                HouseMembership(user_id=9002, house_id=9010, can_view_house=False),
+                HouseMembership(denizen_id=9001, house_id=9010, can_view_house=True),
+                HouseMembership(denizen_id=9002, house_id=9010, can_view_house=False),
                 OwnedBuilding(
-                    owner_user_id=9001,
+                    owner_denizen_id=9001,
                     building_definition_id="farm",
                     count=1,
                 ),
                 OwnedBuilding(
-                    owner_user_id=9002,
+                    owner_denizen_id=9002,
                     house_id=9010,
                     building_definition_id="market",
                     count=1,
                 ),
                 OwnedBuilding(
-                    owner_user_id=9002,
+                    owner_denizen_id=9002,
                     building_definition_id="shop",
                     count=1,
                 ),
                 OwnedBuilding(
-                    owner_user_id=9003,
+                    owner_denizen_id=9003,
                     house_id=9020,
                     building_definition_id="tower",
                     count=1,
@@ -132,17 +132,17 @@ def test_mysql_building_registry_visibility_and_create_permissions() -> None:
         )
         db.commit()
 
-        scope = service.build_visibility_scope_from_db(db, user_id=9001)
+        scope = service.build_visibility_scope_from_db(db, denizen_id=9001)
         visible = service.list_visible_from_db(db, scope)
 
-        assert scope.visible_user_ids == [9001, 9002]
+        assert scope.visible_denizen_ids == [9001, 9002]
         assert scope.visible_house_ids == [9010]
         assert {building.building_definition_id for building in visible} == {"farm", "market"}
 
         created = service.create_in_db(
             db,
             BuildingRegistryCreate(
-                owner_user_id=9002,
+                owner_denizen_id=9002,
                 house_id=9010,
                 building_definition_id="shop",
                 count=1,
@@ -150,14 +150,14 @@ def test_mysql_building_registry_visibility_and_create_permissions() -> None:
             scope,
             rules=rules,
         )
-        assert created.owner_user_id == 9002
+        assert created.owner_denizen_id == 9002
         assert created.house_id == 9010
 
         with pytest.raises(BuildingRegistryPermissionError):
             service.create_in_db(
                 db,
                 BuildingRegistryCreate(
-                    owner_user_id=9002,
+                    owner_denizen_id=9002,
                     building_definition_id="shop",
                     count=1,
                 ),

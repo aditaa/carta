@@ -1,8 +1,21 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
-from app.domains.auth.schemas import VisibilityPreview, VisibilityScope
+from app.api.v1.dependencies import get_current_denizen
+from app.core.config import get_settings
+from app.db.session import get_db
+from app.domains.auth.models import Denizen
+from app.domains.auth.schemas import (
+    AuthDenizen,
+    AuthToken,
+    LoginRequest,
+    VisibilityPreview,
+    VisibilityScope,
+)
 from app.domains.auth.service import (
+    KingdomVisibility,
     MembershipVisibility,
+    get_authentication_service,
     get_visibility_service,
 )
 
@@ -14,10 +27,10 @@ def visibility_preview() -> VisibilityPreview:
     return VisibilityPreview(
         baseline="A user can see their own data.",
         house_scope=(
-            "A user with house permission can see their own data plus users "
+            "A denizen with house permission can see their own data plus denizens "
             "and assets in that house."
         ),
-        future_roles=["admin", "house_manager", "read_only_member"],
+        future_roles=["read_only", "member", "manager", "admin"],
     )
 
 
@@ -25,17 +38,52 @@ def visibility_preview() -> VisibilityPreview:
 def sample_visibility_scope() -> VisibilityScope:
     visibility_service = get_visibility_service()
     return visibility_service.build_scope(
-        user_id=1,
+        denizen_id=1,
         memberships=[
             MembershipVisibility(
                 house_id=10,
-                user_ids={1, 2, 3},
+                denizen_ids={1, 2, 3},
                 can_view_house=True,
             ),
             MembershipVisibility(
                 house_id=20,
-                user_ids={1, 4},
+                denizen_ids={1, 4},
                 can_view_house=False,
             ),
         ],
+        kingdom_memberships=[
+            KingdomVisibility(
+                kingdom_id=100,
+                denizen_ids={1, 5, 6},
+                can_view_kingdom=True,
+            )
+        ],
     )
+
+
+@router.post("/login", response_model=AuthToken)
+def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthToken:
+    settings = get_settings()
+    auth_service = get_authentication_service()
+    denizen = auth_service.authenticate_denizen(db, payload.email, payload.password)
+    if denizen is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    return AuthToken(
+        access_token=auth_service.create_access_token(
+            denizen,
+            settings.auth_secret_key,
+            settings.access_token_minutes,
+        ),
+        denizen=auth_service.serialize_denizen(denizen),
+    )
+
+
+@router.get("/me", response_model=AuthDenizen)
+def current_denizen(
+    denizen: Denizen = Depends(get_current_denizen),
+) -> AuthDenizen:
+    return get_authentication_service().serialize_denizen(denizen)

@@ -114,10 +114,18 @@ Import the current rules dataset:
 PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
 ```
 
+Create or update a local login denizen:
+
+```bash
+PYTHONPATH=backend python -m app.cli.create_denizen --email you@example.com --display-name "Your Name"
+```
+
 ## Useful Backend Endpoints
 
 - `GET /api/v1/health`
 - `GET /api/v1/rules/current`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
 - `GET /api/v1/auth/visibility-preview`
 - `GET /api/v1/buildings`
 
@@ -130,7 +138,7 @@ Install frontend dependencies:
 
 ```bash
 cd frontend
-npm install
+npm ci
 ```
 
 Run the frontend:
