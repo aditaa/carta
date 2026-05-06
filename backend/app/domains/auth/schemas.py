@@ -48,6 +48,7 @@ class SharedHoldingItem(BaseModel):
     id: int
     scope_type: str
     scope_id: int
+    denizen_id: int | None = None
     item_type: str
     item_key: str
     amount: float
@@ -57,4 +58,5 @@ class SharedHoldingItem(BaseModel):
 class VisibleHoldings(BaseModel):
     denizen: list[DenizenHoldingItem] = Field(default_factory=list)
     house: list[SharedHoldingItem] = Field(default_factory=list)
+    house_denizen: list[SharedHoldingItem] = Field(default_factory=list)
     kingdom: list[SharedHoldingItem] = Field(default_factory=list)

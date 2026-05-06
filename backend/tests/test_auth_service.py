@@ -9,12 +9,14 @@ from app.domains.auth.models import (
     DenizenHolding,
     DenizenRole,
     House,
+    HouseDenizenHolding,
     HouseHolding,
     HouseMembership,
     Kingdom,
     KingdomHolding,
     KingdomMembership,
 )
+from app.domains.auth.schemas import VisibilityScope
 from app.domains.auth.service import AuthenticationService, hash_password, verify_password
 
 pytestmark = pytest.mark.unit
@@ -150,7 +152,7 @@ def test_denizen_can_link_to_house_kingdom_and_hold_resources() -> None:
                 HouseMembership(
                     denizen_id=1,
                     house_id=10,
-                    role=DenizenRole.manager,
+                    role=DenizenRole.admin,
                     can_view_house=True,
                 ),
                 KingdomMembership(
@@ -173,6 +175,14 @@ def test_denizen_can_link_to_house_kingdom_and_hold_resources() -> None:
                     amount=7,
                     note="House bank",
                 ),
+                HouseDenizenHolding(
+                    house_id=10,
+                    denizen_id=1,
+                    item_type="resource",
+                    item_key="ore",
+                    amount=5,
+                    note="House-held denizen stash",
+                ),
                 KingdomHolding(
                     kingdom_id=100,
                     item_type="resource",
@@ -194,14 +204,61 @@ def test_denizen_can_link_to_house_kingdom_and_hold_resources() -> None:
         assert scope.visible_denizen_ids == [1]
         assert denizen is not None
         assert denizen.holdings[0].item_key == "crops"
-        assert denizen.memberships[0].role == DenizenRole.manager
+        assert denizen.memberships[0].role == DenizenRole.admin
         assert [(item.item_key, item.amount) for item in holdings.denizen] == [("crops", 12.0)]
         assert [(item.scope_id, item.item_key, item.amount) for item in holdings.house] == [
             (10, "tower", 7.0)
         ]
+        assert [
+            (item.scope_id, item.denizen_id, item.item_key, item.amount)
+            for item in holdings.house_denizen
+        ] == [(10, 1, "ore", 5.0)]
         assert [(item.scope_id, item.item_key, item.amount) for item in holdings.kingdom] == [
             (100, "rarities", 3.0)
         ]
+        assert service.can_edit_denizen_holdings(scope, denizen_id=1)
+        assert service.can_edit_house_holdings(db, denizen_id=1, house_id=10)
+        assert service.can_edit_house_denizen_holdings(db, denizen_id=1, house_id=10)
+    finally:
+        db.close()
+        Base.metadata.drop_all(engine)
+
+
+def test_house_stashes_require_house_admin_role_to_edit() -> None:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    db = SessionLocal()
+    try:
+        db.add_all(
+            [
+                House(id=10, name="Admin House"),
+                Denizen(id=1, email="admin@example.test", display_name="House Admin"),
+                Denizen(id=2, email="manager@example.test", display_name="House Manager"),
+                HouseMembership(denizen_id=1, house_id=10, role=DenizenRole.admin),
+                HouseMembership(denizen_id=2, house_id=10, role=DenizenRole.manager),
+            ]
+        )
+        db.commit()
+
+        service = AuthenticationService()
+
+        assert service.can_edit_house_holdings(db, denizen_id=1, house_id=10)
+        assert service.can_edit_house_denizen_holdings(db, denizen_id=1, house_id=10)
+        assert not service.can_edit_house_holdings(db, denizen_id=2, house_id=10)
+        assert not service.can_edit_house_denizen_holdings(db, denizen_id=2, house_id=10)
+        assert service.can_edit_denizen_holdings(
+            VisibilityScope(denizen_id=2, visible_denizen_ids=[2]),
+            denizen_id=2,
+        )
+        assert not service.can_edit_denizen_holdings(
+            VisibilityScope(denizen_id=2, visible_denizen_ids=[2]),
+            denizen_id=1,
+        )
     finally:
         db.close()
         Base.metadata.drop_all(engine)

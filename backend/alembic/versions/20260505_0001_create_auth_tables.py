@@ -199,6 +199,56 @@ def upgrade() -> None:
     )
 
     op.create_table(
+        "house_denizen_holdings",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("house_id", sa.Integer(), nullable=False),
+        sa.Column("denizen_id", sa.Integer(), nullable=False),
+        sa.Column("item_type", sa.String(length=40), nullable=False),
+        sa.Column("item_key", sa.String(length=120), nullable=False),
+        sa.Column("amount", sa.Numeric(12, 2), nullable=False),
+        sa.Column("note", sa.String(length=255), nullable=True),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.ForeignKeyConstraint(
+            ["denizen_id"],
+            ["denizens.id"],
+            name=op.f("fk_house_denizen_holdings_denizen_id_denizens"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["house_id"], ["houses.id"], name=op.f("fk_house_denizen_holdings_house_id_houses")
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_house_denizen_holdings")),
+    )
+    op.create_index(
+        op.f("ix_house_denizen_holdings_denizen_id"),
+        "house_denizen_holdings",
+        ["denizen_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_house_denizen_holdings_house_id"),
+        "house_denizen_holdings",
+        ["house_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_house_denizen_holdings_item_key"),
+        "house_denizen_holdings",
+        ["item_key"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_house_denizen_holdings_item_type"),
+        "house_denizen_holdings",
+        ["item_type"],
+        unique=False,
+    )
+
+    op.create_table(
         "kingdom_holdings",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("kingdom_id", sa.Integer(), nullable=False),
@@ -239,6 +289,11 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_kingdom_holdings_kingdom_id"), table_name="kingdom_holdings")
     op.drop_table("kingdom_holdings")
     op.drop_index(op.f("ix_house_holdings_item_type"), table_name="house_holdings")
+    op.drop_index(op.f("ix_house_denizen_holdings_item_type"), table_name="house_denizen_holdings")
+    op.drop_index(op.f("ix_house_denizen_holdings_item_key"), table_name="house_denizen_holdings")
+    op.drop_index(op.f("ix_house_denizen_holdings_house_id"), table_name="house_denizen_holdings")
+    op.drop_index(op.f("ix_house_denizen_holdings_denizen_id"), table_name="house_denizen_holdings")
+    op.drop_table("house_denizen_holdings")
     op.drop_index(op.f("ix_house_holdings_item_key"), table_name="house_holdings")
     op.drop_index(op.f("ix_house_holdings_house_id"), table_name="house_holdings")
     op.drop_table("house_holdings")

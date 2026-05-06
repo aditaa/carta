@@ -58,6 +58,10 @@ class Denizen(Base):
         back_populates="denizen",
         cascade="all, delete-orphan",
     )
+    house_held_holdings: Mapped[list["HouseDenizenHolding"]] = relationship(
+        back_populates="denizen",
+        cascade="all, delete-orphan",
+    )
 
 
 class House(Base):
@@ -81,6 +85,10 @@ class House(Base):
     )
     kingdom: Mapped["Kingdom | None"] = relationship(back_populates="houses")
     holdings: Mapped[list["HouseHolding"]] = relationship(
+        back_populates="house",
+        cascade="all, delete-orphan",
+    )
+    denizen_holdings: Mapped[list["HouseDenizenHolding"]] = relationship(
         back_populates="house",
         cascade="all, delete-orphan",
     )
@@ -183,6 +191,30 @@ class HouseHolding(Base):
     )
 
     house: Mapped[House] = relationship(back_populates="holdings")
+
+
+class HouseDenizenHolding(Base):
+    __tablename__ = "house_denizen_holdings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    house_id: Mapped[int] = mapped_column(ForeignKey("houses.id"), index=True)
+    denizen_id: Mapped[int] = mapped_column(ForeignKey("denizens.id"), index=True)
+    item_type: Mapped[str] = mapped_column(String(40), index=True)
+    item_key: Mapped[str] = mapped_column(String(120), index=True)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    house: Mapped[House] = relationship(back_populates="denizen_holdings")
+    denizen: Mapped[Denizen] = relationship(back_populates="house_held_holdings")
 
 
 class KingdomHolding(Base):
