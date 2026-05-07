@@ -17,6 +17,7 @@ venv/
 
 # Environment files
 .env
+.env.local
 
 # Static / frontend build output
 node_modules/

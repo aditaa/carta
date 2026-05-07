@@ -115,6 +115,10 @@ python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
 python -m pytest
 ```
 
+The local web installer starts at `/install/`. It can test and save the MySQL
+connection to `.env.local`, then run migrations and import the current rules
+file after the server restarts with the saved settings.
+
 ## Rules Data
 
 Rules are intentionally kept separate in `rules/` so game changes can be

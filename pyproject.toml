@@ -17,6 +17,7 @@ known-first-party = [
     "carta",
     "dashboard",
     "holdings",
+    "installer",
     "ownership",
     "production",
     "progression",
