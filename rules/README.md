@@ -3,10 +3,10 @@
 This directory stores versioned Carta Arcanum rules data as manually maintained
 JSON arrays.
 
-Rules live outside the backend and frontend so the game can change without
-forcing application code changes. The app should load a selected rules version
-and validate it before using it for upkeep totals, production chains, graph
-generation, and dependency solving.
+Rules live outside the Django app logic so the game can change without forcing
+application code changes. The app should load a selected rules version and
+validate it before using it for upkeep totals, production chains, map overlays,
+and dependency solving.
 
 ## Files
 
@@ -34,11 +34,11 @@ saved campaigns or older scenarios.
 
 ## App Integration
 
-Backend code should load rules through a dedicated rules service or import them
+Django code should load rules through a dedicated rules service and import them
 into SQL with:
 
 ```bash
-PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
+python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
 ```
 
 The JSON file is the manual source of truth. SQL records are imported from that

@@ -111,6 +111,7 @@ Run the full test suite after MySQL is running and configured:
 
 ```bash
 python manage.py migrate
+python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
 python -m pytest
 ```
 
@@ -131,6 +132,12 @@ production recipes, ownership rules, transports, titles, and phases. The JSON
 file is the manual source of truth; Django models, migrations, templates, and
 solver logic should not hard-code values that belong in the rules file.
 
+Import the current rules file with:
+
+```bash
+python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
+```
+
 ## Roadmap
 
 See `ROADMAP.md` for the milestone todo list and `TRANSITION_TODO.md` for the
@@ -141,7 +148,8 @@ detailed Django rewrite checklist.
 This repository is pivoting from a split FastAPI/React app to a Django
 monolith. The next build steps are:
 
-1. Build the rules data models and import command.
+1. Expand the rules import to buildings, recipes, settlement tiers, ownership
+   rules, transports, titles, and phases.
 2. Expand the accounts, ownership, and permissions model.
 3. Build server-rendered dashboard, registry, holdings, and permissions flows.
 4. Add production totals, the interactive map, and dependency solving.

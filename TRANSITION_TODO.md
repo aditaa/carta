@@ -77,10 +77,10 @@ FastAPI/React split app to a Django monolith.
 ## 5. Rules Data Foundation
 
 - [x] Keep raw rules files in `rules/`.
-- [ ] Keep `rules/rules.schema.json` as the validation contract unless a better
+- [x] Keep `rules/rules.schema.json` as the validation contract unless a better
   Django-native validation layer replaces it.
-- [ ] Create `rulesets` models for imported ruleset metadata.
-- [ ] Create `resources` models for currencies, resources, units, rarities, and
+- [x] Create `rulesets` models for imported ruleset metadata.
+- [x] Create `resources` models for currencies, resources, units, rarities, and
   categories.
 - [ ] Create building definition models.
 - [ ] Create production recipe models.
@@ -88,13 +88,13 @@ FastAPI/React split app to a Django monolith.
 - [ ] Create phase and unlock models.
 - [ ] Create transport/title/ownership-rule models if still needed by the
   rules file.
-- [ ] Port rules JSON loading into a Django service.
-- [ ] Add rules validation service.
-- [ ] Add `manage.py import_rules`.
-- [ ] Make import idempotent by rules version.
-- [ ] Add admin pages for imported rules.
-- [ ] Add tests for valid rules import.
-- [ ] Add tests for invalid rules rejection.
+- [x] Port rules JSON loading into a Django service.
+- [x] Add rules validation service.
+- [x] Add `manage.py import_rules`.
+- [x] Make import idempotent by rules version.
+- [x] Add admin pages for imported rules.
+- [x] Add tests for valid rules import.
+- [x] Add tests for invalid rules rejection.
 
 ## 6. Accounts, Auth, And Permissions
 

@@ -66,6 +66,12 @@ jobs:
           MYSQL_PASSWORD: root
         run: python manage.py migrate
 
+      - name: Import current rules
+        env:
+          MYSQL_USER: root
+          MYSQL_PASSWORD: root
+        run: python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
+
       - name: Test
         env:
           MYSQL_USER: root
