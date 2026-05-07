@@ -97,8 +97,51 @@ p {
   line-height: 1.65;
 }
 
+.success-message {
+  color: #245f3f;
+  font-weight: 700;
+}
+
+.error-message,
+.errorlist {
+  color: #9d2f2f;
+  font-weight: 700;
+}
+
+.errorlist {
+  margin: 0;
+  padding-left: 20px;
+}
+
 .auth-shell {
   max-width: 420px;
+}
+
+.installer-shell {
+  max-width: 920px;
+}
+
+.setup-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.setup-steps article {
+  padding: 18px;
+  border: 1px solid #ddd3bd;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.setup-steps h2 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+}
+
+.setup-steps a {
+  color: #17201c;
+  font-weight: 800;
 }
 
 .auth-form {
@@ -165,4 +208,17 @@ p {
 
 .muted {
   color: #6f786f;
+}
+
+.installer-output {
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid #ddd3bd;
+  border-radius: 6px;
+  background: #fffdf8;
+  color: #26332b;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
 }

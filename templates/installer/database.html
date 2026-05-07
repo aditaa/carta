@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Database Setup | Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="auth-shell">
+    <p class="eyebrow">Installer</p>
+    <h1>Database setup</h1>
+    <p><a href="{% url 'installer:index' %}">Back to setup</a></p>
+    {% if saved %}
+      <p class="success-message">
+        Database connection saved. Restart the server so the new settings are loaded, then continue setup.
+      </p>
+      <p><a href="{% url 'installer:application' %}">Continue to app setup</a></p>
+    {% endif %}
+    {% if connection_error %}
+      <p class="error-message">{{ connection_error }}</p>
+    {% endif %}
+    <form class="auth-form" method="post">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <label for="{{ form.host.id_for_label }}">Host</label>
+      {{ form.host }}
+      {{ form.host.errors }}
+      <label for="{{ form.port.id_for_label }}">Port</label>
+      {{ form.port }}
+      {{ form.port.errors }}
+      <label for="{{ form.database.id_for_label }}">Database</label>
+      {{ form.database }}
+      {{ form.database.errors }}
+      <label for="{{ form.test_database.id_for_label }}">Test database</label>
+      {{ form.test_database }}
+      {{ form.test_database.errors }}
+      <label for="{{ form.user.id_for_label }}">User</label>
+      {{ form.user }}
+      {{ form.user.errors }}
+      <label for="{{ form.password.id_for_label }}">Password</label>
+      {{ form.password }}
+      {{ form.password.errors }}
+      <button type="submit">Test and save</button>
+    </form>
+  </section>
+{% endblock %}

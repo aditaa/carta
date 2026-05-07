@@ -55,6 +55,23 @@ python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
 python manage.py runserver
 ```
 
+If you prefer to enter the MySQL connection through the web installer, start
+the server after installing dependencies and visit:
+
+```text
+http://127.0.0.1:8000/install/
+```
+
+The installer validates the connection and saves local MySQL settings to
+`.env.local`. Restart the server after saving so Django reloads the new
+database settings, then continue in the GUI:
+
+```text
+http://127.0.0.1:8000/install/application/
+```
+
+The app setup page runs migrations and imports the current rules file.
+
 The app should be available at:
 
 ```text
@@ -73,7 +90,8 @@ created, use the normal sign-in page.
 ## Configuration
 
 Django configuration should be read from environment variables. Keep secrets
-and database credentials out of version control.
+and database credentials out of version control. The optional web installer
+writes local database settings to `.env.local`, which is ignored by git.
 
 ## Checks
 

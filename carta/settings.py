@@ -1,7 +1,40 @@
 import os
+import shlex
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+INITIAL_ENV_KEYS = set(os.environ)
+
+
+def load_env_file(path: Path, *, protected_keys: set[str]) -> None:
+    if not path.exists():
+        return
+
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key or key in protected_keys:
+            continue
+        os.environ[key] = _parse_env_value(value.strip())
+
+
+def _parse_env_value(value: str) -> str:
+    if not value:
+        return ""
+    try:
+        parsed = shlex.split(value, comments=False, posix=True)
+    except ValueError:
+        return value
+    if len(parsed) == 1:
+        return parsed[0]
+    return value
+
+
+load_env_file(BASE_DIR / ".env", protected_keys=INITIAL_ENV_KEYS)
+load_env_file(BASE_DIR / ".env.local", protected_keys=INITIAL_ENV_KEYS)
 
 
 def env_bool(name: str, default: bool = False) -> bool:
@@ -22,10 +55,12 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ["127.0.0.1", "localhost"])
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+INSTALLER_ENV_FILE = Path(os.getenv("CARTA_INSTALLER_ENV_FILE", BASE_DIR / ".env.local"))
 
 INSTALLED_APPS = [
     "accounts",
     "dashboard",
+    "installer",
     "rulesets",
     "resources",
     "ownership",

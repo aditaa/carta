@@ -22,6 +22,8 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 - [x] Configure MySQL for supported local and production use.
 - [x] Add environment-based settings for secrets, database connection, and
   deployment mode.
+- [x] Add a local GUI path for validating and saving MySQL connection settings.
+- [x] Add a local GUI path for running migrations and importing rules.
 - [x] Add Django templates, static files, and base layout.
 - [x] Add pytest or Django test runner setup.
 - [x] Add linting and formatting checks for the new codebase.

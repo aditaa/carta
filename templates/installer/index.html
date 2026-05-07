@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Installer | Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="installer-shell">
+    <p class="eyebrow">Installer</p>
+    <h1>Setup</h1>
+    {% if locked %}
+      <p class="success-message">
+        Setup is complete and the installer is locked.
+      </p>
+    {% endif %}
+    <div class="setup-steps">
+      <article>
+        <h2>Database</h2>
+        <p>Test and save the local MySQL connection.</p>
+        <a href="{% url 'installer:database' %}">Configure database</a>
+      </article>
+      <article>
+        <h2>Application</h2>
+        <p>Run migrations and import the current Carta Arcanum rules.</p>
+        <a href="{% url 'installer:application' %}">Run app setup</a>
+      </article>
+      <article>
+        <h2>Admin</h2>
+        <p>Create the first admin account after the database is ready.</p>
+        <a href="{% url 'accounts:setup' %}">Create admin</a>
+      </article>
+    </div>
+  </section>
+{% endblock %}
