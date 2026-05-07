@@ -24,7 +24,8 @@ The goal is to help players answer practical questions quickly:
 - Input and output tracking for crops, currency, rarities, and other resources.
 - Auto-calculated upkeep totals across all owned buildings.
 - Deficit and surplus alerts such as "missing 3 crop to sustain 1 farm."
-- Production graph showing resource flow between buildings.
+- Interactive campaign map for territories, hexes, settlements, and points of
+  interest.
 - Phase-based progression tracker for settlement or campaign advancement.
 
 ## Solver Goals
@@ -43,7 +44,7 @@ Bonus solver capabilities:
 - Dependency solver.
 - Minimal loop generator.
 - Resource balancing.
-- D3.js production graph visualization.
+- Interactive map and planning visualization.
 
 ## Tech Stack
 
@@ -54,7 +55,8 @@ target architecture for new feature work.
 - Web framework: Python with Django.
 - Database: MySQL.
 - UI: Django templates with HTMX for targeted dynamic interactions.
-- Graph visualization: D3.js for production and dependency graphs.
+- Map and visualization: target Canvas or PixiJS for a large editable hex-grid
+  campaign map.
 - Supported runtime: Linux.
 
 ## Proposed Project Layout
@@ -142,4 +144,4 @@ monolith. The next build steps are:
 1. Build the rules data models and import command.
 2. Expand the accounts, ownership, and permissions model.
 3. Build server-rendered dashboard, registry, holdings, and permissions flows.
-4. Add production totals, graph visualization, and dependency solving.
+4. Add production totals, the interactive map, and dependency solving.

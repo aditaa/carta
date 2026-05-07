@@ -14,7 +14,7 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 - [x] Delete the legacy `backend/` and `frontend/` directories before
   scaffolding Django.
 - [x] Choose the Django project/app layout and package names.
-- [ ] Update CI to target the Django app once the skeleton exists.
+- [x] Update CI to target the Django app once the skeleton exists.
 
 ## Phase 1: Django Skeleton
 
@@ -62,13 +62,13 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 - [ ] Add alerts like "missing X to sustain Y."
 - [ ] Add tests for upkeep, production totals, and balance calculations.
 
-## Phase 6: Production Graph
+## Phase 6: Interactive Map
 
-- [ ] Build graph data from Django domain services.
-- [ ] Render production flow with D3.js.
-- [ ] Highlight blocked or missing inputs.
-- [ ] Show owner-specific and settlement-wide graph views.
-- [ ] Respect visibility permissions in graph data.
+- [ ] Prototype the map renderer with Canvas or PixiJS.
+- [ ] Add a map page with pan, zoom, and coordinate readout.
+- [ ] Support the hex grid used by Carta Arcanum maps.
+- [ ] Add territory, settlement, and point-of-interest overlays.
+- [ ] Respect visibility permissions in map data.
 
 ## Phase 7: Progression Tracker
 
