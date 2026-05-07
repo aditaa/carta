@@ -119,18 +119,18 @@ FastAPI/React split app to a Django monolith.
 
 ## 7. Holdings And Ownership
 
-- [ ] Model denizen personal holdings.
-- [ ] Model house holdings.
+- [x] Model denizen personal holdings.
+- [x] Model house holdings.
 - [ ] Model house-held denizen holdings.
-- [ ] Model kingdom holdings.
-- [ ] Model Three Crowns denizen accounts.
-- [ ] Model Three Crowns house accounts.
-- [ ] Model Three Crowns kingdom accounts.
-- [ ] Validate holding item keys against imported rules.
-- [ ] Add audit ledger model for holding changes.
-- [ ] Add service methods for deposit, withdrawal, transfer, and correction.
-- [ ] Add admin views for inspecting holdings.
-- [ ] Add web pages for holdings summaries.
+- [x] Model kingdom holdings.
+- [x] Model Three Crowns denizen accounts.
+- [x] Model Three Crowns house accounts.
+- [x] Model Three Crowns kingdom accounts.
+- [x] Validate holding item keys against imported rules.
+- [x] Add audit ledger model for holding changes.
+- [x] Add service methods for deposit, withdrawal, transfer, and correction.
+- [x] Add admin views for inspecting holdings.
+- [x] Add web pages for holdings summaries.
 - [ ] Add HTMX forms for focused holding edits.
 - [ ] Add tests for validation and permission boundaries.
 

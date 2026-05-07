@@ -14,6 +14,7 @@
       <a class="brand" href="{% url 'dashboard:home' %}">Carta Arcanum</a>
       <nav class="site-nav" aria-label="Account">
         {% if request.user.is_authenticated %}
+          <a href="{% url 'holdings:index' %}">Holdings</a>
           <span>{{ request.user.display_name }}</span>
           <form method="post" action="{% url 'accounts:logout' %}">
             {% csrf_token %}
