@@ -52,7 +52,6 @@ Then run:
 ```bash
 python manage.py migrate
 python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
-python manage.py createsuperuser
 python manage.py runserver
 ```
 
@@ -61,6 +60,15 @@ The app should be available at:
 ```text
 http://127.0.0.1:8000
 ```
+
+On first run, create the initial admin account in the web app:
+
+```text
+http://127.0.0.1:8000/accounts/setup/
+```
+
+The setup page is only available while no users exist. After the first admin is
+created, use the normal sign-in page.
 
 ## Configuration
 

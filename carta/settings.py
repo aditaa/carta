@@ -92,6 +92,9 @@ DATABASES = {
 
 AUTH_USER_MODEL = "accounts.User"
 AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend"]
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "dashboard:home"
+LOGOUT_REDIRECT_URL = "dashboard:home"
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "America/Chicago"

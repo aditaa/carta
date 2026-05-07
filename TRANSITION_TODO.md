@@ -110,8 +110,8 @@ FastAPI/React split app to a Django monolith.
   enough.
 - [x] Create visibility service for denizen, house, and kingdom scopes.
 - [ ] Add Three Crowns visibility scopes.
-- [ ] Add login/logout pages.
-- [ ] Add first-admin setup path or documented `createsuperuser` flow.
+- [x] Add login/logout pages.
+- [x] Add first-admin setup path.
 - [x] Add permission tests for personal visibility.
 - [x] Add permission tests for house visibility.
 - [x] Add permission tests for kingdom visibility.
@@ -224,7 +224,7 @@ FastAPI/React split app to a Django monolith.
   import commands.
 - [x] Update `AGENTS.md` when the app layout is finalized.
 - [x] Keep `ROADMAP.md` high-level and use this file for transition detail.
-- [ ] Add user-facing notes for first-run setup or admin creation.
+- [x] Add user-facing notes for first-run setup or admin creation.
 
 ## 15. Feature Parity Check
 

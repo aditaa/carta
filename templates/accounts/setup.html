@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}First Admin Setup | Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="auth-shell">
+    <p class="eyebrow">First run</p>
+    <h1>Create admin</h1>
+    <form class="auth-form" method="post">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <label for="{{ form.email.id_for_label }}">Email</label>
+      {{ form.email }}
+      {{ form.email.errors }}
+      <label for="{{ form.display_name.id_for_label }}">Display name</label>
+      {{ form.display_name }}
+      {{ form.display_name.errors }}
+      <label for="{{ form.password1.id_for_label }}">Password</label>
+      {{ form.password1 }}
+      {{ form.password1.errors }}
+      <label for="{{ form.password2.id_for_label }}">Confirm password</label>
+      {{ form.password2 }}
+      {{ form.password2.errors }}
+      <button type="submit">Create admin</button>
+    </form>
+  </section>
+{% endblock %}
