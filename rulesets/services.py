@@ -10,8 +10,10 @@ from django.db import transaction
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
+from buildings.models import BuildingDefinition, SettlementTier
+from production.models import ProductionRecipe
 from resources.models import Currency, Resource, ResourceCategory, Unit
-from rulesets.models import Ruleset, RulesetImportLog
+from rulesets.models import ItemReference, Ruleset, RulesetImportLog
 
 
 class RulesetValidationError(ValueError):
@@ -24,6 +26,9 @@ class RulesetImportResult:
     currencies: int
     resources: int
     units: int
+    settlement_tiers: int
+    buildings: int
+    production_recipes: int
 
 
 def load_rules_data(rules_path: Path) -> dict[str, Any]:
@@ -72,6 +77,9 @@ def import_rules_file(rules_path: Path, schema_path: Path | None = None) -> Rule
                 key__in=categories.keys()
             ).delete()
             _sync_units(ruleset, data.get("units", []))
+            tiers = _sync_settlement_tiers(ruleset, data.get("settlement_tiers", []))
+            buildings = _sync_buildings(ruleset, data.get("building_definitions", []), tiers)
+            _sync_production_recipes(ruleset, data.get("production_recipes", []), buildings)
             RulesetImportLog.objects.create(
                 ruleset=ruleset,
                 source_path=str(rules_path),
@@ -91,6 +99,9 @@ def import_rules_file(rules_path: Path, schema_path: Path | None = None) -> Rule
         currencies=ruleset.currencies.count(),
         resources=ruleset.resources.count(),
         units=ruleset.units.count(),
+        settlement_tiers=ruleset.settlement_tiers.count(),
+        buildings=ruleset.buildings.count(),
+        production_recipes=ruleset.recipes.count(),
     )
 
 
@@ -161,6 +172,186 @@ def _sync_units(ruleset: Ruleset, units: list[dict[str, Any]]) -> None:
             },
         )
     Unit.objects.filter(ruleset=ruleset).exclude(key__in=keys).delete()
+
+
+def _sync_settlement_tiers(
+    ruleset: Ruleset,
+    settlement_tiers: list[dict[str, Any]],
+) -> dict[str, SettlementTier]:
+    keys = []
+    tiers = {}
+    for tier_data in settlement_tiers:
+        keys.append(tier_data["key"])
+        tier, _created = SettlementTier.objects.update_or_create(
+            ruleset=ruleset,
+            key=tier_data["key"],
+            defaults={
+                "name": tier_data["name"],
+                "min_buildings": tier_data["min_buildings"],
+                "max_buildings": tier_data["max_buildings"],
+                "prerequisites": tier_data.get("prerequisites", []),
+            },
+        )
+        tiers[tier.key] = tier
+        _sync_item_refs(
+            ruleset=ruleset,
+            owner_type="settlement_tier",
+            owner_key=tier.key,
+            purpose=ItemReference.Purpose.SETTLEMENT_UPGRADE_COST,
+            refs=tier_data.get("upgrade_cost", []),
+        )
+        _sync_item_refs(
+            ruleset=ruleset,
+            owner_type="settlement_tier",
+            owner_key=tier.key,
+            purpose=ItemReference.Purpose.SETTLEMENT_UPKEEP,
+            refs=tier_data.get("upkeep", []),
+        )
+    _delete_owner_item_refs_for_stale_keys(
+        ruleset=ruleset,
+        owner_type="settlement_tier",
+        kept_keys=keys,
+    )
+    SettlementTier.objects.filter(ruleset=ruleset).exclude(key__in=keys).delete()
+    return tiers
+
+
+def _sync_buildings(
+    ruleset: Ruleset,
+    buildings: list[dict[str, Any]],
+    tiers: dict[str, SettlementTier],
+) -> dict[str, BuildingDefinition]:
+    keys = []
+    building_records = {}
+    for building_data in buildings:
+        keys.append(building_data["key"])
+        settlement_requirement_key = building_data.get("settlement_requirement")
+        settlement_requirement = None
+        if settlement_requirement_key:
+            settlement_requirement = tiers.get(settlement_requirement_key)
+            if settlement_requirement is None:
+                raise RulesetValidationError(
+                    f"Building {building_data['key']} references missing settlement tier "
+                    f"{settlement_requirement_key}."
+                )
+        building, _created = BuildingDefinition.objects.update_or_create(
+            ruleset=ruleset,
+            key=building_data["key"],
+            defaults={
+                "name": building_data["name"],
+                "category": building_data["category"],
+                "map_visible": building_data.get("map_visible", False),
+                "settlement_requirement": settlement_requirement,
+                "requirements": building_data.get("requirements", []),
+                "effects": building_data.get("effects", []),
+            },
+        )
+        building_records[building.key] = building
+        _sync_item_refs(
+            ruleset=ruleset,
+            owner_type="building_definition",
+            owner_key=building.key,
+            purpose=ItemReference.Purpose.BUILD_COST,
+            refs=building_data.get("build_cost", []),
+        )
+        _sync_item_refs(
+            ruleset=ruleset,
+            owner_type="building_definition",
+            owner_key=building.key,
+            purpose=ItemReference.Purpose.BUILDING_UPKEEP,
+            refs=building_data.get("upkeep", []),
+        )
+    _delete_owner_item_refs_for_stale_keys(
+        ruleset=ruleset,
+        owner_type="building_definition",
+        kept_keys=keys,
+    )
+    BuildingDefinition.objects.filter(ruleset=ruleset).exclude(key__in=keys).delete()
+    return building_records
+
+
+def _sync_production_recipes(
+    ruleset: Ruleset,
+    recipes: list[dict[str, Any]],
+    buildings: dict[str, BuildingDefinition],
+) -> None:
+    keys = []
+    for recipe_data in recipes:
+        keys.append(recipe_data["key"])
+        building = buildings.get(recipe_data["building_key"])
+        if building is None:
+            raise RulesetValidationError(
+                f"Recipe {recipe_data['key']} references missing building "
+                f"{recipe_data['building_key']}."
+            )
+        recipe, _created = ProductionRecipe.objects.update_or_create(
+            ruleset=ruleset,
+            key=recipe_data["key"],
+            defaults={
+                "building": building,
+                "recipe_type": recipe_data["recipe_type"],
+            },
+        )
+        _sync_item_refs(
+            ruleset=ruleset,
+            owner_type="production_recipe",
+            owner_key=recipe.key,
+            purpose=ItemReference.Purpose.RECIPE_INPUT,
+            refs=recipe_data.get("inputs", []),
+        )
+        _sync_item_refs(
+            ruleset=ruleset,
+            owner_type="production_recipe",
+            owner_key=recipe.key,
+            purpose=ItemReference.Purpose.RECIPE_OUTPUT,
+            refs=recipe_data.get("outputs", []),
+        )
+    _delete_owner_item_refs_for_stale_keys(
+        ruleset=ruleset,
+        owner_type="production_recipe",
+        kept_keys=keys,
+    )
+    ProductionRecipe.objects.filter(ruleset=ruleset).exclude(key__in=keys).delete()
+
+
+def _sync_item_refs(
+    ruleset: Ruleset,
+    owner_type: str,
+    owner_key: str,
+    purpose: ItemReference.Purpose,
+    refs: list[dict[str, Any]],
+) -> None:
+    ItemReference.objects.filter(
+        ruleset=ruleset,
+        owner_type=owner_type,
+        owner_key=owner_key,
+        purpose=purpose,
+    ).delete()
+    ItemReference.objects.bulk_create(
+        [
+            ItemReference(
+                ruleset=ruleset,
+                owner_type=owner_type,
+                owner_key=owner_key,
+                purpose=purpose,
+                item_type=ref["item_type"],
+                item_key=ref["item_key"],
+                amount=ref["amount"],
+                sort_order=index,
+            )
+            for index, ref in enumerate(refs)
+        ]
+    )
+
+
+def _delete_owner_item_refs_for_stale_keys(
+    ruleset: Ruleset,
+    owner_type: str,
+    kept_keys: list[str],
+) -> None:
+    ItemReference.objects.filter(ruleset=ruleset, owner_type=owner_type).exclude(
+        owner_key__in=kept_keys
+    ).delete()
 
 
 def _format_validation_error(error: ValidationError) -> str:

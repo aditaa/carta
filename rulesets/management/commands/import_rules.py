@@ -32,6 +32,9 @@ class Command(BaseCommand):
                 f"{result.ruleset.game} {result.ruleset.rules_version}: "
                 f"{result.currencies} currencies, "
                 f"{result.resources} resources, "
-                f"{result.units} units."
+                f"{result.units} units, "
+                f"{result.settlement_tiers} settlement tiers, "
+                f"{result.buildings} buildings, "
+                f"{result.production_recipes} production recipes."
             )
         )

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from rulesets.models import Ruleset, RulesetImportLog
+from rulesets.models import ItemReference, Ruleset, RulesetImportLog
 
 
 @admin.register(Ruleset)
@@ -16,3 +16,18 @@ class RulesetImportLogAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("source_path", "message")
     readonly_fields = ("created_at",)
+
+
+@admin.register(ItemReference)
+class ItemReferenceAdmin(admin.ModelAdmin):
+    list_display = (
+        "purpose",
+        "owner_type",
+        "owner_key",
+        "item_type",
+        "item_key",
+        "amount",
+        "ruleset",
+    )
+    list_filter = ("ruleset", "purpose", "owner_type", "item_type")
+    search_fields = ("owner_key", "item_key")
