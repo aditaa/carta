@@ -42,12 +42,12 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 
 ## Phase 3: Accounts And Visibility
 
-- [ ] Define the user, denizen profile, system account, house, and kingdom
+- [x] Define the user, denizen profile, system account, house, and kingdom
   model strategy.
 - [ ] Use Django auth and sessions for login.
-- [ ] Model roles, memberships, and scoped permissions.
+- [x] Model roles, memberships, and scoped permissions.
 - [ ] Implement personal, house, kingdom, and Three Crowns visibility rules.
-- [ ] Add tests for permission boundaries.
+- [x] Add tests for permission boundaries.
 
 ## Phase 4: Core Web Workflows
 
