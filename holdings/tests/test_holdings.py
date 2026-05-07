@@ -51,6 +51,18 @@ def test_holding_account_validates_single_owner():
         account.full_clean()
 
 
+def test_house_denizen_account_requires_user_and_house():
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    account = HoldingAccount(scope=HoldingAccount.Scope.HOUSE_DENIZEN, user=user, house=house)
+
+    account.full_clean()
+
+    invalid = HoldingAccount(scope=HoldingAccount.Scope.HOUSE_DENIZEN, user=user)
+    with pytest.raises(ValidationError, match="one user and one house"):
+        invalid.full_clean()
+
+
 def test_can_model_denizen_house_kingdom_and_three_crowns_accounts():
     user = create_user()
     house = House.objects.create(key="bramble", name="House Bramble")
@@ -58,6 +70,11 @@ def test_can_model_denizen_house_kingdom_and_three_crowns_accounts():
 
     HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
     HoldingAccount.objects.create(scope=HoldingAccount.Scope.HOUSE, house=house)
+    HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.HOUSE_DENIZEN,
+        user=create_user("house-held@example.test"),
+        house=House.objects.create(key="house-held", name="House Held"),
+    )
     HoldingAccount.objects.create(scope=HoldingAccount.Scope.KINGDOM, kingdom=kingdom)
     HoldingAccount.objects.create(
         scope=HoldingAccount.Scope.THREE_CROWNS_DENIZEN,
@@ -72,7 +89,7 @@ def test_can_model_denizen_house_kingdom_and_three_crowns_accounts():
         kingdom=Kingdom.objects.create(key="crown-kingdom", name="Crown Kingdom"),
     )
 
-    assert HoldingAccount.objects.count() == 6
+    assert HoldingAccount.objects.count() == 7
 
 
 def test_deposit_creates_balance_and_ledger_entry():
@@ -212,6 +229,31 @@ def test_visible_holding_accounts_includes_personal_and_shared_house_accounts():
     assert personal.id in visible_ids
     assert shared_house.id in visible_ids
     assert stranger_account.id not in visible_ids
+
+
+def test_house_denizen_account_requires_visibility_to_user_and_house():
+    viewer = create_user()
+    housemate = create_user("housemate@example.test")
+    stranger = create_user("stranger@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    other_house = House.objects.create(key="other", name="Other House")
+    HouseMembership.objects.create(user=viewer, house=house)
+    HouseMembership.objects.create(user=housemate, house=house)
+    visible_account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.HOUSE_DENIZEN,
+        user=housemate,
+        house=house,
+    )
+    hidden_account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.HOUSE_DENIZEN,
+        user=stranger,
+        house=other_house,
+    )
+
+    visible_ids = set(visible_holding_accounts(viewer).values_list("id", flat=True))
+
+    assert visible_account.id in visible_ids
+    assert hidden_account.id not in visible_ids
 
 
 def test_holdings_page_requires_login(client):

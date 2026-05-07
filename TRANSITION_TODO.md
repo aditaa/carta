@@ -121,7 +121,7 @@ FastAPI/React split app to a Django monolith.
 
 - [x] Model denizen personal holdings.
 - [x] Model house holdings.
-- [ ] Model house-held denizen holdings.
+- [x] Model house-held denizen holdings.
 - [x] Model kingdom holdings.
 - [x] Model Three Crowns denizen accounts.
 - [x] Model Three Crowns house accounts.

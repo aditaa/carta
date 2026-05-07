@@ -11,6 +11,7 @@ class HoldingAccount(models.Model):
     class Scope(models.TextChoices):
         DENIZEN = "denizen", "Denizen"
         HOUSE = "house", "House"
+        HOUSE_DENIZEN = "house_denizen", "House-held denizen"
         KINGDOM = "kingdom", "Kingdom"
         THREE_CROWNS_DENIZEN = "three_crowns_denizen", "Three Crowns denizen"
         THREE_CROWNS_HOUSE = "three_crowns_house", "Three Crowns house"
@@ -63,6 +64,12 @@ class HoldingAccount(models.Model):
     def clean(self):
         super().clean()
         linked_owners = [self.user_id, self.house_id, self.kingdom_id]
+        if self.scope == self.Scope.HOUSE_DENIZEN:
+            if not self.user_id or not self.house_id or self.kingdom_id:
+                raise ValidationError(
+                    "House-held denizen accounts must link to one user and one house."
+                )
+            return
         if sum(owner is not None for owner in linked_owners) != 1:
             raise ValidationError("A holding account must link to exactly one owner.")
         if self.scope in {self.Scope.DENIZEN, self.Scope.THREE_CROWNS_DENIZEN} and not self.user_id:

@@ -191,6 +191,13 @@ def visible_holding_accounts(viewer):
 
 
 def _can_view_account(*, viewer, account: HoldingAccount) -> bool:
+    if account.scope == HoldingAccount.Scope.HOUSE_DENIZEN:
+        return (
+            account.user_id is not None
+            and account.house_id is not None
+            and can_view_user(viewer, account.user)
+            and can_view_house(viewer, account.house)
+        )
     if account.user_id is not None:
         return can_view_user(viewer, account.user)
     if account.house_id is not None:
