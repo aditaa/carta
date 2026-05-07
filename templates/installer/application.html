@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Application Setup | Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="auth-shell">
+    <p class="eyebrow">Installer</p>
+    <h1>App setup</h1>
+    <p><a href="{% url 'installer:index' %}">Back to setup</a></p>
+    {% if completed %}
+      <p class="success-message">
+        Database migrations and rules import completed.
+      </p>
+      <p><a href="{% url 'accounts:setup' %}">Create the first admin</a></p>
+    {% endif %}
+    {% if command_error %}
+      <p class="error-message">{{ command_error }}</p>
+    {% endif %}
+    <form class="auth-form" method="post">
+      {% csrf_token %}
+      <button type="submit">Run setup</button>
+    </form>
+    {% if command_output %}
+      <pre class="installer-output">{{ command_output }}</pre>
+    {% endif %}
+  </section>
+{% endblock %}

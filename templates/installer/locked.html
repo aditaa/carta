@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Installer Locked | Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="auth-shell">
+    <p class="eyebrow">Installer</p>
+    <h1>Setup complete</h1>
+    <p>
+      The installer is locked because an account already exists.
+    </p>
+    <p><a href="{% url 'dashboard:home' %}">Return to Carta Arcanum</a></p>
+  </section>
+{% endblock %}

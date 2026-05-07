@@ -53,6 +53,8 @@ FastAPI/React split app to a Django monolith.
 - [x] Create base settings with environment-based `SECRET_KEY`, `DEBUG`,
   `ALLOWED_HOSTS`, database credentials, timezone, static files, and media
   files.
+- [x] Add a local GUI path for validating and saving MySQL connection settings.
+- [x] Add a local GUI path for running migrations and importing rules.
 - [x] Add local development settings documentation.
 - [x] Create initial URL configuration.
 - [x] Create base template layout.
