@@ -17,40 +17,47 @@ The app should eventually answer planning questions like:
 
 ## Expected Stack
 
-- Backend: Python, FastAPI.
+Carta Arcanum is being rewritten as a Django monolith. The previous FastAPI
+backend and React frontend have been removed; new work should target Django.
+
+- Web framework: Python with Django.
 - Database: MySQL.
-- Frontend: React.
-- Visualization: D3.js for production graphs.
+- UI: Django templates with HTMX for targeted dynamic interactions.
+- Visualization: D3.js for production and dependency graphs.
 - Runtime support: Linux only. Use WSL for local testing from Windows.
 
 ## Architecture Preferences
 
 - Keep rules data in `rules/`, separate from application logic.
 - Treat rules as manually maintained versioned data. Do not hard-code game
-  values in the solver, API routes, frontend components, or database
-  migrations.
+  values in the solver, Django views, templates, or database migrations.
 - Put domain logic for production chains, upkeep, balancing, and dependency
-  solving in backend service modules, not route handlers.
-- Keep API contracts explicit with Pydantic models.
+  solving in Django app service modules, not views, template tags, or forms.
+- Use Django forms and model validation for web interactions. Add explicit
+  schema-like objects only when a boundary needs them.
 - Design auth and permissions before expanding ownership features. A baseline
   user should see their own data; a user with house permissions should see
   their own data plus users and assets in that house.
 - Prefer normalized database tables for imported rulesets, buildings,
   currencies, resources, ownership, production recipes, upkeep requirements,
   settlement tiers, and phase progression.
-- Keep frontend state predictable. Use a clear data-fetching boundary between
-  React components and API calls.
+- Prefer server-rendered pages. Use HTMX for partial updates, previews,
+  filters, inline edits, and setup flows. Keep custom JavaScript small and
+  localized.
+- Use D3 only where graph rendering or rich visual interaction justifies it.
 
-## Suggested Backend Domains
+## Suggested Django Apps
 
-- `buildings`: player-owned building instances and registry behavior.
-- `auth`: users, sessions or tokens, roles, permissions, and visibility scopes.
-- `rules`: versioned rules loading, validation, and SQL import.
+- `accounts`: users, sessions, roles, permissions, and visibility scopes.
+- `rulesets`: versioned rules loading, validation, and SQL import.
 - `resources`: imported resource, currency, unit, and category records.
+- `buildings`: player-owned building instances and registry behavior.
+- `ownership`: owners, factions, houses, kingdoms, and building ownership.
+- `holdings`: denizen, house, kingdom, and Three Crowns inventories.
 - `production`: inputs, outputs, upkeep, and production recipes.
-- `ownership`: owners, factions, and building ownership records.
 - `progression`: phases, unlocks, and phase requirements.
 - `solver`: dependency solving, minimal loops, and resource balancing.
+- `dashboard`: web views that compose summaries from domain services.
 
 ## Rules Handling
 
@@ -66,7 +73,8 @@ When rules change:
 1. Add a new rules file instead of editing historical versions in place.
 2. Update metadata with the rules version and maintainer notes.
 3. Validate that required sections are present.
-4. Import the rules file into SQL instead of hand-editing SQL rows.
+4. Import the rules file into the Django-managed database instead of
+   hand-editing SQL rows.
 5. Keep migration or compatibility code separate from the raw rules file.
 
 ## Development Guidelines
@@ -77,8 +85,7 @@ When rules change:
 - Prefer `rg` for searching.
 - Keep install and runtime documentation Linux-first.
 - Use clear names for domain concepts from the game.
-- Add tests near the behavior being changed once the backend/frontend skeletons
-  exist.
+- Add tests near the behavior being changed once the Django skeleton exists.
 
 ## Documentation Guidelines
 

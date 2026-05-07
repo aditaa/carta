@@ -11,14 +11,26 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["app"]
+known-first-party = [
+    "accounts",
+    "buildings",
+    "carta",
+    "dashboard",
+    "holdings",
+    "ownership",
+    "production",
+    "progression",
+    "resources",
+    "rulesets",
+    "solver",
+]
 
 [tool.ruff.lint.per-file-ignores]
-"backend/alembic/versions/*.py" = ["E501"]
+"**/migrations/*.py" = ["E501"]
 
 [tool.pytest.ini_options]
 markers = [
     "unit: fast tests for domain logic, validation, and service behavior",
-    "functional: API-level tests through FastAPI's test client",
+    "functional: web-level tests through Django's test client",
     "integration: database-backed tests against external services such as MySQL",
 ]

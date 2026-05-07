@@ -16,48 +16,28 @@ should support one or more of these goals:
 
 ## Local Development
 
-The project stack is:
+The project is being rewritten as a Django monolith. The target stack is:
 
-- Python and FastAPI for the backend.
+- Python and Django for the web app.
 - MySQL for persistence.
-- React for the frontend.
-- D3.js for production graphs.
+- Django templates with HTMX for targeted dynamic interactions.
+- D3.js for production and dependency graphs.
 - Linux for supported runtime environments.
 
-See `INSTALL.md` for the current Linux install and run commands. On Windows,
-use WSL with Ubuntu.
+See `INSTALL.md` for Linux install and run commands. On Windows, use WSL with
+Ubuntu.
 
 Before opening a pull request, run:
 
 ```bash
-PYTHONPATH=backend ruff check backend
-ruff format --check backend
-PYTHONPATH=backend python -c "from pathlib import Path; from app.domains.rules.importer import load_rules_dataset; load_rules_dataset(Path('rules/carta-arcanum-2.1.4.rules.json'))"
-DATABASE_URL=sqlite+pysqlite:///./ci_rules.db PYTHONPATH=backend alembic -c backend/alembic.ini upgrade head
-DATABASE_URL=sqlite+pysqlite:///./ci_rules.db PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
-PYTHONPATH=backend pytest backend/tests -m unit
-PYTHONPATH=backend pytest backend/tests -m functional
-PYTHONPATH=backend pytest backend/tests --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=70
+python -m ruff check .
+python -m ruff format --check .
+python manage.py check
+python -m pytest
 ```
 
-For frontend changes, run:
-
-```bash
-cd frontend
-npm run lint
-npm run typecheck
-npm test -- --run
-npm run build
-```
-
-CI also runs MySQL integration checks against MySQL 8. If you have local MySQL
-running, verify that path with:
-
-```bash
-DATABASE_URL=mysql+pymysql://carta:change-me@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend alembic -c backend/alembic.ini upgrade head
-DATABASE_URL=mysql+pymysql://carta:change-me@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend python -m app.cli.import_rules rules/carta-arcanum-2.1.4.rules.json
-DATABASE_URL=mysql+pymysql://carta:change-me@127.0.0.1:3306/carta_arcanum PYTHONPATH=backend pytest backend/tests -m integration
-```
+The full test suite expects MySQL to be running. Use the narrower non-database
+smoke checks from `INSTALL.md` when MySQL is not available locally.
 
 ## Contribution Workflow
 
@@ -75,17 +55,18 @@ the game rules change:
 1. Add a new versioned rules file.
 2. Preserve older rules files for historical compatibility.
 3. Include rules version and maintainer notes in the new file.
-4. Avoid hard-coding rules in backend or frontend code.
+4. Avoid hard-coding rules in Django models, views, templates, or solver code.
 
 ## Coding Standards
 
-- Keep backend business logic outside of FastAPI route handlers.
-- Use Pydantic models for request and response contracts.
+- Keep business logic outside of Django views, forms, and templates.
+- Use Django forms, model validation, and explicit service functions for web
+  workflows.
 - Keep solver logic deterministic and testable.
 - Prefer explicit resource and building identifiers over display names.
-- Keep React components focused and reusable.
-- Use D3 for graph rendering, but keep graph data preparation outside the D3
-  rendering layer.
+- Use HTMX for focused dynamic behavior, not as a substitute for domain logic.
+- Use D3 for graph rendering, but keep graph data preparation in Django domain
+  services.
 
 ## Pull Request Checklist
 
