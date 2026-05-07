@@ -100,21 +100,21 @@ FastAPI/React split app to a Django monolith.
 
 - [x] Choose final user model strategy before migrations.
 - [x] Create denizen profile model.
-- [ ] Add system account support.
-- [ ] Create house model.
-- [ ] Create kingdom model.
-- [ ] Create house membership model.
-- [ ] Create kingdom membership model.
-- [ ] Define role choices: read-only, member, manager, admin.
+- [x] Add system account support.
+- [x] Create house model.
+- [x] Create kingdom model.
+- [x] Create house membership model.
+- [x] Create kingdom membership model.
+- [x] Define role choices: read-only, member, manager, admin.
 - [ ] Create scoped permission grant model if Django groups/permissions are not
   enough.
-- [ ] Create visibility service for denizen, house, kingdom, and Three Crowns
-  scopes.
+- [x] Create visibility service for denizen, house, and kingdom scopes.
+- [ ] Add Three Crowns visibility scopes.
 - [ ] Add login/logout pages.
 - [ ] Add first-admin setup path or documented `createsuperuser` flow.
-- [ ] Add permission tests for personal visibility.
-- [ ] Add permission tests for house visibility.
-- [ ] Add permission tests for kingdom visibility.
+- [x] Add permission tests for personal visibility.
+- [x] Add permission tests for house visibility.
+- [x] Add permission tests for kingdom visibility.
 - [ ] Add permission tests for Three Crowns visibility.
 
 ## 7. Holdings And Ownership
