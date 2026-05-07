@@ -5,6 +5,7 @@ import pytest
 from django.core.management import call_command
 
 from buildings.models import BuildingDefinition, SettlementTier
+from ownership.models import OwnershipRule
 from production.models import ProductionRecipe
 from resources.models import Currency, Resource, ResourceCategory, Unit
 from rulesets.models import ItemReference, Ruleset, RulesetImportLog
@@ -14,6 +15,7 @@ from rulesets.services import (
     load_rules_data,
     validate_rules_data,
 )
+from transports.models import TransportDefinition
 
 RULES_FILE = Path("rules/carta-arcanum-2.1.4.rules.json")
 
@@ -44,15 +46,22 @@ def test_import_rules_file_creates_ruleset_and_resource_records():
     assert result.settlement_tiers == 5
     assert result.buildings == 46
     assert result.production_recipes == 47
+    assert result.ownership_rules == 3
+    assert result.transports == 4
     assert Currency.objects.get(ruleset=result.ruleset, key="crown").copper_value == 324
     assert Resource.objects.get(ruleset=result.ruleset, key="wood").category.key == "basic"
     assert Unit.objects.get(ruleset=result.ruleset, key="knight").attack == 5
     homestead = SettlementTier.objects.get(ruleset=result.ruleset, key="homestead")
     orchard = BuildingDefinition.objects.get(ruleset=result.ruleset, key="orchard")
     recipe = ProductionRecipe.objects.get(ruleset=result.ruleset, key="orchard_train_lumberjack")
+    house_rule = OwnershipRule.objects.get(ruleset=result.ruleset, entity_type="house")
+    carriage = TransportDefinition.objects.get(ruleset=result.ruleset, key="carriage")
     assert homestead.min_buildings == 1
     assert orchard.settlement_requirement == homestead
     assert recipe.building == orchard
+    assert "advanced_buildings" in house_rule.allowed
+    assert carriage.storage == 6
+    assert "merchant_trading" in carriage.actions
     assert (
         ItemReference.objects.filter(
             ruleset=result.ruleset,
@@ -70,6 +79,24 @@ def test_import_rules_file_creates_ruleset_and_resource_records():
             purpose=ItemReference.Purpose.RECIPE_OUTPUT,
         ).item_key
         == "lumberjack"
+    )
+    assert (
+        ItemReference.objects.filter(
+            ruleset=result.ruleset,
+            owner_type="transport_definition",
+            owner_key="carriage",
+            purpose=ItemReference.Purpose.TRANSPORT_BUILD_COST,
+        ).count()
+        == 6
+    )
+    assert (
+        ItemReference.objects.filter(
+            ruleset=result.ruleset,
+            owner_type="transport_definition",
+            owner_key="carriage",
+            purpose=ItemReference.Purpose.TRANSPORT_REPAIR_COST,
+        ).count()
+        == 2
     )
     assert RulesetImportLog.objects.filter(
         ruleset=result.ruleset,
@@ -91,6 +118,8 @@ def test_import_rules_file_is_idempotent_by_game_and_version():
     assert SettlementTier.objects.count() == 5
     assert BuildingDefinition.objects.count() == 46
     assert ProductionRecipe.objects.count() == 47
+    assert OwnershipRule.objects.count() == 3
+    assert TransportDefinition.objects.count() == 4
     assert RulesetImportLog.objects.filter(status=RulesetImportLog.Status.SUCCESS).count() == 2
 
 
@@ -156,6 +185,28 @@ def test_import_rules_file_removes_stale_building_records(tmp_path):
 
 
 @pytest.mark.django_db
+def test_import_rules_file_removes_stale_ownership_and_transport_records(tmp_path):
+    import_rules_file(RULES_FILE)
+    data = load_rules_data(RULES_FILE)
+    data["ownership_rules"] = [
+        rule for rule in data["ownership_rules"] if rule["entity_type"] != "house"
+    ]
+    data["transports"] = [
+        transport for transport in data["transports"] if transport["key"] != "carriage"
+    ]
+    changed_rules = tmp_path / "changed.rules.json"
+    changed_rules.write_text(json.dumps(data), encoding="utf-8")
+
+    result = import_rules_file(changed_rules)
+
+    assert result.ownership_rules == 2
+    assert result.transports == 3
+    assert not OwnershipRule.objects.filter(entity_type="house").exists()
+    assert not TransportDefinition.objects.filter(key="carriage").exists()
+    assert not ItemReference.objects.filter(owner_key="carriage").exists()
+
+
+@pytest.mark.django_db
 def test_import_rules_file_logs_failed_validation(tmp_path):
     data = load_rules_data(RULES_FILE)
     data.pop("resources")
@@ -200,6 +251,20 @@ def test_import_rules_file_rejects_building_with_missing_settlement_tier(tmp_pat
 
 
 @pytest.mark.django_db
+def test_import_rules_file_rejects_transport_with_missing_required_value(tmp_path):
+    data = load_rules_data(RULES_FILE)
+    data["transports"][0].pop("health")
+    invalid_rules = tmp_path / "invalid.rules.json"
+    invalid_rules.write_text(json.dumps(data), encoding="utf-8")
+
+    with pytest.raises(RulesetValidationError, match="'health' is a required property"):
+        import_rules_file(invalid_rules)
+
+    assert Ruleset.objects.count() == 0
+    assert RulesetImportLog.objects.filter(status=RulesetImportLog.Status.FAILED).exists()
+
+
+@pytest.mark.django_db
 def test_import_rules_command_outputs_summary(capsys):
     call_command("import_rules", RULES_FILE)
 
@@ -207,4 +272,6 @@ def test_import_rules_command_outputs_summary(capsys):
     assert "Imported Carta Arcanum 2.1.4" in output
     assert "46 buildings" in output
     assert "47 production recipes" in output
+    assert "3 ownership rules" in output
+    assert "4 transports" in output
     assert Ruleset.objects.count() == 1

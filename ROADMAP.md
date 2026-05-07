@@ -34,7 +34,8 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 - [x] Model imported rulesets, resources, currencies, units, buildings,
   recipes, settlement tiers, build costs, upkeep requirements, and recipe
   inputs/outputs.
-- [ ] Model imported ownership rules, transports, titles, phases, and unlocks.
+- [x] Model imported ownership rules and transports.
+- [ ] Model imported titles, phases, and unlocks once rules data exists.
 - [x] Add a Django management command to import a rules file.
 - [x] Add admin views for inspecting imported rules.
 - [x] Add tests for validation and import behavior.

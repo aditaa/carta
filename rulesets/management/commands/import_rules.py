@@ -35,6 +35,8 @@ class Command(BaseCommand):
                 f"{result.units} units, "
                 f"{result.settlement_tiers} settlement tiers, "
                 f"{result.buildings} buildings, "
-                f"{result.production_recipes} production recipes."
+                f"{result.production_recipes} production recipes, "
+                f"{result.ownership_rules} ownership rules, "
+                f"{result.transports} transports."
             )
         )
