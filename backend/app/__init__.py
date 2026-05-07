@@ -1,1 +1,0 @@
-"""Carta Arcanum backend package."""

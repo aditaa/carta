@@ -13,20 +13,18 @@ htmlcov/
 
 # Virtual environments
 .venv/
-backend/.venv/
 venv/
 
 # Environment files
 .env
-backend/.env
 
-# Node / frontend
+# Static / frontend build output
 node_modules/
 dist/
 build/
 *.tsbuildinfo
-frontend/vite.config.d.ts
-frontend/vite.config.js
+staticfiles/
+media/
 
 # Local editor files
 .idea/

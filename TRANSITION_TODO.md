@@ -1,0 +1,234 @@
+# Django Transition Todo
+
+This checklist tracks the work needed to move Carta Arcanum from the removed
+FastAPI/React split app to a Django monolith.
+
+## 1. Transition Decisions
+
+- [x] Decide whether to delete the legacy `backend/` and `frontend/`
+  directories immediately or archive them until the Django app reaches feature
+  parity. Decision: delete legacy code now.
+- [x] Decide the top-level Django project name. Decision: `carta`.
+- [x] Decide the first Django app set. Decision:
+  - [x] `accounts`
+  - [x] `rulesets`
+  - [x] `resources`
+  - [x] `ownership`
+  - [x] `holdings`
+  - [x] `buildings`
+  - [x] `production`
+  - [x] `progression`
+  - [x] `solver`
+  - [x] `dashboard`
+  Decision: start with this app set unless scaffolding reveals a clearer split.
+- [x] Decide whether to use Django's default `User` model with a denizen
+  profile or a custom user model before the first migration. Decision: custom
+  email-based user model plus `DenizenProfile`.
+- [x] Decide whether local development may use SQLite temporarily or whether
+  MySQL is required from day one. Decision: MySQL from day one.
+- [x] Decide whether to use plain Django tests or `pytest-django`. Decision:
+  use pytest and `pytest-django`.
+
+## 2. Repository Cleanup
+
+- [x] Remove or archive the legacy FastAPI backend.
+- [x] Remove or archive the legacy React frontend.
+- [x] Remove Alembic configuration with the legacy backend.
+- [x] Remove old Vite, TypeScript, and frontend package files if React is not
+  retained.
+- [x] Remove old API-only docs after Django docs replace them.
+- [x] Update `.gitignore` for Django artifacts, static output, local env files,
+  and MySQL/dev database leftovers.
+- [x] Update `pyproject.toml` for Django package names and lint paths.
+- [x] Update CI to stop running old FastAPI and React checks.
+
+## 3. Django Framework Skeleton
+
+- [x] Create a Python virtual environment workflow for the new app.
+- [x] Add root `requirements.txt` or equivalent dependency file.
+- [x] Add Django.
+- [x] Add MySQL driver.
+- [x] Add environment configuration support.
+- [x] Run `django-admin startproject carta .`.
+- [x] Create base settings with environment-based `SECRET_KEY`, `DEBUG`,
+  `ALLOWED_HOSTS`, database credentials, timezone, static files, and media
+  files.
+- [x] Add local development settings documentation.
+- [x] Create initial URL configuration.
+- [x] Create base template layout.
+- [x] Create static CSS entrypoint.
+- [x] Add HTMX to the base template.
+- [ ] Add D3 loading strategy for graph pages.
+- [x] Add a dashboard home page.
+- [x] Add a health/status page for deployment checks.
+
+## 4. Tooling And Quality
+
+- [x] Configure linting for the Django codebase.
+- [x] Configure formatting.
+- [x] Configure tests.
+- [x] Add a first smoke test for the home page.
+- [x] Add a first smoke test for settings import.
+- [ ] Add a first database migration test or documented migration check.
+- [x] Update GitHub Actions for Django lint/test checks.
+- [x] Add a MySQL-backed CI job once models exist.
+- [x] Document local quality commands in `README.md` and `CONTRIBUTING.md`.
+
+## 5. Rules Data Foundation
+
+- [ ] Keep raw rules files in `rules/`.
+- [ ] Keep `rules/rules.schema.json` as the validation contract unless a better
+  Django-native validation layer replaces it.
+- [ ] Create `rulesets` models for imported ruleset metadata.
+- [ ] Create `resources` models for currencies, resources, units, rarities, and
+  categories.
+- [ ] Create building definition models.
+- [ ] Create production recipe models.
+- [ ] Create upkeep requirement models.
+- [ ] Create phase and unlock models.
+- [ ] Create transport/title/ownership-rule models if still needed by the
+  rules file.
+- [ ] Port rules JSON loading into a Django service.
+- [ ] Add rules validation service.
+- [ ] Add `manage.py import_rules`.
+- [ ] Make import idempotent by rules version.
+- [ ] Add admin pages for imported rules.
+- [ ] Add tests for valid rules import.
+- [ ] Add tests for invalid rules rejection.
+
+## 6. Accounts, Auth, And Permissions
+
+- [x] Choose final user model strategy before migrations.
+- [x] Create denizen profile model.
+- [ ] Add system account support.
+- [ ] Create house model.
+- [ ] Create kingdom model.
+- [ ] Create house membership model.
+- [ ] Create kingdom membership model.
+- [ ] Define role choices: read-only, member, manager, admin.
+- [ ] Create scoped permission grant model if Django groups/permissions are not
+  enough.
+- [ ] Create visibility service for denizen, house, kingdom, and Three Crowns
+  scopes.
+- [ ] Add login/logout pages.
+- [ ] Add first-admin setup path or documented `createsuperuser` flow.
+- [ ] Add permission tests for personal visibility.
+- [ ] Add permission tests for house visibility.
+- [ ] Add permission tests for kingdom visibility.
+- [ ] Add permission tests for Three Crowns visibility.
+
+## 7. Holdings And Ownership
+
+- [ ] Model denizen personal holdings.
+- [ ] Model house holdings.
+- [ ] Model house-held denizen holdings.
+- [ ] Model kingdom holdings.
+- [ ] Model Three Crowns denizen accounts.
+- [ ] Model Three Crowns house accounts.
+- [ ] Model Three Crowns kingdom accounts.
+- [ ] Validate holding item keys against imported rules.
+- [ ] Add audit ledger model for holding changes.
+- [ ] Add service methods for deposit, withdrawal, transfer, and correction.
+- [ ] Add admin views for inspecting holdings.
+- [ ] Add web pages for holdings summaries.
+- [ ] Add HTMX forms for focused holding edits.
+- [ ] Add tests for validation and permission boundaries.
+
+## 8. Building Registry
+
+- [ ] Model owned buildings.
+- [ ] Link owned buildings to owners and imported building definitions.
+- [ ] Add building registry list page.
+- [ ] Add building create/edit/delete forms.
+- [ ] Add HTMX partials for inline edits and filters.
+- [ ] Add owner and scope filters.
+- [ ] Add registry summary counts.
+- [ ] Add audit ledger entries for building changes.
+- [ ] Add tests for registry visibility.
+- [ ] Add tests for create/update/delete permissions.
+
+## 9. Production, Upkeep, And Balance
+
+- [ ] Create domain service for upkeep totals.
+- [ ] Create domain service for production totals.
+- [ ] Create domain service for net resource balance.
+- [ ] Calculate deficits.
+- [ ] Calculate surpluses.
+- [ ] Create dashboard panels for upkeep, production, deficits, and surplus.
+- [ ] Add alerts like "missing X to sustain Y."
+- [ ] Add owner-specific and settlement-wide views.
+- [ ] Add tests for known upkeep examples.
+- [ ] Add tests for known production examples.
+- [ ] Add tests for deficit and surplus calculations.
+
+## 10. Production Graph
+
+- [ ] Define graph data contract in a Django service.
+- [ ] Build graph nodes for buildings and resources.
+- [ ] Build graph edges for inputs, outputs, and upkeep.
+- [ ] Add graph page.
+- [ ] Render graph with D3.
+- [ ] Add graph filters for owner, house, kingdom, and settlement views.
+- [ ] Highlight missing inputs.
+- [ ] Highlight surplus outputs.
+- [ ] Add graph tests for data generation.
+- [ ] Add browser/manual verification notes for D3 rendering.
+
+## 11. Progression Tracker
+
+- [ ] Model campaign or settlement progression state.
+- [ ] Model current phase.
+- [ ] Model completed requirements.
+- [ ] Show phase requirements.
+- [ ] Show unlocks.
+- [ ] Show missing requirements for next phase.
+- [ ] Add admin tools for progression correction.
+- [ ] Add tests for phase requirement calculations.
+
+## 12. Dependency Solver
+
+- [ ] Define solver input shape.
+- [ ] Define solver result shape.
+- [ ] Build dependency chain traversal.
+- [ ] Calculate required buildings for a desired output.
+- [ ] Calculate required inputs.
+- [ ] Calculate resulting deficits and surpluses.
+- [ ] Detect circular dependencies.
+- [ ] Generate minimal stable production loops.
+- [ ] Add solver page with target selection.
+- [ ] Add tests for known simple scenarios.
+- [ ] Add tests for circular and missing-input scenarios.
+
+## 13. Django Admin And Operations
+
+- [ ] Register core models in Django admin.
+- [ ] Add useful list displays, filters, and search fields.
+- [ ] Protect dangerous admin edits where rules data should stay import-owned.
+- [ ] Add admin-only import status page or command output guidance.
+- [ ] Add deployment health checks.
+- [ ] Add static file collection docs.
+- [ ] Add production service docs for Linux.
+- [ ] Add backup and restore notes for MySQL.
+
+## 14. Documentation
+
+- [ ] Update `README.md` after the Django skeleton exists.
+- [ ] Update `INSTALL.md` with exact Django setup commands.
+- [ ] Update `CONTRIBUTING.md` with exact lint, test, migration, and rules
+  import commands.
+- [ ] Update `AGENTS.md` when the app layout is finalized.
+- [ ] Keep `ROADMAP.md` high-level and use this file for transition detail.
+- [ ] Add user-facing notes for first-run setup or admin creation.
+
+## 15. Feature Parity Check
+
+- [ ] Rules validation/import exists in Django.
+- [ ] Login exists in Django.
+- [ ] Visibility scopes exist in Django.
+- [ ] Holdings foundations exist in Django.
+- [ ] Building registry exists in Django.
+- [ ] Upkeep preview exists in Django.
+- [ ] Dashboard shell exists in Django.
+- [ ] Tests cover core migrated behavior.
+- [x] Legacy FastAPI code can be safely removed.
+- [x] Legacy React code can be safely removed.
