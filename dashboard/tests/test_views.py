@@ -6,6 +6,7 @@ def test_home_page_returns_success(client):
 
     assert response.status_code == 200
     assert b"Carta Arcanum" in response.content
+    assert b"Sign in" in response.content
 
 
 def test_health_page_returns_json(client):

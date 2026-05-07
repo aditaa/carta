@@ -12,6 +12,17 @@
   <body>
     <header class="site-header">
       <a class="brand" href="{% url 'dashboard:home' %}">Carta Arcanum</a>
+      <nav class="site-nav" aria-label="Account">
+        {% if request.user.is_authenticated %}
+          <span>{{ request.user.display_name }}</span>
+          <form method="post" action="{% url 'accounts:logout' %}">
+            {% csrf_token %}
+            <button type="submit">Sign out</button>
+          </form>
+        {% else %}
+          <a href="{% url 'accounts:login' %}">Sign in</a>
+        {% endif %}
+      </nav>
     </header>
     <main class="site-main">
       {% block content %}{% endblock %}

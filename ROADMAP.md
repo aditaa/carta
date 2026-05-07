@@ -44,7 +44,7 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 
 - [x] Define the user, denizen profile, system account, house, and kingdom
   model strategy.
-- [ ] Use Django auth and sessions for login.
+- [x] Use Django auth and sessions for login.
 - [x] Model roles, memberships, and scoped permissions.
 - [ ] Implement personal, house, kingdom, and Three Crowns visibility rules.
 - [x] Add tests for permission boundaries.
