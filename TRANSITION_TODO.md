@@ -82,9 +82,9 @@ FastAPI/React split app to a Django monolith.
 - [x] Create `rulesets` models for imported ruleset metadata.
 - [x] Create `resources` models for currencies, resources, units, rarities, and
   categories.
-- [ ] Create building definition models.
-- [ ] Create production recipe models.
-- [ ] Create upkeep requirement models.
+- [x] Create building definition models.
+- [x] Create production recipe models.
+- [x] Create upkeep requirement models.
 - [ ] Create phase and unlock models.
 - [ ] Create transport/title/ownership-rule models if still needed by the
   rules file.
