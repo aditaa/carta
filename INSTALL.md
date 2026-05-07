@@ -51,6 +51,7 @@ Then run:
 
 ```bash
 python manage.py migrate
+python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
 python manage.py createsuperuser
 python manage.py runserver
 ```

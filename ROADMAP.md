@@ -29,13 +29,14 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 
 ## Phase 2: Rulesets
 
-- [ ] Keep versioned rules data in `rules/`.
-- [ ] Port rules schema validation into the Django app.
-- [ ] Model imported rulesets, resources, currencies, units, buildings,
-  recipes, upkeep requirements, phases, and unlocks.
-- [ ] Add a Django management command to import a rules file.
-- [ ] Add admin views for inspecting imported rules.
-- [ ] Add tests for validation and import behavior.
+- [x] Keep versioned rules data in `rules/`.
+- [x] Port rules schema validation into the Django app.
+- [x] Model imported rulesets, resources, currencies, and units.
+- [ ] Model imported buildings, recipes, upkeep requirements, phases, and
+  unlocks.
+- [x] Add a Django management command to import a rules file.
+- [x] Add admin views for inspecting imported rules.
+- [x] Add tests for validation and import behavior.
 
 ## Phase 3: Accounts And Visibility
 

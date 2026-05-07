@@ -33,6 +33,7 @@ Before opening a pull request, run:
 python -m ruff check .
 python -m ruff format --check .
 python manage.py check
+python manage.py makemigrations --check --dry-run
 python -m pytest
 ```
 
