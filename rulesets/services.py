@@ -11,9 +11,11 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 from buildings.models import BuildingDefinition, SettlementTier
+from ownership.models import OwnershipRule
 from production.models import ProductionRecipe
 from resources.models import Currency, Resource, ResourceCategory, Unit
 from rulesets.models import ItemReference, Ruleset, RulesetImportLog
+from transports.models import TransportDefinition
 
 
 class RulesetValidationError(ValueError):
@@ -29,6 +31,8 @@ class RulesetImportResult:
     settlement_tiers: int
     buildings: int
     production_recipes: int
+    ownership_rules: int
+    transports: int
 
 
 def load_rules_data(rules_path: Path) -> dict[str, Any]:
@@ -80,6 +84,8 @@ def import_rules_file(rules_path: Path, schema_path: Path | None = None) -> Rule
             tiers = _sync_settlement_tiers(ruleset, data.get("settlement_tiers", []))
             buildings = _sync_buildings(ruleset, data.get("building_definitions", []), tiers)
             _sync_production_recipes(ruleset, data.get("production_recipes", []), buildings)
+            _sync_ownership_rules(ruleset, data.get("ownership_rules", []))
+            _sync_transports(ruleset, data.get("transports", []))
             RulesetImportLog.objects.create(
                 ruleset=ruleset,
                 source_path=str(rules_path),
@@ -102,6 +108,8 @@ def import_rules_file(rules_path: Path, schema_path: Path | None = None) -> Rule
         settlement_tiers=ruleset.settlement_tiers.count(),
         buildings=ruleset.buildings.count(),
         production_recipes=ruleset.recipes.count(),
+        ownership_rules=ruleset.ownership_rules.count(),
+        transports=ruleset.transports.count(),
     )
 
 
@@ -312,6 +320,74 @@ def _sync_production_recipes(
         kept_keys=keys,
     )
     ProductionRecipe.objects.filter(ruleset=ruleset).exclude(key__in=keys).delete()
+
+
+def _sync_ownership_rules(
+    ruleset: Ruleset,
+    ownership_rules: list[dict[str, Any]],
+) -> None:
+    entity_types = []
+    for rule_data in ownership_rules:
+        entity_types.append(rule_data["entity_type"])
+        OwnershipRule.objects.update_or_create(
+            ruleset=ruleset,
+            entity_type=rule_data["entity_type"],
+            defaults={
+                "allowed": rule_data.get("allowed", []),
+                "not_allowed": rule_data.get("not_allowed", []),
+                "notes": rule_data.get("notes", []),
+            },
+        )
+    OwnershipRule.objects.filter(ruleset=ruleset).exclude(entity_type__in=entity_types).delete()
+
+
+def _sync_transports(
+    ruleset: Ruleset,
+    transports: list[dict[str, Any]],
+) -> None:
+    keys = []
+    for transport_data in transports:
+        keys.append(transport_data["key"])
+        transport, _created = TransportDefinition.objects.update_or_create(
+            ruleset=ruleset,
+            key=transport_data["key"],
+            defaults={
+                "name": transport_data["name"],
+                "transport_type": transport_data["transport_type"],
+                "home_requirement": transport_data.get("home_requirement", ""),
+                "health": transport_data["health"],
+                "storage": transport_data["storage"],
+                "quarters": transport_data["quarters"],
+                "actions": transport_data.get("actions", []),
+            },
+        )
+        _sync_item_refs(
+            ruleset=ruleset,
+            owner_type="transport_definition",
+            owner_key=transport.key,
+            purpose=ItemReference.Purpose.TRANSPORT_BUILD_COST,
+            refs=transport_data.get("build_cost", []),
+        )
+        _sync_item_refs(
+            ruleset=ruleset,
+            owner_type="transport_definition",
+            owner_key=transport.key,
+            purpose=ItemReference.Purpose.TRANSPORT_REPAIR_COST,
+            refs=transport_data.get("repair_cost", []),
+        )
+        _sync_item_refs(
+            ruleset=ruleset,
+            owner_type="transport_definition",
+            owner_key=transport.key,
+            purpose=ItemReference.Purpose.TRANSPORT_UPKEEP,
+            refs=transport_data.get("upkeep", []),
+        )
+    _delete_owner_item_refs_for_stale_keys(
+        ruleset=ruleset,
+        owner_type="transport_definition",
+        kept_keys=keys,
+    )
+    TransportDefinition.objects.filter(ruleset=ruleset).exclude(key__in=keys).delete()
 
 
 def _sync_item_refs(

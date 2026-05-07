@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "ownership",
     "holdings",
     "buildings",
+    "transports",
     "production",
     "progression",
     "solver",

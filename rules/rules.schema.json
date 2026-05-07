@@ -51,7 +51,7 @@
     },
     "transports": {
       "type": "array",
-      "items": { "type": "object" }
+      "items": { "$ref": "#/$defs/transport" }
     },
     "titles": {
       "type": "array",
@@ -193,6 +193,43 @@
           "items": { "type": "string" }
         },
         "notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "transport": {
+      "type": "object",
+      "required": [
+        "key",
+        "name",
+        "transport_type",
+        "health",
+        "storage",
+        "quarters"
+      ],
+      "properties": {
+        "key": { "type": "string" },
+        "name": { "type": "string" },
+        "transport_type": { "type": "string" },
+        "home_requirement": { "type": "string" },
+        "health": { "type": "integer" },
+        "storage": { "type": "integer" },
+        "quarters": { "type": "integer" },
+        "repair_cost": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ref" }
+        },
+        "build_cost": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ref" }
+        },
+        "upkeep": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ref" }
+        },
+        "actions": {
           "type": "array",
           "items": { "type": "string" }
         }

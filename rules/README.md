@@ -45,4 +45,5 @@ The JSON file is the manual source of truth. SQL records are imported from that
 file so the app can use linked keys, foreign keys, filtering, and joins.
 Current import coverage includes rulesets, currencies, resources, units,
 settlement tiers, building definitions, build costs, upkeep requirements,
-production recipes, and recipe inputs/outputs.
+production recipes, recipe inputs/outputs, ownership rules, transports,
+transport build costs, transport repair costs, and transport upkeep.

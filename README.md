@@ -148,7 +148,7 @@ detailed Django rewrite checklist.
 This repository is pivoting from a split FastAPI/React app to a Django
 monolith. The next build steps are:
 
-1. Expand the rules import to ownership rules, transports, titles, and phases.
+1. Expand the rules import to titles, phases, and unlocks once rules data exists.
 2. Expand the accounts, ownership, and permissions model.
 3. Build server-rendered dashboard, registry, holdings, and permissions flows.
 4. Add production totals, the interactive map, and dependency solving.

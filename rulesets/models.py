@@ -62,6 +62,9 @@ class ItemReference(models.Model):
         BUILDING_UPKEEP = "building_upkeep", "Building upkeep"
         RECIPE_INPUT = "recipe_input", "Recipe input"
         RECIPE_OUTPUT = "recipe_output", "Recipe output"
+        TRANSPORT_BUILD_COST = "transport_build_cost", "Transport build cost"
+        TRANSPORT_REPAIR_COST = "transport_repair_cost", "Transport repair cost"
+        TRANSPORT_UPKEEP = "transport_upkeep", "Transport upkeep"
 
     ruleset = models.ForeignKey(Ruleset, on_delete=models.CASCADE, related_name="item_refs")
     purpose = models.CharField(max_length=80, choices=Purpose.choices)
