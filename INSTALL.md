@@ -13,7 +13,7 @@ skeleton is in place.
 - Linux, preferably Ubuntu 22.04 or newer.
 - Python 3.11 or newer.
 - MySQL 8 or compatible.
-- Node.js only if a future D3 or asset pipeline requires it.
+- Node.js only if a future map, visualization, or asset pipeline requires it.
 
 ## Planned Django Quick Start
 

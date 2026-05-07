@@ -58,7 +58,7 @@ FastAPI/React split app to a Django monolith.
 - [x] Create base template layout.
 - [x] Create static CSS entrypoint.
 - [x] Add HTMX to the base template.
-- [ ] Add D3 loading strategy for graph pages.
+- [ ] Prototype the map renderer with Canvas or PixiJS.
 - [x] Add a dashboard home page.
 - [x] Add a health/status page for deployment checks.
 
@@ -69,14 +69,14 @@ FastAPI/React split app to a Django monolith.
 - [x] Configure tests.
 - [x] Add a first smoke test for the home page.
 - [x] Add a first smoke test for settings import.
-- [ ] Add a first database migration test or documented migration check.
+- [x] Add a first database migration test or documented migration check.
 - [x] Update GitHub Actions for Django lint/test checks.
 - [x] Add a MySQL-backed CI job once models exist.
 - [x] Document local quality commands in `README.md` and `CONTRIBUTING.md`.
 
 ## 5. Rules Data Foundation
 
-- [ ] Keep raw rules files in `rules/`.
+- [x] Keep raw rules files in `rules/`.
 - [ ] Keep `rules/rules.schema.json` as the validation contract unless a better
   Django-native validation layer replaces it.
 - [ ] Create `rulesets` models for imported ruleset metadata.
@@ -161,18 +161,24 @@ FastAPI/React split app to a Django monolith.
 - [ ] Add tests for known production examples.
 - [ ] Add tests for deficit and surplus calculations.
 
-## 10. Production Graph
+## 10. Interactive Map
 
-- [ ] Define graph data contract in a Django service.
-- [ ] Build graph nodes for buildings and resources.
-- [ ] Build graph edges for inputs, outputs, and upkeep.
-- [ ] Add graph page.
-- [ ] Render graph with D3.
-- [ ] Add graph filters for owner, house, kingdom, and settlement views.
-- [ ] Highlight missing inputs.
-- [ ] Highlight surplus outputs.
-- [ ] Add graph tests for data generation.
-- [ ] Add browser/manual verification notes for D3 rendering.
+- [ ] Define the first map use case: view-only campaign map, editable hex map,
+  or both.
+- [ ] Prototype Canvas rendering for the hex map.
+- [ ] Prototype PixiJS rendering for the hex map if Canvas performance or
+  interaction complexity needs WebGL acceleration.
+- [ ] Choose Canvas or PixiJS for the first production map implementation.
+- [ ] Define map coordinate and hex-coordinate systems.
+- [ ] Add map image or tile asset storage strategy.
+- [ ] Add map page.
+- [ ] Add pan, zoom, and fit-to-map controls.
+- [ ] Add coordinate readout for cursor/selected hex.
+- [ ] Add territory overlays.
+- [ ] Add settlement and point-of-interest overlays.
+- [ ] Add visibility filters for denizen, house, kingdom, and settlement views.
+- [ ] Add tests for map data generation.
+- [ ] Add browser/manual verification notes for map rendering.
 
 ## 11. Progression Tracker
 
@@ -212,12 +218,12 @@ FastAPI/React split app to a Django monolith.
 
 ## 14. Documentation
 
-- [ ] Update `README.md` after the Django skeleton exists.
-- [ ] Update `INSTALL.md` with exact Django setup commands.
-- [ ] Update `CONTRIBUTING.md` with exact lint, test, migration, and rules
+- [x] Update `README.md` after the Django skeleton exists.
+- [x] Update `INSTALL.md` with exact Django setup commands.
+- [x] Update `CONTRIBUTING.md` with exact lint, test, migration, and rules
   import commands.
-- [ ] Update `AGENTS.md` when the app layout is finalized.
-- [ ] Keep `ROADMAP.md` high-level and use this file for transition detail.
+- [x] Update `AGENTS.md` when the app layout is finalized.
+- [x] Keep `ROADMAP.md` high-level and use this file for transition detail.
 - [ ] Add user-facing notes for first-run setup or admin creation.
 
 ## 15. Feature Parity Check
@@ -228,7 +234,7 @@ FastAPI/React split app to a Django monolith.
 - [ ] Holdings foundations exist in Django.
 - [ ] Building registry exists in Django.
 - [ ] Upkeep preview exists in Django.
-- [ ] Dashboard shell exists in Django.
-- [ ] Tests cover core migrated behavior.
+- [x] Dashboard shell exists in Django.
+- [x] Tests cover core migrated behavior.
 - [x] Legacy FastAPI code can be safely removed.
 - [x] Legacy React code can be safely removed.

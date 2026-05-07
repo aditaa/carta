@@ -21,7 +21,7 @@ The project is being rewritten as a Django monolith. The target stack is:
 - Python and Django for the web app.
 - MySQL for persistence.
 - Django templates with HTMX for targeted dynamic interactions.
-- D3.js for production and dependency graphs.
+- Canvas or PixiJS for the future interactive hex map.
 - Linux for supported runtime environments.
 
 See `INSTALL.md` for Linux install and run commands. On Windows, use WSL with
@@ -65,8 +65,8 @@ the game rules change:
 - Keep solver logic deterministic and testable.
 - Prefer explicit resource and building identifiers over display names.
 - Use HTMX for focused dynamic behavior, not as a substitute for domain logic.
-- Use D3 for graph rendering, but keep graph data preparation in Django domain
-  services.
+- Keep map and visualization data preparation in Django domain services.
+  Rendering should target Canvas or PixiJS once map work begins.
 
 ## Pull Request Checklist
 

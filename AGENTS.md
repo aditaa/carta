@@ -23,7 +23,7 @@ backend and React frontend have been removed; new work should target Django.
 - Web framework: Python with Django.
 - Database: MySQL.
 - UI: Django templates with HTMX for targeted dynamic interactions.
-- Visualization: D3.js for production and dependency graphs.
+- Interactive map: target Canvas or PixiJS for a large hex-grid campaign map.
 - Runtime support: Linux only. Use WSL for local testing from Windows.
 
 ## Architecture Preferences
@@ -44,7 +44,8 @@ backend and React frontend have been removed; new work should target Django.
 - Prefer server-rendered pages. Use HTMX for partial updates, previews,
   filters, inline edits, and setup flows. Keep custom JavaScript small and
   localized.
-- Use D3 only where graph rendering or rich visual interaction justifies it.
+- Do not assume D3 or Leaflet for the map. Target Canvas or PixiJS so the app
+  can support a large, smooth, editable hex-grid campaign map.
 
 ## Suggested Django Apps
 
