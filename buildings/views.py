@@ -59,6 +59,24 @@ def edit(request, building_id):
     return render(request, "buildings/form.html", {"form": form, "building": building})
 
 
+@login_required
+def delete(request, building_id):
+    building = get_visible_building_or_404(request.user, building_id)
+    if request.method == "POST":
+        label = str(building)
+        changes = _building_snapshot(building)
+        building.delete()
+        log_building_event(
+            building=None,
+            actor=request.user,
+            action=BuildingLedgerEntry.Action.DELETED,
+            building_label=label,
+            changes=changes,
+        )
+        return redirect("buildings:index")
+    return render(request, "buildings/confirm_delete.html", {"building": building})
+
+
 def get_visible_building_or_404(user, building_id) -> OwnedBuilding:
     building = get_object_or_404(OwnedBuilding, id=building_id)
     if not visible_owned_buildings(user).filter(id=building.id).exists():

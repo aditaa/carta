@@ -37,7 +37,10 @@
                 <td>{{ building.get_owner_scope_display }}</td>
                 <td>{{ building.get_status_display }}</td>
                 <td>{{ building.location|default:"-" }}</td>
-                <td><a href="{% url 'buildings:edit' building.id %}">Edit</a></td>
+                <td>
+                  <a href="{% url 'buildings:edit' building.id %}">Edit</a>
+                  <a href="{% url 'buildings:delete' building.id %}">Delete</a>
+                </td>
               </tr>
             {% endfor %}
           </tbody>

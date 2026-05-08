@@ -402,3 +402,45 @@ def test_user_cannot_edit_hidden_building(client):
     response = client.get(reverse("buildings:edit", args=[building.id]))
 
     assert response.status_code == 404
+
+
+def test_user_can_delete_visible_building(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        nickname="Old Orchard",
+    )
+    client.force_login(user)
+
+    response = client.post(reverse("buildings:delete", args=[building.id]))
+
+    assert response.status_code == 302
+    assert not OwnedBuilding.objects.filter(id=building.id).exists()
+    entry = BuildingLedgerEntry.objects.get(action=BuildingLedgerEntry.Action.DELETED)
+    assert entry.building is None
+    assert entry.building_label == "Old Orchard"
+
+
+def test_user_cannot_delete_hidden_building(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    viewer = create_user()
+    stranger = create_user("stranger@example.test")
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=stranger,
+        nickname="Hidden Orchard",
+    )
+    client.force_login(viewer)
+
+    response = client.post(reverse("buildings:delete", args=[building.id]))
+
+    assert response.status_code == 404
+    assert OwnedBuilding.objects.filter(id=building.id).exists()
