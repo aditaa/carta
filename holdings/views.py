@@ -15,6 +15,18 @@ def index(request):
 
 
 @login_required
+def detail(request, account_id):
+    account = get_visible_account_or_404(request.user, account_id)
+    account = (
+        HoldingAccount.objects.filter(id=account.id)
+        .select_related("user", "house", "kingdom")
+        .prefetch_related("balances", "ledger_entries__related_account")
+        .get()
+    )
+    return render(request, "holdings/detail.html", {"account": account})
+
+
+@login_required
 def adjust(request, account_id):
     account = get_visible_account_or_404(request.user, account_id)
     if request.method == "POST":

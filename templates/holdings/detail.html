@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}{{ account }} | Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="page-shell">
+    <p class="eyebrow">Holdings</p>
+    <h1>{{ account }}</h1>
+    <div class="summary-row">
+      <span>{{ account.get_scope_display }}</span>
+      {% if account.user %}<span>{{ account.user }}</span>{% endif %}
+      {% if account.house %}<span>{{ account.house }}</span>{% endif %}
+      {% if account.kingdom %}<span>{{ account.kingdom }}</span>{% endif %}
+    </div>
+    <p>
+      <a href="{% url 'holdings:adjust' account.id %}">Adjust</a>
+      <a href="{% url 'holdings:transfer' account.id %}">Transfer</a>
+    </p>
+
+    <h2>Balances</h2>
+    {% if account.balances.all %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Ruleset</th>
+              <th>Item</th>
+              <th>Quantity</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for balance in account.balances.all %}
+              <tr>
+                <td>{{ balance.ruleset }}</td>
+                <td>{{ balance.item_type }}:{{ balance.item_key }}</td>
+                <td>{{ balance.quantity }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>No balances.</p>
+    {% endif %}
+
+    <h2>Ledger</h2>
+    {% if account.ledger_entries.all %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Action</th>
+              <th>Item</th>
+              <th>Quantity</th>
+              <th>Related</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in account.ledger_entries.all %}
+              <tr>
+                <td>{{ entry.created_at }}</td>
+                <td>{{ entry.get_action_display }}</td>
+                <td>{{ entry.item_type }}:{{ entry.item_key }}</td>
+                <td>{{ entry.quantity }}</td>
+                <td>{{ entry.related_account|default:"-" }}</td>
+                <td>{{ entry.note|default:"-" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>No ledger entries.</p>
+    {% endif %}
+    <p><a href="{% url 'holdings:index' %}">Back to holdings</a></p>
+  </section>
+{% endblock %}

@@ -290,7 +290,71 @@ def test_holdings_page_lists_visible_accounts_and_balances(client):
 
     assert response.status_code == 200
     assert b"Personal Stores" in response.content
+    assert reverse("holdings:detail", args=[account.id]).encode() in response.content
     assert b"4.00 resource:wood" in response.content
+    assert b"Hidden Stores" not in response.content
+
+
+def test_holding_detail_page_requires_login(client):
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=create_user())
+
+    response = client.get(reverse("holdings:detail", args=[account.id]))
+
+    assert response.status_code == 302
+    assert reverse("accounts:login") in response.url
+
+
+def test_holding_detail_page_shows_balances_and_ledger(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.DENIZEN,
+        user=user,
+        name="Personal Stores",
+    )
+    deposit(
+        account=account,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.RESOURCE,
+        item_key="wood",
+        quantity=Decimal("4"),
+        note="Starting stock",
+    )
+    correct(
+        account=account,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.RESOURCE,
+        item_key="wood",
+        quantity=Decimal("6"),
+        note="Inventory correction",
+    )
+    client.force_login(user)
+
+    response = client.get(reverse("holdings:detail", args=[account.id]))
+
+    assert response.status_code == 200
+    assert b"Personal Stores" in response.content
+    assert b"resource:wood" in response.content
+    assert b"6.00" in response.content
+    assert b"Deposit" in response.content
+    assert b"Starting stock" in response.content
+    assert b"Correction" in response.content
+    assert b"Inventory correction" in response.content
+
+
+def test_holding_detail_page_rejects_hidden_account(client):
+    viewer = create_user()
+    stranger = create_user("stranger@example.test")
+    account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.DENIZEN,
+        user=stranger,
+        name="Hidden Stores",
+    )
+    client.force_login(viewer)
+
+    response = client.get(reverse("holdings:detail", args=[account.id]))
+
+    assert response.status_code == 404
     assert b"Hidden Stores" not in response.content
 
 
