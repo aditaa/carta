@@ -14,6 +14,7 @@
               <th>Account</th>
               <th>Scope</th>
               <th>Balances</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -30,6 +31,7 @@
                     <span class="muted">No balances</span>
                   {% endfor %}
                 </td>
+                <td><a href="{% url 'holdings:adjust' account.id %}">Adjust</a></td>
               </tr>
             {% endfor %}
           </tbody>

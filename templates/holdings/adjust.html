@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Adjust Holdings | Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="page-shell">
+    <p class="eyebrow">Holdings</p>
+    <h1>Adjust {{ account }}</h1>
+    <form class="auth-form" method="post">
+      {% csrf_token %}
+      {{ form.as_div }}
+      <button type="submit">Save adjustment</button>
+    </form>
+    <p><a href="{% url 'holdings:index' %}">Back to holdings</a></p>
+  </section>
+{% endblock %}

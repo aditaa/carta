@@ -292,3 +292,154 @@ def test_holdings_page_lists_visible_accounts_and_balances(client):
     assert b"Personal Stores" in response.content
     assert b"4.00 resource:wood" in response.content
     assert b"Hidden Stores" not in response.content
+
+
+def test_holding_adjust_page_requires_login(client):
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=create_user())
+
+    response = client.get(reverse("holdings:adjust", args=[account.id]))
+
+    assert response.status_code == 302
+    assert reverse("accounts:login") in response.url
+
+
+def test_user_can_deposit_to_visible_holding_account(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.DENIZEN,
+        user=user,
+        name="Personal Stores",
+    )
+    client.force_login(user)
+
+    response = client.post(
+        reverse("holdings:adjust", args=[account.id]),
+        {
+            "action": HoldingLedgerEntry.Action.DEPOSIT,
+            "ruleset": ruleset.id,
+            "item_type": ItemReference.ItemType.RESOURCE,
+            "item_key": "wood",
+            "quantity": "6",
+            "note": "Event payout",
+        },
+    )
+
+    assert response.status_code == 302
+    balance = HoldingBalance.objects.get(account=account, item_key="wood")
+    assert balance.quantity == Decimal("6")
+    entry = HoldingLedgerEntry.objects.get(account=account)
+    assert entry.action == HoldingLedgerEntry.Action.DEPOSIT
+    assert entry.note == "Event payout"
+
+
+def test_user_can_withdraw_from_visible_holding_account(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    deposit(
+        account=account,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.RESOURCE,
+        item_key="wood",
+        quantity=Decimal("6"),
+    )
+    client.force_login(user)
+
+    response = client.post(
+        reverse("holdings:adjust", args=[account.id]),
+        {
+            "action": HoldingLedgerEntry.Action.WITHDRAWAL,
+            "ruleset": ruleset.id,
+            "item_type": ItemReference.ItemType.RESOURCE,
+            "item_key": "wood",
+            "quantity": "2",
+        },
+    )
+
+    assert response.status_code == 302
+    balance = HoldingBalance.objects.get(account=account, item_key="wood")
+    assert balance.quantity == Decimal("4")
+    assert HoldingLedgerEntry.objects.filter(
+        account=account,
+        action=HoldingLedgerEntry.Action.WITHDRAWAL,
+    ).exists()
+
+
+def test_user_can_correct_visible_holding_account(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    deposit(
+        account=account,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.CURRENCY,
+        item_key="copper",
+        quantity=Decimal("10"),
+    )
+    client.force_login(user)
+
+    response = client.post(
+        reverse("holdings:adjust", args=[account.id]),
+        {
+            "action": HoldingLedgerEntry.Action.CORRECTION,
+            "ruleset": ruleset.id,
+            "item_type": ItemReference.ItemType.CURRENCY,
+            "item_key": "copper",
+            "quantity": "3",
+            "note": "Corrected count",
+        },
+    )
+
+    assert response.status_code == 302
+    balance = HoldingBalance.objects.get(account=account, item_key="copper")
+    assert balance.quantity == Decimal("3")
+    assert HoldingLedgerEntry.objects.filter(
+        account=account,
+        action=HoldingLedgerEntry.Action.CORRECTION,
+        note="Corrected count",
+    ).exists()
+
+
+def test_user_cannot_adjust_hidden_holding_account(client):
+    ruleset = create_ruleset()
+    viewer = create_user()
+    stranger = create_user("stranger@example.test")
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=stranger)
+    client.force_login(viewer)
+
+    response = client.post(
+        reverse("holdings:adjust", args=[account.id]),
+        {
+            "action": HoldingLedgerEntry.Action.DEPOSIT,
+            "ruleset": ruleset.id,
+            "item_type": ItemReference.ItemType.RESOURCE,
+            "item_key": "wood",
+            "quantity": "4",
+        },
+    )
+
+    assert response.status_code == 404
+    assert not HoldingBalance.objects.filter(account=account).exists()
+
+
+def test_holding_adjustment_reports_insufficient_holdings(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    client.force_login(user)
+
+    response = client.post(
+        reverse("holdings:adjust", args=[account.id]),
+        {
+            "action": HoldingLedgerEntry.Action.WITHDRAWAL,
+            "ruleset": ruleset.id,
+            "item_type": ItemReference.ItemType.RESOURCE,
+            "item_key": "wood",
+            "quantity": "4",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"Insufficient holdings" in response.content
+    assert not HoldingBalance.objects.filter(account=account, item_key="wood").exists()
