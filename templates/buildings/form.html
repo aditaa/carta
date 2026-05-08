@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Add Building | Carta Arcanum{% endblock %}
+{% block title %}{% if building %}Edit Building{% else %}Add Building{% endif %} | Carta Arcanum{% endblock %}
 
 {% block content %}
   <section class="auth-shell">
     <p class="eyebrow">Registry</p>
-    <h1>Add building</h1>
+    <h1>{% if building %}Edit building{% else %}Add building{% endif %}</h1>
     <form class="auth-form" method="post">
       {% csrf_token %}
       {{ form.non_field_errors }}
@@ -27,7 +27,7 @@
       <label for="{{ form.notes.id_for_label }}">Notes</label>
       {{ form.notes }}
       {{ form.notes.errors }}
-      <button type="submit">Save building</button>
+      <button type="submit">{% if building %}Update building{% else %}Save building{% endif %}</button>
     </form>
   </section>
 {% endblock %}

@@ -281,6 +281,10 @@ def test_user_can_create_personal_building(client):
     assert building.ruleset == ruleset
     assert building.user == user
     assert building.location == "South field"
+    assert BuildingLedgerEntry.objects.filter(
+        building=building,
+        action=BuildingLedgerEntry.Action.CREATED,
+    ).exists()
 
 
 def test_house_member_can_create_house_building(client):
@@ -346,3 +350,55 @@ def test_kingdom_member_can_create_kingdom_building(client):
 
     assert response.status_code == 302
     assert OwnedBuilding.objects.get(nickname="Kingdom Orchard").kingdom == kingdom
+
+
+def test_user_can_edit_visible_building(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        nickname="Old Orchard",
+    )
+    client.force_login(user)
+
+    response = client.post(
+        reverse("buildings:edit", args=[building.id]),
+        {
+            "definition": definition.id,
+            "owner": f"user:{user.id}",
+            "nickname": "Renamed Orchard",
+            "location": "East field",
+            "status": OwnedBuilding.Status.DAMAGED,
+            "notes": "Storm damage.",
+        },
+    )
+
+    assert response.status_code == 302
+    building.refresh_from_db()
+    assert building.nickname == "Renamed Orchard"
+    assert building.status == OwnedBuilding.Status.DAMAGED
+    entry = BuildingLedgerEntry.objects.get(action=BuildingLedgerEntry.Action.UPDATED)
+    assert entry.changes["nickname"] == {"from": "Old Orchard", "to": "Renamed Orchard"}
+
+
+def test_user_cannot_edit_hidden_building(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    viewer = create_user()
+    stranger = create_user("stranger@example.test")
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=stranger,
+        nickname="Hidden Orchard",
+    )
+    client.force_login(viewer)
+
+    response = client.get(reverse("buildings:edit", args=[building.id]))
+
+    assert response.status_code == 404

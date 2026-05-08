@@ -23,6 +23,7 @@
               <th>Owner</th>
               <th>Status</th>
               <th>Location</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -36,6 +37,7 @@
                 <td>{{ building.get_owner_scope_display }}</td>
                 <td>{{ building.get_status_display }}</td>
                 <td>{{ building.location|default:"-" }}</td>
+                <td><a href="{% url 'buildings:edit' building.id %}">Edit</a></td>
               </tr>
             {% endfor %}
           </tbody>
