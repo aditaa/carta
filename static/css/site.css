@@ -210,6 +210,22 @@ p {
   color: #6f786f;
 }
 
+.summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.summary-row span {
+  padding: 6px 10px;
+  border: 1px solid #c8bea9;
+  border-radius: 6px;
+  background: #fffdf8;
+  color: #4d5a51;
+  font-weight: 700;
+}
+
 .installer-output {
   max-height: 320px;
   overflow: auto;

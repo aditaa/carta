@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Buildings | Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="page-shell">
+    <p class="eyebrow">Registry</p>
+    <h1>Buildings</h1>
+    <div class="summary-row">
+      <span>Total: {{ summary.total }}</span>
+      {% for status in summary.by_status %}
+        <span>{{ status.status }}: {{ status.count }}</span>
+      {% endfor %}
+    </div>
+    {% if buildings %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Building</th>
+              <th>Category</th>
+              <th>Owner</th>
+              <th>Status</th>
+              <th>Location</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for building in buildings %}
+              <tr>
+                <td>
+                  {{ building }}
+                  <span class="muted">{{ building.definition.name }}</span>
+                </td>
+                <td>{{ building.definition.category }}</td>
+                <td>{{ building.get_owner_scope_display }}</td>
+                <td>{{ building.get_status_display }}</td>
+                <td>{{ building.location|default:"-" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>No visible buildings.</p>
+    {% endif %}
+  </section>
+{% endblock %}

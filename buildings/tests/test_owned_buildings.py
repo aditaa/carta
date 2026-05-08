@@ -1,6 +1,7 @@
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 
 from buildings.models import BuildingDefinition, OwnedBuilding
 from buildings.services import registry_summary, visible_owned_buildings
@@ -186,3 +187,40 @@ def test_registry_summary_counts_visible_buildings_by_status_and_category():
         {"definition__category": "basic", "count": 1},
         {"definition__category": "defensive", "count": 1},
     ]
+
+
+def test_building_registry_page_requires_login(client):
+    response = client.get(reverse("buildings:index"))
+
+    assert response.status_code == 302
+    assert reverse("accounts:login") in response.url
+
+
+def test_building_registry_page_lists_visible_buildings(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    viewer = create_user()
+    stranger = create_user("stranger@example.test")
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=viewer,
+        nickname="Visible Orchard",
+        location="North field",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=stranger,
+        nickname="Hidden Orchard",
+    )
+    client.force_login(viewer)
+
+    response = client.get(reverse("buildings:index"))
+
+    assert response.status_code == 200
+    assert b"Visible Orchard" in response.content
+    assert b"North field" in response.content
+    assert b"Hidden Orchard" not in response.content
