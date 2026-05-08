@@ -74,7 +74,8 @@ body {
   padding: 40px 0;
 }
 
-.dashboard-shell {
+.dashboard-shell,
+.page-shell {
   max-width: 760px;
 }
 
@@ -169,6 +170,44 @@ p {
   margin-top: 8px;
   padding: 8px 12px;
   background: #e6eadf;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fffdf8;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  border-bottom: 1px solid #ddd3bd;
+  text-align: left;
+  vertical-align: top;
+}
+
+.data-table th {
+  color: #4d5a51;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.balance-pill {
+  display: inline-block;
+  margin: 0 6px 6px 0;
+  padding: 4px 8px;
+  border: 1px solid #c8bea9;
+  border-radius: 999px;
+  background: #f7f4ed;
+  font-size: 0.92rem;
+}
+
+.muted {
+  color: #6f786f;
 }
 
 .installer-output {

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Holdings | Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="page-shell">
+    <p class="eyebrow">Holdings</p>
+    <h1>Holdings</h1>
+    {% if accounts %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Scope</th>
+              <th>Balances</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for account in accounts %}
+              <tr>
+                <td>{{ account }}</td>
+                <td>{{ account.get_scope_display }}</td>
+                <td>
+                  {% for balance in account.balances.all %}
+                    <span class="balance-pill">
+                      {{ balance.quantity }} {{ balance.item_type }}:{{ balance.item_key }}
+                    </span>
+                  {% empty %}
+                    <span class="muted">No balances</span>
+                  {% endfor %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>No visible holding accounts.</p>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,0 +1,294 @@
+from decimal import Decimal
+
+import pytest
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.urls import reverse
+
+from holdings.models import HoldingAccount, HoldingBalance, HoldingLedgerEntry
+from holdings.services import (
+    correct,
+    deposit,
+    get_balance,
+    transfer,
+    visible_holding_accounts,
+    withdraw,
+)
+from ownership.models import House, HouseMembership, Kingdom
+from resources.models import Currency, Resource
+from rulesets.models import ItemReference, Ruleset
+
+pytestmark = pytest.mark.django_db
+
+
+def create_ruleset():
+    ruleset = Ruleset.objects.create(
+        game="Carta Arcanum",
+        rules_version="test",
+        schema_version="1",
+        source_path="test.rules.json",
+        raw_data={},
+    )
+    Resource.objects.create(ruleset=ruleset, key="wood", name="Wood")
+    Currency.objects.create(ruleset=ruleset, key="copper", name="Copper", copper_value=1)
+    return ruleset
+
+
+def create_user(email="denizen@example.test"):
+    return get_user_model().objects.create_user(
+        email=email,
+        password="swordfish",
+        display_name="Test Denizen",
+    )
+
+
+def test_holding_account_validates_single_owner():
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    account = HoldingAccount(scope=HoldingAccount.Scope.DENIZEN, user=user, house=house)
+
+    with pytest.raises(ValidationError, match="exactly one owner"):
+        account.full_clean()
+
+
+def test_house_denizen_account_requires_user_and_house():
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    account = HoldingAccount(scope=HoldingAccount.Scope.HOUSE_DENIZEN, user=user, house=house)
+
+    account.full_clean()
+
+    invalid = HoldingAccount(scope=HoldingAccount.Scope.HOUSE_DENIZEN, user=user)
+    with pytest.raises(ValidationError, match="one user and one house"):
+        invalid.full_clean()
+
+
+def test_can_model_denizen_house_kingdom_and_three_crowns_accounts():
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+
+    HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    HoldingAccount.objects.create(scope=HoldingAccount.Scope.HOUSE, house=house)
+    HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.HOUSE_DENIZEN,
+        user=create_user("house-held@example.test"),
+        house=House.objects.create(key="house-held", name="House Held"),
+    )
+    HoldingAccount.objects.create(scope=HoldingAccount.Scope.KINGDOM, kingdom=kingdom)
+    HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.THREE_CROWNS_DENIZEN,
+        user=create_user("three-crowns-denizen@example.test"),
+    )
+    HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.THREE_CROWNS_HOUSE,
+        house=House.objects.create(key="crown-house", name="Crown House"),
+    )
+    HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.THREE_CROWNS_KINGDOM,
+        kingdom=Kingdom.objects.create(key="crown-kingdom", name="Crown Kingdom"),
+    )
+
+    assert HoldingAccount.objects.count() == 7
+
+
+def test_deposit_creates_balance_and_ledger_entry():
+    ruleset = create_ruleset()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=create_user())
+
+    balance = deposit(
+        account=account,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.RESOURCE,
+        item_key="wood",
+        quantity=Decimal("5"),
+        note="Starting stock",
+    )
+
+    assert balance.quantity == Decimal("5")
+    entry = HoldingLedgerEntry.objects.get()
+    assert entry.action == HoldingLedgerEntry.Action.DEPOSIT
+    assert entry.note == "Starting stock"
+
+
+def test_withdraw_requires_available_quantity():
+    ruleset = create_ruleset()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=create_user())
+    deposit(
+        account=account,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.RESOURCE,
+        item_key="wood",
+        quantity=Decimal("2"),
+    )
+
+    with pytest.raises(ValidationError, match="Insufficient holdings"):
+        withdraw(
+            account=account,
+            ruleset=ruleset,
+            item_type=ItemReference.ItemType.RESOURCE,
+            item_key="wood",
+            quantity=Decimal("3"),
+        )
+
+
+def test_transfer_moves_quantity_between_accounts():
+    ruleset = create_ruleset()
+    source = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=create_user())
+    destination = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.DENIZEN,
+        user=create_user("other@example.test"),
+    )
+    deposit(
+        account=source,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.CURRENCY,
+        item_key="copper",
+        quantity=Decimal("10"),
+    )
+
+    source_balance, destination_balance = transfer(
+        source=source,
+        destination=destination,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.CURRENCY,
+        item_key="copper",
+        quantity=Decimal("4"),
+    )
+
+    assert source_balance.quantity == Decimal("6")
+    assert destination_balance.quantity == Decimal("4")
+    assert HoldingLedgerEntry.objects.filter(action=HoldingLedgerEntry.Action.TRANSFER).exists()
+
+
+def test_correction_sets_balance_quantity():
+    ruleset = create_ruleset()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=create_user())
+
+    balance = correct(
+        account=account,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.RESOURCE,
+        item_key="wood",
+        quantity=Decimal("7"),
+    )
+
+    assert balance.quantity == Decimal("7")
+    assert get_balance(
+        account=account,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.RESOURCE,
+        item_key="wood",
+    ).quantity == Decimal("7")
+
+
+def test_balance_rejects_unknown_rules_item():
+    ruleset = create_ruleset()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=create_user())
+
+    with pytest.raises(ValidationError, match="resource:stone does not exist"):
+        HoldingBalance(
+            account=account,
+            ruleset=ruleset,
+            item_type=ItemReference.ItemType.RESOURCE,
+            item_key="stone",
+            quantity=Decimal("1"),
+        ).full_clean()
+
+
+def test_special_item_type_is_not_supported_for_holdings():
+    ruleset = create_ruleset()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=create_user())
+
+    with pytest.raises(ValidationError, match="not a supported holding item type"):
+        deposit(
+            account=account,
+            ruleset=ruleset,
+            item_type=ItemReference.ItemType.SPECIAL,
+            item_key="favor",
+            quantity=Decimal("1"),
+        )
+
+
+def test_visible_holding_accounts_includes_personal_and_shared_house_accounts():
+    viewer = create_user()
+    housemate = create_user("housemate@example.test")
+    stranger = create_user("stranger@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=viewer, house=house)
+    HouseMembership.objects.create(user=housemate, house=house)
+    personal = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=viewer)
+    shared_house = HoldingAccount.objects.create(scope=HoldingAccount.Scope.HOUSE, house=house)
+    stranger_account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.DENIZEN,
+        user=stranger,
+    )
+
+    visible_ids = set(visible_holding_accounts(viewer).values_list("id", flat=True))
+
+    assert personal.id in visible_ids
+    assert shared_house.id in visible_ids
+    assert stranger_account.id not in visible_ids
+
+
+def test_house_denizen_account_requires_visibility_to_user_and_house():
+    viewer = create_user()
+    housemate = create_user("housemate@example.test")
+    stranger = create_user("stranger@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    other_house = House.objects.create(key="other", name="Other House")
+    HouseMembership.objects.create(user=viewer, house=house)
+    HouseMembership.objects.create(user=housemate, house=house)
+    visible_account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.HOUSE_DENIZEN,
+        user=housemate,
+        house=house,
+    )
+    hidden_account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.HOUSE_DENIZEN,
+        user=stranger,
+        house=other_house,
+    )
+
+    visible_ids = set(visible_holding_accounts(viewer).values_list("id", flat=True))
+
+    assert visible_account.id in visible_ids
+    assert hidden_account.id not in visible_ids
+
+
+def test_holdings_page_requires_login(client):
+    response = client.get(reverse("holdings:index"))
+
+    assert response.status_code == 302
+    assert reverse("accounts:login") in response.url
+
+
+def test_holdings_page_lists_visible_accounts_and_balances(client):
+    ruleset = create_ruleset()
+    viewer = create_user()
+    stranger = create_user("stranger@example.test")
+    account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.DENIZEN,
+        user=viewer,
+        name="Personal Stores",
+    )
+    HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.DENIZEN,
+        user=stranger,
+        name="Hidden Stores",
+    )
+    deposit(
+        account=account,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.RESOURCE,
+        item_key="wood",
+        quantity=Decimal("4"),
+    )
+    client.force_login(viewer)
+
+    response = client.get(reverse("holdings:index"))
+
+    assert response.status_code == 200
+    assert b"Personal Stores" in response.content
+    assert b"4.00 resource:wood" in response.content
+    assert b"Hidden Stores" not in response.content
