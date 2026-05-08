@@ -14,12 +14,13 @@
               <th>Account</th>
               <th>Scope</th>
               <th>Balances</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for account in accounts %}
               <tr>
-                <td>{{ account }}</td>
+                <td><a href="{% url 'holdings:detail' account.id %}">{{ account }}</a></td>
                 <td>{{ account.get_scope_display }}</td>
                 <td>
                   {% for balance in account.balances.all %}
@@ -29,6 +30,10 @@
                   {% empty %}
                     <span class="muted">No balances</span>
                   {% endfor %}
+                </td>
+                <td>
+                  <a href="{% url 'holdings:adjust' account.id %}">Adjust</a>
+                  <a href="{% url 'holdings:transfer' account.id %}">Transfer</a>
                 </td>
               </tr>
             {% endfor %}
