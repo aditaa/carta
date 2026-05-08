@@ -80,6 +80,22 @@ def net_resource_balance(buildings) -> list[ItemTotal]:
     return _total_lines(net)
 
 
+def deficit_totals(buildings) -> list[ItemTotal]:
+    return [
+        ItemTotal(
+            item_type=line.item_type,
+            item_key=line.item_key,
+            quantity=abs(line.quantity),
+        )
+        for line in net_resource_balance(buildings)
+        if line.quantity < 0
+    ]
+
+
+def surplus_totals(buildings) -> list[ItemTotal]:
+    return [line for line in net_resource_balance(buildings) if line.quantity > 0]
+
+
 def _active_buildings(buildings) -> list[OwnedBuilding]:
     return [
         building

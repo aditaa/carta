@@ -4,7 +4,13 @@ import pytest
 
 from buildings.models import BuildingDefinition, OwnedBuilding
 from production.models import ProductionRecipe
-from production.services import net_resource_balance, production_totals, upkeep_totals
+from production.services import (
+    deficit_totals,
+    net_resource_balance,
+    production_totals,
+    surplus_totals,
+    upkeep_totals,
+)
 from resources.models import Resource
 from rulesets.models import ItemReference, Ruleset
 
@@ -186,3 +192,46 @@ def test_net_resource_balance_subtracts_inputs_and_upkeep_from_outputs():
 
     assert totals[(ItemReference.ItemType.RESOURCE, "food")] == Decimal("2")
     assert totals[(ItemReference.ItemType.RESOURCE, "wood")] == Decimal("-1")
+
+
+def test_deficit_and_surplus_totals_split_net_balance():
+    ruleset = create_ruleset()
+    orchard = create_building_definition(ruleset)
+    user = create_user()
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    recipe = ProductionRecipe.objects.create(
+        ruleset=ruleset,
+        key="orchard_food",
+        building=orchard,
+        recipe_type="production",
+    )
+    add_item_ref(
+        ruleset=ruleset,
+        owner_type="production_recipe",
+        owner_key=recipe.key,
+        purpose=ItemReference.Purpose.RECIPE_INPUT,
+        item_key="wood",
+        amount="3",
+    )
+    add_item_ref(
+        ruleset=ruleset,
+        owner_type="production_recipe",
+        owner_key=recipe.key,
+        purpose=ItemReference.Purpose.RECIPE_OUTPUT,
+        item_key="food",
+        amount="5",
+    )
+
+    deficits = deficit_totals([building])
+    surpluses = surplus_totals([building])
+
+    assert deficits[0].item_key == "wood"
+    assert deficits[0].quantity == Decimal("3")
+    assert surpluses[0].item_key == "food"
+    assert surpluses[0].quantity == Decimal("5")
