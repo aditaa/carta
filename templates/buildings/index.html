@@ -6,6 +6,7 @@
   <section class="page-shell">
     <p class="eyebrow">Registry</p>
     <h1>Buildings</h1>
+    <p><a href="{% url 'buildings:create' %}">Add building</a></p>
     <div class="summary-row">
       <span>Total: {{ summary.total }}</span>
       {% for status in summary.by_status %}

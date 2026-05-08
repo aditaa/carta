@@ -6,4 +6,5 @@ app_name = "buildings"
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("new/", views.create, name="create"),
 ]

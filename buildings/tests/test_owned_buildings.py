@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from buildings.models import BuildingDefinition, OwnedBuilding
 from buildings.services import registry_summary, visible_owned_buildings
-from ownership.models import House, HouseMembership, Kingdom
+from ownership.models import House, HouseMembership, Kingdom, KingdomMembership
 from rulesets.models import Ruleset
 
 pytestmark = pytest.mark.django_db
@@ -224,3 +224,100 @@ def test_building_registry_page_lists_visible_buildings(client):
     assert b"Visible Orchard" in response.content
     assert b"North field" in response.content
     assert b"Hidden Orchard" not in response.content
+
+
+def test_building_create_page_requires_login(client):
+    response = client.get(reverse("buildings:create"))
+
+    assert response.status_code == 302
+    assert reverse("accounts:login") in response.url
+
+
+def test_user_can_create_personal_building(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    client.force_login(user)
+
+    response = client.post(
+        reverse("buildings:create"),
+        {
+            "definition": definition.id,
+            "owner": f"user:{user.id}",
+            "nickname": "New Orchard",
+            "location": "South field",
+            "status": OwnedBuilding.Status.ACTIVE,
+            "notes": "Freshly planted.",
+        },
+    )
+
+    assert response.status_code == 302
+    building = OwnedBuilding.objects.get(nickname="New Orchard")
+    assert building.ruleset == ruleset
+    assert building.user == user
+    assert building.location == "South field"
+
+
+def test_house_member_can_create_house_building(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=user, house=house)
+    client.force_login(user)
+
+    response = client.post(
+        reverse("buildings:create"),
+        {
+            "definition": definition.id,
+            "owner": f"house:{house.id}",
+            "nickname": "House Orchard",
+            "status": OwnedBuilding.Status.ACTIVE,
+        },
+    )
+
+    assert response.status_code == 302
+    assert OwnedBuilding.objects.get(nickname="House Orchard").house == house
+
+
+def test_non_member_cannot_create_house_building(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    client.force_login(user)
+
+    response = client.post(
+        reverse("buildings:create"),
+        {
+            "definition": definition.id,
+            "owner": f"house:{house.id}",
+            "nickname": "Invalid Orchard",
+            "status": OwnedBuilding.Status.ACTIVE,
+        },
+    )
+
+    assert response.status_code == 200
+    assert not OwnedBuilding.objects.filter(nickname="Invalid Orchard").exists()
+
+
+def test_kingdom_member_can_create_kingdom_building(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    KingdomMembership.objects.create(user=user, kingdom=kingdom)
+    client.force_login(user)
+
+    response = client.post(
+        reverse("buildings:create"),
+        {
+            "definition": definition.id,
+            "owner": f"kingdom:{kingdom.id}",
+            "nickname": "Kingdom Orchard",
+            "status": OwnedBuilding.Status.ACTIVE,
+        },
+    )
+
+    assert response.status_code == 302
+    assert OwnedBuilding.objects.get(nickname="Kingdom Orchard").kingdom == kingdom

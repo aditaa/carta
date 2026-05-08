@@ -154,7 +154,9 @@ p {
   font-weight: 700;
 }
 
-.auth-form input {
+.auth-form input,
+.auth-form select,
+.auth-form textarea {
   width: 100%;
   min-height: 42px;
   padding: 8px 10px;
@@ -163,6 +165,11 @@ p {
   background: #fffdf8;
   color: #17201c;
   font: inherit;
+}
+
+.auth-form textarea {
+  min-height: 96px;
+  resize: vertical;
 }
 
 .auth-form button {
