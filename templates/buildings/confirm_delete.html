@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Building | Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="auth-shell">
+    <p class="eyebrow">Registry</p>
+    <h1>Delete building</h1>
+    <p>
+      Delete {{ building }} from the registry?
+    </p>
+    <form class="auth-form" method="post">
+      {% csrf_token %}
+      <button type="submit">Delete building</button>
+    </form>
+    <p><a href="{% url 'buildings:index' %}">Cancel</a></p>
+  </section>
+{% endblock %}

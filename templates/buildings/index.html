@@ -7,6 +7,39 @@
     <p class="eyebrow">Registry</p>
     <h1>Buildings</h1>
     <p><a href="{% url 'buildings:create' %}">Add building</a></p>
+    <form class="filter-form" method="get">
+      <label>
+        Status
+        <select name="status">
+          <option value="">All statuses</option>
+          {% for value, label in filter_options.statuses %}
+            <option value="{{ value }}"{% if filters.status == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Category
+        <select name="category">
+          <option value="">All categories</option>
+          {% for category in filter_options.categories %}
+            <option value="{{ category }}"{% if filters.category == category %} selected{% endif %}>{{ category }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Owner
+        <select name="owner_scope">
+          <option value="">All owners</option>
+          {% for value, label in filter_options.owner_scopes %}
+            <option value="{{ value }}"{% if filters.owner_scope == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="filter-actions">
+        <button type="submit">Apply</button>
+        <a href="{% url 'buildings:index' %}">Clear</a>
+      </div>
+    </form>
     <div class="summary-row">
       <span>Total: {{ summary.total }}</span>
       {% for status in summary.by_status %}
@@ -23,6 +56,7 @@
               <th>Owner</th>
               <th>Status</th>
               <th>Location</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -36,6 +70,10 @@
                 <td>{{ building.get_owner_scope_display }}</td>
                 <td>{{ building.get_status_display }}</td>
                 <td>{{ building.location|default:"-" }}</td>
+                <td>
+                  <a href="{% url 'buildings:edit' building.id %}">Edit</a>
+                  <a href="{% url 'buildings:delete' building.id %}">Delete</a>
+                </td>
               </tr>
             {% endfor %}
           </tbody>

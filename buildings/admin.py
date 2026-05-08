@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from buildings.models import BuildingDefinition, OwnedBuilding, SettlementTier
+from buildings.models import BuildingDefinition, BuildingLedgerEntry, OwnedBuilding, SettlementTier
 
 
 @admin.register(SettlementTier)
@@ -32,3 +32,11 @@ class OwnedBuildingAdmin(admin.ModelAdmin):
         "kingdom__name",
     )
     autocomplete_fields = ("definition", "user", "house", "kingdom")
+
+
+@admin.register(BuildingLedgerEntry)
+class BuildingLedgerEntryAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "action", "building_label", "actor")
+    list_filter = ("action", "created_at")
+    search_fields = ("building_label", "actor__email", "actor__display_name", "note")
+    readonly_fields = ("created_at",)

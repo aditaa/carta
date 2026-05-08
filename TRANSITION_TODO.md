@@ -141,14 +141,16 @@ FastAPI/React split app to a Django monolith.
 - [x] Model owned buildings.
 - [x] Link owned buildings to owners and imported building definitions.
 - [x] Add building registry list page.
-- [ ] Add building edit/delete forms.
+- [x] Add building edit form.
+- [x] Add building delete form.
 - [x] Add building create form.
 - [ ] Add HTMX partials for inline edits and filters.
-- [ ] Add owner and scope filters.
+- [x] Add status, category, and owner-scope filters.
+- [ ] Add specific owner filters.
 - [x] Add registry summary counts.
-- [ ] Add audit ledger entries for building changes.
+- [x] Add audit ledger entries for building changes.
 - [x] Add tests for registry visibility.
-- [ ] Add tests for create/update/delete permissions.
+- [x] Add tests for create/update/delete permissions.
 
 ## 9. Production, Upkeep, And Balance
 
@@ -241,3 +243,13 @@ FastAPI/React split app to a Django monolith.
 - [x] Tests cover core migrated behavior.
 - [x] Legacy FastAPI code can be safely removed.
 - [x] Legacy React code can be safely removed.
+
+## 16. Game Update Lifecycle
+
+- [ ] Model game update status choices: planned, confirmed, and verified.
+- [ ] Queue planned game updates for player modification before events.
+- [ ] Let players confirm completed updates at or after an event.
+- [ ] Let staff or authorized users mark confirmed updates as verified after
+  success confirmation.
+- [ ] Apply the lifecycle consistently to holdings, building registry,
+  production, and future progression changes.

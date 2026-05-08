@@ -128,3 +128,36 @@ class OwnedBuilding(models.Model):
 
     def __str__(self) -> str:
         return self.nickname or self.definition.name
+
+
+class BuildingLedgerEntry(models.Model):
+    class Action(models.TextChoices):
+        CREATED = "created", "Created"
+        UPDATED = "updated", "Updated"
+        DELETED = "deleted", "Deleted"
+
+    building = models.ForeignKey(
+        OwnedBuilding,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="ledger_entries",
+    )
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="building_ledger_entries",
+    )
+    action = models.CharField(max_length=24, choices=Action.choices)
+    building_label = models.CharField(max_length=200)
+    changes = models.JSONField(default=dict, blank=True)
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.action} {self.building_label}"

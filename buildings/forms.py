@@ -20,6 +20,8 @@ class OwnedBuildingForm(forms.ModelForm):
             "ruleset"
         ).order_by("name")
         self.fields["owner"].choices = self._owner_choices()
+        if self.instance.pk:
+            self.fields["owner"].initial = self._initial_owner()
 
     def clean(self):
         cleaned_data = super().clean()
@@ -48,6 +50,15 @@ class OwnedBuildingForm(forms.ModelForm):
             for kingdom in self._visible_kingdoms()
         )
         return choices
+
+    def _initial_owner(self):
+        if self.instance.user_id:
+            return f"user:{self.instance.user_id}"
+        if self.instance.house_id:
+            return f"house:{self.instance.house_id}"
+        if self.instance.kingdom_id:
+            return f"kingdom:{self.instance.kingdom_id}"
+        return ""
 
     def _visible_kingdoms(self):
         if self.user.is_superuser:
