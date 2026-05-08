@@ -11,7 +11,14 @@ from holdings.models import (
     HoldingLedgerEntry,
     validate_holding_item,
 )
-from ownership.services import can_view_house, can_view_kingdom, can_view_user
+from ownership.models import Role
+from ownership.services import (
+    can_view_house,
+    can_view_kingdom,
+    can_view_user,
+    has_house_role,
+    has_kingdom_role,
+)
 from rulesets.models import Ruleset
 
 
@@ -188,6 +195,42 @@ def visible_holding_accounts(viewer):
         account.id for account in accounts if _can_view_account(viewer=viewer, account=account)
     ]
     return accounts.filter(id__in=visible_ids)
+
+
+def editable_holding_accounts(viewer):
+    accounts = HoldingAccount.objects.filter(active=True).select_related("user", "house", "kingdom")
+    if not viewer.is_authenticated or not viewer.is_active:
+        return HoldingAccount.objects.none()
+    if viewer.is_superuser:
+        return accounts
+
+    editable_ids = [
+        account.id
+        for account in accounts
+        if can_edit_holding_account(viewer=viewer, account=account)
+    ]
+    return accounts.filter(id__in=editable_ids)
+
+
+def can_edit_holding_account(*, viewer, account: HoldingAccount) -> bool:
+    if not viewer.is_authenticated or not viewer.is_active:
+        return False
+    if viewer.is_superuser:
+        return True
+    if account.scope == HoldingAccount.Scope.HOUSE_DENIZEN:
+        return (
+            account.user_id is not None
+            and account.house_id is not None
+            and account.user_id == viewer.id
+            and has_house_role(viewer, account.house, Role.MEMBER)
+        )
+    if account.user_id is not None:
+        return account.user_id == viewer.id
+    if account.house_id is not None:
+        return has_house_role(viewer, account.house, Role.MEMBER)
+    if account.kingdom_id is not None:
+        return has_kingdom_role(viewer, account.kingdom, Role.MEMBER)
+    return False
 
 
 def _can_view_account(*, viewer, account: HoldingAccount) -> bool:

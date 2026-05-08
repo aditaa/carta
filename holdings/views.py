@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from holdings.forms import HoldingAdjustmentForm, HoldingTransferForm
 from holdings.models import HoldingAccount
-from holdings.services import visible_holding_accounts
+from holdings.services import editable_holding_accounts, visible_holding_accounts
 
 
 @login_required
@@ -28,7 +28,7 @@ def detail(request, account_id):
 
 @login_required
 def adjust(request, account_id):
-    account = get_visible_account_or_404(request.user, account_id)
+    account = get_editable_account_or_404(request.user, account_id)
     if request.method == "POST":
         form = HoldingAdjustmentForm(request.POST)
         if form.is_valid():
@@ -49,8 +49,8 @@ def adjust(request, account_id):
 
 @login_required
 def transfer_between_accounts(request, account_id):
-    source = get_visible_account_or_404(request.user, account_id)
-    destinations = visible_holding_accounts(request.user)
+    source = get_editable_account_or_404(request.user, account_id)
+    destinations = editable_holding_accounts(request.user)
     if request.method == "POST":
         form = HoldingTransferForm(request.POST, source=source, destinations=destinations)
         if form.is_valid():
@@ -72,5 +72,12 @@ def transfer_between_accounts(request, account_id):
 def get_visible_account_or_404(user, account_id) -> HoldingAccount:
     account = get_object_or_404(HoldingAccount, id=account_id)
     if not visible_holding_accounts(user).filter(id=account.id).exists():
+        raise Http404
+    return account
+
+
+def get_editable_account_or_404(user, account_id) -> HoldingAccount:
+    account = get_object_or_404(HoldingAccount, id=account_id)
+    if not editable_holding_accounts(user).filter(id=account.id).exists():
         raise Http404
     return account

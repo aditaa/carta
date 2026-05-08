@@ -7,14 +7,16 @@ from django.urls import reverse
 
 from holdings.models import HoldingAccount, HoldingBalance, HoldingLedgerEntry
 from holdings.services import (
+    can_edit_holding_account,
     correct,
     deposit,
+    editable_holding_accounts,
     get_balance,
     transfer,
     visible_holding_accounts,
     withdraw,
 )
-from ownership.models import House, HouseMembership, Kingdom
+from ownership.models import House, HouseMembership, Kingdom, KingdomMembership, Role
 from resources.models import Currency, Resource
 from rulesets.models import ItemReference, Ruleset
 
@@ -256,6 +258,27 @@ def test_house_denizen_account_requires_visibility_to_user_and_house():
     assert hidden_account.id not in visible_ids
 
 
+def test_editable_holding_accounts_require_owner_or_member_role():
+    viewer = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    HouseMembership.objects.create(user=viewer, house=house, role=Role.READ_ONLY)
+    KingdomMembership.objects.create(user=viewer, kingdom=kingdom, role=Role.MEMBER)
+    personal = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=viewer)
+    read_only_house = HoldingAccount.objects.create(scope=HoldingAccount.Scope.HOUSE, house=house)
+    editable_kingdom = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.KINGDOM,
+        kingdom=kingdom,
+    )
+
+    editable_ids = set(editable_holding_accounts(viewer).values_list("id", flat=True))
+
+    assert personal.id in editable_ids
+    assert editable_kingdom.id in editable_ids
+    assert read_only_house.id not in editable_ids
+    assert not can_edit_holding_account(viewer=viewer, account=read_only_house)
+
+
 def test_holdings_page_requires_login(client):
     response = client.get(reverse("holdings:index"))
 
@@ -487,6 +510,29 @@ def test_user_cannot_adjust_hidden_holding_account(client):
     assert not HoldingBalance.objects.filter(account=account).exists()
 
 
+def test_read_only_house_member_cannot_adjust_house_holding_account(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.HOUSE, house=house)
+    HouseMembership.objects.create(user=user, house=house, role=Role.READ_ONLY)
+    client.force_login(user)
+
+    response = client.post(
+        reverse("holdings:adjust", args=[account.id]),
+        {
+            "action": HoldingLedgerEntry.Action.DEPOSIT,
+            "ruleset": ruleset.id,
+            "item_type": ItemReference.ItemType.RESOURCE,
+            "item_key": "wood",
+            "quantity": "4",
+        },
+    )
+
+    assert response.status_code == 404
+    assert not HoldingBalance.objects.filter(account=account).exists()
+
+
 def test_holding_adjustment_reports_insufficient_holdings(client):
     ruleset = create_ruleset()
     user = create_user()
@@ -581,3 +627,39 @@ def test_user_cannot_transfer_to_hidden_holding_account(client):
     assert b"Select a valid choice" in response.content
     assert HoldingBalance.objects.get(account=source, item_key="wood").quantity == Decimal("8")
     assert not HoldingBalance.objects.filter(account=hidden_destination).exists()
+
+
+def test_user_cannot_transfer_to_read_only_holding_account(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    source = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    read_only_destination = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.HOUSE,
+        house=house,
+    )
+    HouseMembership.objects.create(user=user, house=house, role=Role.READ_ONLY)
+    deposit(
+        account=source,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.RESOURCE,
+        item_key="wood",
+        quantity=Decimal("8"),
+    )
+    client.force_login(user)
+
+    response = client.post(
+        reverse("holdings:transfer", args=[source.id]),
+        {
+            "destination": read_only_destination.id,
+            "ruleset": ruleset.id,
+            "item_type": ItemReference.ItemType.RESOURCE,
+            "item_key": "wood",
+            "quantity": "3",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"Select a valid choice" in response.content
+    assert HoldingBalance.objects.get(account=source, item_key="wood").quantity == Decimal("8")
+    assert not HoldingBalance.objects.filter(account=read_only_destination).exists()
