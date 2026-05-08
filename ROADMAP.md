@@ -55,7 +55,7 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 
 - [ ] Build the dashboard shell with Django templates.
 - [ ] Add building registry pages.
-- [ ] Add holdings pages for denizens, houses, kingdoms, and Three Crowns.
+- [x] Add holdings pages for denizens, houses, kingdoms, and Three Crowns.
 - [ ] Use HTMX for filters, inline edits, form submissions, and preview panels.
 - [ ] Add audit-friendly create/update/delete behavior.
 - [ ] Add planned, confirmed, and verified lifecycle states for event-bound

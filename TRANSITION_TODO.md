@@ -133,8 +133,9 @@ FastAPI/React split app to a Django monolith.
 - [x] Add service methods for deposit, withdrawal, transfer, and correction.
 - [x] Add admin views for inspecting holdings.
 - [x] Add web pages for holdings summaries.
+- [x] Add web forms for deposit, withdrawal, transfer, and correction.
 - [ ] Add HTMX forms for focused holding edits.
-- [ ] Add tests for validation and permission boundaries.
+- [x] Add tests for validation and permission boundaries.
 
 ## 8. Building Registry
 
@@ -236,7 +237,7 @@ FastAPI/React split app to a Django monolith.
 - [ ] Rules validation/import exists in Django.
 - [ ] Login exists in Django.
 - [ ] Visibility scopes exist in Django.
-- [ ] Holdings foundations exist in Django.
+- [x] Holdings foundations exist in Django.
 - [ ] Building registry exists in Django.
 - [ ] Upkeep preview exists in Django.
 - [x] Dashboard shell exists in Django.
