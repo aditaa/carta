@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
-from holdings.forms import HoldingAdjustmentForm
+from holdings.forms import HoldingAdjustmentForm, HoldingTransferForm
 from holdings.models import HoldingAccount
 from holdings.services import visible_holding_accounts
 
@@ -32,6 +32,28 @@ def adjust(request, account_id):
         request,
         "holdings/adjust.html",
         {"account": account, "form": form},
+    )
+
+
+@login_required
+def transfer_between_accounts(request, account_id):
+    source = get_visible_account_or_404(request.user, account_id)
+    destinations = visible_holding_accounts(request.user)
+    if request.method == "POST":
+        form = HoldingTransferForm(request.POST, source=source, destinations=destinations)
+        if form.is_valid():
+            try:
+                form.save()
+            except ValidationError as error:
+                form.add_error(None, error)
+            else:
+                return redirect("holdings:index")
+    else:
+        form = HoldingTransferForm(source=source, destinations=destinations)
+    return render(
+        request,
+        "holdings/transfer.html",
+        {"source": source, "form": form},
     )
 
 

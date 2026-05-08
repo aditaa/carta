@@ -31,7 +31,10 @@
                     <span class="muted">No balances</span>
                   {% endfor %}
                 </td>
-                <td><a href="{% url 'holdings:adjust' account.id %}">Adjust</a></td>
+                <td>
+                  <a href="{% url 'holdings:adjust' account.id %}">Adjust</a>
+                  <a href="{% url 'holdings:transfer' account.id %}">Transfer</a>
+                </td>
               </tr>
             {% endfor %}
           </tbody>

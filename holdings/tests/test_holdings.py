@@ -443,3 +443,77 @@ def test_holding_adjustment_reports_insufficient_holdings(client):
     assert response.status_code == 200
     assert b"Insufficient holdings" in response.content
     assert not HoldingBalance.objects.filter(account=account, item_key="wood").exists()
+
+
+def test_user_can_transfer_between_visible_holding_accounts(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=user, house=house)
+    source = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    destination = HoldingAccount.objects.create(scope=HoldingAccount.Scope.HOUSE, house=house)
+    deposit(
+        account=source,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.RESOURCE,
+        item_key="wood",
+        quantity=Decimal("8"),
+    )
+    client.force_login(user)
+
+    response = client.post(
+        reverse("holdings:transfer", args=[source.id]),
+        {
+            "destination": destination.id,
+            "ruleset": ruleset.id,
+            "item_type": ItemReference.ItemType.RESOURCE,
+            "item_key": "wood",
+            "quantity": "3",
+            "note": "Shared with house",
+        },
+    )
+
+    assert response.status_code == 302
+    assert HoldingBalance.objects.get(account=source, item_key="wood").quantity == Decimal("5")
+    assert HoldingBalance.objects.get(account=destination, item_key="wood").quantity == Decimal("3")
+    assert HoldingLedgerEntry.objects.filter(
+        account=source,
+        related_account=destination,
+        action=HoldingLedgerEntry.Action.TRANSFER,
+        note="Shared with house",
+    ).exists()
+
+
+def test_user_cannot_transfer_to_hidden_holding_account(client):
+    ruleset = create_ruleset()
+    viewer = create_user()
+    stranger = create_user("stranger@example.test")
+    source = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=viewer)
+    hidden_destination = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.DENIZEN,
+        user=stranger,
+    )
+    deposit(
+        account=source,
+        ruleset=ruleset,
+        item_type=ItemReference.ItemType.RESOURCE,
+        item_key="wood",
+        quantity=Decimal("8"),
+    )
+    client.force_login(viewer)
+
+    response = client.post(
+        reverse("holdings:transfer", args=[source.id]),
+        {
+            "destination": hidden_destination.id,
+            "ruleset": ruleset.id,
+            "item_type": ItemReference.ItemType.RESOURCE,
+            "item_key": "wood",
+            "quantity": "3",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"Select a valid choice" in response.content
+    assert HoldingBalance.objects.get(account=source, item_key="wood").quantity == Decimal("8")
+    assert not HoldingBalance.objects.filter(account=hidden_destination).exists()
