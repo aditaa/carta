@@ -63,11 +63,11 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 
 ## Phase 5: Production And Balancing
 
-- [ ] Auto-calculate upkeep totals across owned buildings.
-- [ ] Auto-calculate production totals.
-- [ ] Show current deficits and surpluses.
+- [x] Auto-calculate upkeep totals across owned buildings.
+- [x] Auto-calculate production totals.
+- [x] Show current deficits and surpluses.
 - [ ] Add alerts like "missing X to sustain Y."
-- [ ] Add tests for upkeep, production totals, and balance calculations.
+- [x] Add tests for upkeep, production totals, and balance calculations.
 
 ## Phase 6: Interactive Map
 
