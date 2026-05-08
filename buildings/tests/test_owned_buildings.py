@@ -3,7 +3,8 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
 from buildings.models import BuildingDefinition, OwnedBuilding
-from ownership.models import House, Kingdom
+from buildings.services import registry_summary, visible_owned_buildings
+from ownership.models import House, HouseMembership, Kingdom
 from rulesets.models import Ruleset
 
 pytestmark = pytest.mark.django_db
@@ -112,3 +113,76 @@ def test_can_model_denizen_house_and_kingdom_buildings():
 
     assert OwnedBuilding.objects.count() == 3
     assert str(OwnedBuilding.objects.get(nickname="Aster's Orchard")) == "Aster's Orchard"
+
+
+def test_visible_owned_buildings_includes_personal_and_shared_house_buildings():
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    viewer = create_user()
+    housemate = create_user("housemate@example.test")
+    stranger = create_user("stranger@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=viewer, house=house)
+    HouseMembership.objects.create(user=housemate, house=house)
+    personal = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=viewer,
+    )
+    shared_house = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.HOUSE,
+        house=house,
+    )
+    hidden = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=stranger,
+    )
+
+    visible_ids = set(visible_owned_buildings(viewer).values_list("id", flat=True))
+
+    assert personal.id in visible_ids
+    assert shared_house.id in visible_ids
+    assert hidden.id not in visible_ids
+
+
+def test_registry_summary_counts_visible_buildings_by_status_and_category():
+    ruleset = create_ruleset()
+    orchard = create_definition(ruleset)
+    keep = BuildingDefinition.objects.create(
+        ruleset=ruleset,
+        key="keep",
+        name="Keep",
+        category="defensive",
+    )
+    user = create_user()
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=keep,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        status=OwnedBuilding.Status.DAMAGED,
+    )
+
+    summary = registry_summary(visible_owned_buildings(user))
+
+    assert summary["total"] == 2
+    assert summary["by_status"] == [
+        {"status": "active", "count": 1},
+        {"status": "damaged", "count": 1},
+    ]
+    assert summary["by_category"] == [
+        {"definition__category": "basic", "count": 1},
+        {"definition__category": "defensive", "count": 1},
+    ]
