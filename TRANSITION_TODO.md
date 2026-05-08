@@ -243,3 +243,13 @@ FastAPI/React split app to a Django monolith.
 - [x] Tests cover core migrated behavior.
 - [x] Legacy FastAPI code can be safely removed.
 - [x] Legacy React code can be safely removed.
+
+## 16. Game Update Lifecycle
+
+- [ ] Model game update status choices: planned, confirmed, and verified.
+- [ ] Queue planned game updates for player modification before events.
+- [ ] Let players confirm completed updates at or after an event.
+- [ ] Let staff or authorized users mark confirmed updates as verified after
+  success confirmation.
+- [ ] Apply the lifecycle consistently to holdings, building registry,
+  production, and future progression changes.

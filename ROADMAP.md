@@ -58,6 +58,8 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 - [ ] Add holdings pages for denizens, houses, kingdoms, and Three Crowns.
 - [ ] Use HTMX for filters, inline edits, form submissions, and preview panels.
 - [ ] Add audit-friendly create/update/delete behavior.
+- [ ] Add planned, confirmed, and verified lifecycle states for event-bound
+  game updates.
 
 ## Phase 5: Production And Balancing
 
