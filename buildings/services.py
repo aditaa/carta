@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.db.models import Count
 
-from buildings.models import OwnedBuilding
+from buildings.models import BuildingLedgerEntry, OwnedBuilding
 from ownership.services import can_view_house, can_view_kingdom, can_view_user
 
 
@@ -39,6 +39,26 @@ def registry_summary(buildings):
             .order_by("definition__category")
         ),
     }
+
+
+def log_building_event(
+    *,
+    building: OwnedBuilding | None,
+    actor,
+    action: BuildingLedgerEntry.Action,
+    building_label: str = "",
+    changes: dict | None = None,
+    note: str = "",
+) -> BuildingLedgerEntry:
+    label = building_label or str(building)
+    return BuildingLedgerEntry.objects.create(
+        building=building,
+        actor=actor if getattr(actor, "is_authenticated", False) else None,
+        action=action,
+        building_label=label,
+        changes=changes or {},
+        note=note,
+    )
 
 
 def _can_view_owned_building(*, viewer, building: OwnedBuilding) -> bool:

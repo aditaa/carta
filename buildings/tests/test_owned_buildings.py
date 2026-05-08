@@ -3,8 +3,8 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 
-from buildings.models import BuildingDefinition, OwnedBuilding
-from buildings.services import registry_summary, visible_owned_buildings
+from buildings.models import BuildingDefinition, BuildingLedgerEntry, OwnedBuilding
+from buildings.services import log_building_event, registry_summary, visible_owned_buildings
 from ownership.models import House, HouseMembership, Kingdom, KingdomMembership
 from rulesets.models import Ruleset
 
@@ -114,6 +114,31 @@ def test_can_model_denizen_house_and_kingdom_buildings():
 
     assert OwnedBuilding.objects.count() == 3
     assert str(OwnedBuilding.objects.get(nickname="Aster's Orchard")) == "Aster's Orchard"
+
+
+def test_can_log_building_registry_event():
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        nickname="Aster's Orchard",
+    )
+
+    entry = log_building_event(
+        building=building,
+        actor=user,
+        action=BuildingLedgerEntry.Action.CREATED,
+        changes={"nickname": "Aster's Orchard"},
+    )
+
+    assert entry.building == building
+    assert entry.actor == user
+    assert entry.building_label == "Aster's Orchard"
+    assert entry.changes == {"nickname": "Aster's Orchard"}
 
 
 def test_visible_owned_buildings_includes_personal_and_shared_house_buildings():
