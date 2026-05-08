@@ -138,15 +138,16 @@ FastAPI/React split app to a Django monolith.
 
 ## 8. Building Registry
 
-- [ ] Model owned buildings.
-- [ ] Link owned buildings to owners and imported building definitions.
-- [ ] Add building registry list page.
-- [ ] Add building create/edit/delete forms.
+- [x] Model owned buildings.
+- [x] Link owned buildings to owners and imported building definitions.
+- [x] Add building registry list page.
+- [ ] Add building edit/delete forms.
+- [x] Add building create form.
 - [ ] Add HTMX partials for inline edits and filters.
 - [ ] Add owner and scope filters.
-- [ ] Add registry summary counts.
+- [x] Add registry summary counts.
 - [ ] Add audit ledger entries for building changes.
-- [ ] Add tests for registry visibility.
+- [x] Add tests for registry visibility.
 - [ ] Add tests for create/update/delete permissions.
 
 ## 9. Production, Upkeep, And Balance
