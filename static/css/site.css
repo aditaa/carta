@@ -217,6 +217,59 @@ p {
   color: #6f786f;
 }
 
+.filter-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: end;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 14px;
+  border: 1px solid #ddd3bd;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.filter-form label {
+  display: grid;
+  gap: 6px;
+  color: #4d5a51;
+  font-weight: 700;
+}
+
+.filter-form select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #c8bea9;
+  border-radius: 6px;
+  background: #fffdf8;
+  color: #17201c;
+  font: inherit;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-actions button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #aab5a8;
+  border-radius: 6px;
+  background: #e6eadf;
+  color: #17201c;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filter-actions a {
+  color: #4d5a51;
+  font-weight: 700;
+}
+
 .summary-row {
   display: flex;
   flex-wrap: wrap;

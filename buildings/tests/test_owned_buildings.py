@@ -251,6 +251,86 @@ def test_building_registry_page_lists_visible_buildings(client):
     assert b"Hidden Orchard" not in response.content
 
 
+def test_building_registry_page_filters_visible_buildings(client):
+    ruleset = create_ruleset()
+    orchard = create_definition(ruleset)
+    keep = BuildingDefinition.objects.create(
+        ruleset=ruleset,
+        key="keep",
+        name="Keep",
+        category="defensive",
+    )
+    viewer = create_user()
+    stranger = create_user("stranger@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=viewer, house=house)
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=viewer,
+        nickname="Visible Orchard",
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=keep,
+        owner_scope=OwnedBuilding.OwnerScope.HOUSE,
+        house=house,
+        nickname="Visible Keep",
+        status=OwnedBuilding.Status.DAMAGED,
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=keep,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=stranger,
+        nickname="Hidden Keep",
+        status=OwnedBuilding.Status.DAMAGED,
+    )
+    client.force_login(viewer)
+
+    response = client.get(
+        reverse("buildings:index"),
+        {
+            "status": OwnedBuilding.Status.DAMAGED,
+            "category": "defensive",
+            "owner_scope": OwnedBuilding.OwnerScope.HOUSE,
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"Visible Keep" in response.content
+    assert b"Visible Orchard" not in response.content
+    assert b"Hidden Keep" not in response.content
+    assert response.context["summary"]["total"] == 1
+
+
+def test_building_registry_page_ignores_invalid_choice_filters(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        nickname="Visible Orchard",
+    )
+    client.force_login(user)
+
+    response = client.get(
+        reverse("buildings:index"),
+        {
+            "status": "not-real",
+            "owner_scope": "not-real",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"Visible Orchard" in response.content
+
+
 def test_building_create_page_requires_login(client):
     response = client.get(reverse("buildings:create"))
 

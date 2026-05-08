@@ -9,12 +9,16 @@ from buildings.services import log_building_event, registry_summary, visible_own
 
 @login_required
 def index(request):
-    buildings = visible_owned_buildings(request.user)
+    base_buildings = visible_owned_buildings(request.user)
+    filters = _registry_filters(request)
+    buildings = _filter_buildings(base_buildings, filters)
     return render(
         request,
         "buildings/index.html",
         {
             "buildings": buildings,
+            "filters": filters,
+            "filter_options": _registry_filter_options(base_buildings),
             "summary": registry_summary(buildings),
         },
     )
@@ -82,6 +86,34 @@ def get_visible_building_or_404(user, building_id) -> OwnedBuilding:
     if not visible_owned_buildings(user).filter(id=building.id).exists():
         raise Http404
     return building
+
+
+def _registry_filters(request) -> dict:
+    return {
+        "status": request.GET.get("status", ""),
+        "category": request.GET.get("category", ""),
+        "owner_scope": request.GET.get("owner_scope", ""),
+    }
+
+
+def _registry_filter_options(buildings) -> dict:
+    return {
+        "statuses": OwnedBuilding.Status.choices,
+        "categories": buildings.values_list("definition__category", flat=True)
+        .distinct()
+        .order_by("definition__category"),
+        "owner_scopes": OwnedBuilding.OwnerScope.choices,
+    }
+
+
+def _filter_buildings(buildings, filters: dict):
+    if filters["status"] in OwnedBuilding.Status.values:
+        buildings = buildings.filter(status=filters["status"])
+    if filters["category"]:
+        buildings = buildings.filter(definition__category=filters["category"])
+    if filters["owner_scope"] in OwnedBuilding.OwnerScope.values:
+        buildings = buildings.filter(owner_scope=filters["owner_scope"])
+    return buildings
 
 
 def _building_snapshot(building: OwnedBuilding) -> dict:
