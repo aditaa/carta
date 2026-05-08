@@ -46,6 +46,10 @@ backend and React frontend have been removed; new work should target Django.
   localized.
 - Do not assume D3 or Leaflet for the map. Target Canvas or PixiJS so the app
   can support a large, smooth, editable hex-grid campaign map.
+- Treat game updates as event-bound work. Future update workflows should model
+  planned, confirmed, and verified states so players can queue planned changes,
+  confirm them at or after events, and mark them verified once success is
+  confirmed.
 
 ## Suggested Django Apps
 
@@ -87,6 +91,14 @@ When rules change:
 - Keep install and runtime documentation Linux-first.
 - Use clear names for domain concepts from the game.
 - Add tests near the behavior being changed once the Django skeleton exists.
+- Prefer larger pull requests when the work belongs to one coherent feature or
+  branch goal, but keep them scoped and reviewable.
+- Commit and push useful increments often within a branch instead of saving one
+  large commit for the end.
+- Keep commit boundaries meaningful, such as model/migration, web workflow,
+  tests, or documentation updates.
+- Run the relevant local quality checks before each commit, and run the full
+  CI-style test set before opening or updating a pull request for review.
 
 ## Documentation Guidelines
 
