@@ -7,6 +7,7 @@ from production.models import ProductionRecipe
 from production.services import (
     deficit_totals,
     net_resource_balance,
+    production_alerts,
     production_totals,
     surplus_totals,
     upkeep_totals,
@@ -235,3 +236,51 @@ def test_deficit_and_surplus_totals_split_net_balance():
     assert deficits[0].quantity == Decimal("3")
     assert surpluses[0].item_key == "food"
     assert surpluses[0].quantity == Decimal("5")
+
+
+def test_production_alerts_reports_missing_and_surplus_messages():
+    ruleset = create_ruleset()
+    orchard = create_building_definition(ruleset)
+    user = create_user()
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    recipe = ProductionRecipe.objects.create(
+        ruleset=ruleset,
+        key="orchard_food",
+        building=orchard,
+        recipe_type="production",
+    )
+    add_item_ref(
+        ruleset=ruleset,
+        owner_type="building_definition",
+        owner_key="orchard",
+        purpose=ItemReference.Purpose.BUILDING_UPKEEP,
+        item_key="food",
+        amount="2",
+    )
+    add_item_ref(
+        ruleset=ruleset,
+        owner_type="production_recipe",
+        owner_key=recipe.key,
+        purpose=ItemReference.Purpose.RECIPE_INPUT,
+        item_key="wood",
+        amount="3",
+    )
+    add_item_ref(
+        ruleset=ruleset,
+        owner_type="production_recipe",
+        owner_key=recipe.key,
+        purpose=ItemReference.Purpose.RECIPE_OUTPUT,
+        item_key="food",
+        amount="8",
+    )
+
+    alerts = production_alerts([building])
+
+    assert "Missing 3 resource:wood to balance upkeep and inputs." in alerts
+    assert "Surplus 6 resource:food." in alerts

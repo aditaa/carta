@@ -80,6 +80,36 @@ def net_resource_balance(buildings) -> list[ItemTotal]:
     return _total_lines(net)
 
 
+def _format_quantity(quantity: Decimal) -> str:
+    if quantity == quantity.to_integral_value():
+        return str(quantity.quantize(Decimal(1)))
+    return str(quantity.normalize())
+
+
+def production_alerts(buildings) -> list[str]:
+    net = net_resource_balance(buildings)
+    if not net:
+        return ["No active buildings with production or upkeep."]
+
+    alerts = []
+    for line in net:
+        formatted_quantity = _format_quantity(abs(line.quantity))
+        if line.quantity < 0:
+            alerts.append(
+                f"Missing {formatted_quantity} {line.item_type}:"
+                f"{line.item_key} to balance upkeep and inputs."
+            )
+        elif line.quantity > 0:
+            alerts.append(
+                f"Surplus {formatted_quantity} {line.item_type}:{line.item_key}."
+            )
+
+    if not alerts:
+        alerts.append("Production and upkeep are balanced.")
+
+    return alerts
+
+
 def deficit_totals(buildings) -> list[ItemTotal]:
     return [
         ItemTotal(

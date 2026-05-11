@@ -1,0 +1,23 @@
+{% for account in accounts %}
+  <tr{% if account.id == updated_account_id %} class="updated"{% endif %}>
+    <td><a href="{% url 'holdings:detail' account.id %}">{{ account }}</a></td>
+    <td>{{ account.get_scope_display }}</td>
+    <td>
+      {% for balance in account.balances.all %}
+        <span class="balance-pill">
+          {{ balance.quantity }} {{ balance.item_type }}:{{ balance.item_key }}
+        </span>
+      {% empty %}
+        <span class="muted">No balances</span>
+      {% endfor %}
+    </td>
+    <td>
+      <button class="btn-link" onclick="showAdjustModal({{ account.id }})">Adjust</button>
+      <a href="{% url 'holdings:transfer' account.id %}">Transfer</a>
+    </td>
+  </tr>
+{% empty %}
+  <tr>
+    <td colspan="4">No visible holding accounts.</td>
+  </tr>
+{% endfor %}

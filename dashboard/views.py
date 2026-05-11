@@ -4,6 +4,7 @@ from django.shortcuts import render
 from buildings.services import visible_owned_buildings
 from production.services import (
     deficit_totals,
+    production_alerts,
     production_totals,
     surplus_totals,
     upkeep_totals,
@@ -22,6 +23,7 @@ def home(request):
             "production_outputs": production["outputs"],
             "deficits": deficit_totals(buildings),
             "surpluses": surplus_totals(buildings),
+            "alerts": production_alerts(buildings),
         }
     return render(request, "dashboard/home.html", context)
 

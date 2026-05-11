@@ -120,6 +120,8 @@ def test_home_page_shows_balance_panel_for_visible_buildings(client):
     assert response.status_code == 200
     assert b"Production Balance" in response.content
     assert b"1 visible buildings included" in response.content
+    assert b"Alerts" in response.content
+    assert b"Surplus 3 resource:food." in response.content
     assert b"1.00 resource:food" in response.content
     assert b"2.00 resource:wood" in response.content
     assert b"4.00 resource:food" in response.content

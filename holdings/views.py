@@ -37,9 +37,24 @@ def adjust(request, account_id):
             except ValidationError as error:
                 form.add_error(None, error)
             else:
+                # Handle HTMX request - return updated account balances
+                if request.headers.get("HX-Request"):
+                    accounts = visible_holding_accounts(request.user).prefetch_related("balances")
+                    return render(request, "holdings/_account_balances.html", {
+                        "accounts": accounts,
+                        "updated_account_id": account.id
+                    })
                 return redirect("holdings:index")
     else:
         form = HoldingAdjustmentForm()
+    
+    # Handle HTMX request for form display
+    if request.headers.get("HX-Request"):
+        return render(request, "holdings/_adjust_form.html", {
+            "account": account, 
+            "form": form
+        })
+    
     return render(
         request,
         "holdings/adjust.html",

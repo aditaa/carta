@@ -1,0 +1,16 @@
+<div class="adjust-modal" role="dialog" aria-modal="true">
+  <div class="modal-content">
+    <section class="auth-shell">
+      <p class="eyebrow">Registry</p>
+      <h1>{% if building %}Edit building{% else %}Add building{% endif %}</h1>
+      <form class="auth-form" method="post" hx-post="{{ request.path }}" hx-target="#building-modal-container" hx-swap="innerHTML">
+        {% csrf_token %}
+        {% include "buildings/_form_fields.html" %}
+        <div class="form-actions">
+          <button type="submit">{% if building %}Update building{% else %}Save building{% endif %}</button>
+          <button type="button" onclick="document.getElementById('building-modal-container').innerHTML=''">Cancel</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>

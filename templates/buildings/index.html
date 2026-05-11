@@ -6,7 +6,7 @@
   <section class="page-shell">
     <p class="eyebrow">Registry</p>
     <h1>Buildings</h1>
-    <p><a href="{% url 'buildings:create' %}">Add building</a></p>
+    <p><button class="btn-link" hx-get="{% url 'buildings:create' %}" hx-target="#building-modal-container" hx-swap="innerHTML">Add building</button></p>
     <form class="filter-form" method="get">
       <label>
         Status
@@ -71,7 +71,7 @@
                 <td>{{ building.get_status_display }}</td>
                 <td>{{ building.location|default:"-" }}</td>
                 <td>
-                  <a href="{% url 'buildings:edit' building.id %}">Edit</a>
+                  <button class="btn-link" hx-get="{% url 'buildings:edit' building.id %}" hx-target="#building-modal-container" hx-swap="innerHTML">Edit</button>
                   <a href="{% url 'buildings:delete' building.id %}">Delete</a>
                 </td>
               </tr>
@@ -83,4 +83,6 @@
       <p>No visible buildings.</p>
     {% endif %}
   </section>
+
+  <div id="building-modal-container"></div>
 {% endblock %}

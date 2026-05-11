@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from buildings.forms import OwnedBuildingForm
 from buildings.models import BuildingLedgerEntry, OwnedBuilding
@@ -36,10 +37,20 @@ def create(request):
                 action=BuildingLedgerEntry.Action.CREATED,
                 changes={"building": str(building)},
             )
+            if request.headers.get("HX-Request"):
+                response = HttpResponse()
+                response["HX-Redirect"] = reverse("buildings:index")
+                return response
             return redirect("buildings:index")
     else:
         form = OwnedBuildingForm(request.user)
-    return render(request, "buildings/form.html", {"form": form})
+
+    template = (
+        "buildings/_form.html"
+        if request.headers.get("HX-Request")
+        else "buildings/form.html"
+    )
+    return render(request, template, {"form": form})
 
 
 @login_required
@@ -57,10 +68,20 @@ def edit(request, building_id):
                 action=BuildingLedgerEntry.Action.UPDATED,
                 changes=changes,
             )
+            if request.headers.get("HX-Request"):
+                response = HttpResponse()
+                response["HX-Redirect"] = reverse("buildings:index")
+                return response
             return redirect("buildings:index")
     else:
         form = OwnedBuildingForm(request.user, instance=building)
-    return render(request, "buildings/form.html", {"form": form, "building": building})
+
+    template = (
+        "buildings/_form.html"
+        if request.headers.get("HX-Request")
+        else "buildings/form.html"
+    )
+    return render(request, template, {"form": form, "building": building})
 
 
 @login_required

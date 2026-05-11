@@ -465,6 +465,44 @@ def test_user_can_edit_visible_building(client):
     assert entry.changes["nickname"] == {"from": "Old Orchard", "to": "Renamed Orchard"}
 
 
+def test_htmx_building_create_form_request_returns_partial_template(client):
+    ruleset = create_ruleset()
+    create_definition(ruleset)
+    user = create_user()
+    client.force_login(user)
+
+    response = client.get(reverse("buildings:create"), headers={"HX-Request": "true"})
+
+    assert response.status_code == 200
+    assert b"Add building" in response.content
+    assert b"hx-post" in response.content
+    assert b"Cancel" in response.content
+
+
+def test_htmx_building_edit_form_request_returns_partial_template(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        nickname="Old Orchard",
+    )
+    client.force_login(user)
+
+    response = client.get(
+        reverse("buildings:edit", args=[building.id]),
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert b"Edit building" in response.content
+    assert b"hx-post" in response.content
+    assert b"Cancel" in response.content
+
+
 def test_user_cannot_edit_hidden_building(client):
     ruleset = create_ruleset()
     definition = create_definition(ruleset)

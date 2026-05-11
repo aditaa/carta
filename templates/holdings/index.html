@@ -17,7 +17,7 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="account-balances">
             {% for account in accounts %}
               <tr>
                 <td><a href="{% url 'holdings:detail' account.id %}">{{ account }}</a></td>
@@ -32,7 +32,7 @@
                   {% endfor %}
                 </td>
                 <td>
-                  <a href="{% url 'holdings:adjust' account.id %}">Adjust</a>
+                  <button class="btn-link" onclick="showAdjustModal({{ account.id }})">Adjust</button>
                   <a href="{% url 'holdings:transfer' account.id %}">Transfer</a>
                 </td>
               </tr>
@@ -44,4 +44,38 @@
       <p>No visible holding accounts.</p>
     {% endif %}
   </section>
+
+  <!-- Modal container for adjust forms -->
+  <div id="adjust-modal-container"></div>
+
+  <script>
+    function showAdjustModal(accountId) {
+      fetch(`/holdings/${accountId}/adjust/`, {
+        headers: {
+          'HX-Request': 'true'
+        }
+      })
+      .then(response => response.text())
+      .then(html => {
+        const container = document.getElementById('adjust-modal-container');
+        container.innerHTML = `
+          <div class="adjust-modal">
+            <div class="modal-content">
+              ${html}
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // Add fade-out effect for updated rows
+    document.addEventListener('DOMContentLoaded', function() {
+      const updatedRow = document.querySelector('tr.updated');
+      if (updatedRow) {
+        setTimeout(() => {
+          updatedRow.classList.add('fade-out');
+        }, 2000);
+      }
+    });
+  </script>
 {% endblock %}

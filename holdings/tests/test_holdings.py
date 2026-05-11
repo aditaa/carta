@@ -663,3 +663,45 @@ def test_user_cannot_transfer_to_read_only_holding_account(client):
     assert b"Select a valid choice" in response.content
     assert HoldingBalance.objects.get(account=source, item_key="wood").quantity == Decimal("8")
     assert not HoldingBalance.objects.filter(account=read_only_destination).exists()
+
+
+def test_htmx_adjust_form_request_returns_partial_template(client):
+    user = create_user()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    client.force_login(user)
+
+    response = client.get(
+        reverse("holdings:adjust", args=[account.id]),
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert b"adjust-form" in response.content
+    assert b"csrfmiddlewaretoken" in response.content
+    assert b"Save adjustment" in response.content
+
+
+def test_htmx_adjust_form_submission_updates_balances_inline(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    client.force_login(user)
+
+    response = client.post(
+        reverse("holdings:adjust", args=[account.id]),
+        {
+            "action": HoldingLedgerEntry.Action.DEPOSIT,
+            "ruleset": ruleset.id,
+            "item_type": ItemReference.ItemType.RESOURCE,
+            "item_key": "wood",
+            "quantity": "5",
+            "note": "HTMX deposit",
+        },
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert b"updated" in response.content  # Should contain updated account ID class
+    assert b"5.00 resource:wood" in response.content  # Should show the new balance
+    balance = HoldingBalance.objects.get(account=account, item_key="wood")
+    assert balance.quantity == Decimal("5")
