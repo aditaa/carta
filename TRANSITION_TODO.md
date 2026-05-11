@@ -155,17 +155,17 @@ FastAPI/React split app to a Django monolith.
 
 ## 9. Production, Upkeep, And Balance
 
-- [ ] Create domain service for upkeep totals.
-- [ ] Create domain service for production totals.
-- [ ] Create domain service for net resource balance.
-- [ ] Calculate deficits.
-- [ ] Calculate surpluses.
-- [ ] Create dashboard panels for upkeep, production, deficits, and surplus.
+- [x] Create domain service for upkeep totals.
+- [x] Create domain service for production totals.
+- [x] Create domain service for net resource balance.
+- [x] Calculate deficits.
+- [x] Calculate surpluses.
+- [x] Create dashboard panels for upkeep, production, deficits, and surplus.
 - [ ] Add alerts like "missing X to sustain Y."
 - [ ] Add owner-specific and settlement-wide views.
-- [ ] Add tests for known upkeep examples.
-- [ ] Add tests for known production examples.
-- [ ] Add tests for deficit and surplus calculations.
+- [x] Add tests for known upkeep examples.
+- [x] Add tests for known production examples.
+- [x] Add tests for deficit and surplus calculations.
 
 ## 10. Interactive Map
 

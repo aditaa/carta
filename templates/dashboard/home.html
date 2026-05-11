@@ -10,5 +10,53 @@
       The monolith foundation is ready for rules, buildings, holdings,
       production planning, and graph work.
     </p>
+    {% if balance_panel %}
+      <section class="dashboard-panel">
+        <h2>Production Balance</h2>
+        <p class="muted">{{ balance_panel.building_count }} visible buildings included.</p>
+        <div class="balance-grid">
+          <article>
+            <h3>Upkeep</h3>
+            {% for item in balance_panel.upkeep %}
+              <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+            {% empty %}
+              <p class="muted">No upkeep.</p>
+            {% endfor %}
+          </article>
+          <article>
+            <h3>Inputs</h3>
+            {% for item in balance_panel.production_inputs %}
+              <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+            {% empty %}
+              <p class="muted">No inputs.</p>
+            {% endfor %}
+          </article>
+          <article>
+            <h3>Outputs</h3>
+            {% for item in balance_panel.production_outputs %}
+              <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+            {% empty %}
+              <p class="muted">No outputs.</p>
+            {% endfor %}
+          </article>
+          <article>
+            <h3>Deficits</h3>
+            {% for item in balance_panel.deficits %}
+              <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+            {% empty %}
+              <p class="muted">No deficits.</p>
+            {% endfor %}
+          </article>
+          <article>
+            <h3>Surpluses</h3>
+            {% for item in balance_panel.surpluses %}
+              <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+            {% empty %}
+              <p class="muted">No surpluses.</p>
+            {% endfor %}
+          </article>
+        </div>
+      </section>
+    {% endif %}
   </section>
 {% endblock %}
