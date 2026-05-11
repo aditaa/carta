@@ -82,6 +82,24 @@ class HoldingAccount(models.Model):
         ):
             raise ValidationError("Kingdom holding accounts must link to a kingdom.")
 
+    @property
+    def owner_label(self) -> str:
+        if self.scope == self.Scope.HOUSE_DENIZEN:
+            return f"{self.user.display_name} (House: {self.house.name})"
+        if self.scope == self.Scope.THREE_CROWNS_DENIZEN:
+            return f"{self.user.display_name} (Three Crowns)"
+        if self.scope == self.Scope.THREE_CROWNS_HOUSE:
+            return f"Three Crowns House: {self.house.name}"
+        if self.scope == self.Scope.THREE_CROWNS_KINGDOM:
+            return f"Three Crowns Kingdom: {self.kingdom.name}"
+        if self.user_id is not None:
+            return f"Denizen: {self.user.display_name}"
+        if self.house_id is not None:
+            return f"House: {self.house.name}"
+        if self.kingdom_id is not None:
+            return f"Kingdom: {self.kingdom.name}"
+        return self.get_scope_display()
+
     def __str__(self) -> str:
         if self.name:
             return self.name

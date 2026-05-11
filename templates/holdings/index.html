@@ -12,7 +12,7 @@
           <thead>
             <tr>
               <th>Account</th>
-              <th>Scope</th>
+              <th>Owner</th>
               <th>Balances</th>
               <th>Actions</th>
             </tr>
@@ -21,7 +21,7 @@
             {% for account in accounts %}
               <tr>
                 <td><a href="{% url 'holdings:detail' account.id %}">{{ account }}</a></td>
-                <td>{{ account.get_scope_display }}</td>
+                <td>{{ account.owner_label }}</td>
                 <td>
                   {% for balance in account.balances.all %}
                     <span class="balance-pill">

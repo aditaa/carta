@@ -251,6 +251,30 @@ p {
   margin-bottom: 0;
 }
 
+.owner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.owner-grid article {
+  padding: 14px;
+  border: 1px solid #ddd3bd;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.owner-grid h3 {
+  margin: 0 0 8px;
+  color: #4d5a51;
+  font-size: 1rem;
+}
+
+.owner-summary {
+  margin-top: 10px;
+}
+
 .balance-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

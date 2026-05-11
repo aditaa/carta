@@ -110,6 +110,34 @@ def production_alerts(buildings) -> list[str]:
     return alerts
 
 
+def balance_by_owner(buildings) -> list[dict]:
+    owner_groups: dict[str, list] = {}
+    for building in buildings:
+        owner_label = _owner_label(building)
+        owner_groups.setdefault(owner_label, []).append(building)
+
+    panels = []
+    for label, group in sorted(owner_groups.items()):
+        production = production_totals(group)
+        panels.append(
+            {
+                "owner": label,
+                "building_count": len(group),
+                "upkeep": upkeep_totals(group),
+                "production_inputs": production["inputs"],
+                "production_outputs": production["outputs"],
+                "deficits": deficit_totals(group),
+                "surpluses": surplus_totals(group),
+                "alerts": production_alerts(group),
+            }
+        )
+    return panels
+
+
+def _owner_label(building) -> str:
+    return getattr(building, "owner_label", "Unknown owner")
+
+
 def deficit_totals(buildings) -> list[ItemTotal]:
     return [
         ItemTotal(

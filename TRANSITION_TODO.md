@@ -134,7 +134,7 @@ FastAPI/React split app to a Django monolith.
 - [x] Add admin views for inspecting holdings.
 - [x] Add web pages for holdings summaries.
 - [x] Add web forms for deposit, withdrawal, transfer, and correction.
-- [ ] Add HTMX forms for focused holding edits.
+- [x] Add HTMX forms for focused holding edits.
 - [x] Add tests for validation and permission boundaries.
 
 ## 8. Building Registry
@@ -148,7 +148,7 @@ FastAPI/React split app to a Django monolith.
 - [ ] Add HTMX partials for inline edits and filters.
 - [x] Add status, category, and owner-scope filters.
 - [ ] Add specific owner filters.
-- [x] Add registry summary counts.
+- [ ] Add registry summary counts.
 - [x] Add audit ledger entries for building changes.
 - [x] Add tests for registry visibility.
 - [x] Add tests for create/update/delete permissions.
@@ -161,7 +161,7 @@ FastAPI/React split app to a Django monolith.
 - [x] Calculate deficits.
 - [x] Calculate surpluses.
 - [x] Create dashboard panels for upkeep, production, deficits, and surplus.
-- [ ] Add alerts like "missing X to sustain Y."
+- [x] Add alerts like "missing X to sustain Y."
 - [ ] Add owner-specific and settlement-wide views.
 - [x] Add tests for known upkeep examples.
 - [x] Add tests for known production examples.

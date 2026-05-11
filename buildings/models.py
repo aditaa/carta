@@ -126,6 +126,16 @@ class OwnedBuilding(models.Model):
         if self.owner_scope == self.OwnerScope.KINGDOM and not self.kingdom_id:
             raise ValidationError("Kingdom-owned buildings must link to a kingdom.")
 
+    @property
+    def owner_label(self) -> str:
+        if self.user_id is not None:
+            return f"Denizen: {self.user.display_name}"
+        if self.house_id is not None:
+            return f"House: {self.house.name}"
+        if self.kingdom_id is not None:
+            return f"Kingdom: {self.kingdom.name}"
+        return self.get_owner_scope_display()
+
     def __str__(self) -> str:
         return self.nickname or self.definition.name
 

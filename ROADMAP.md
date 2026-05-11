@@ -53,8 +53,8 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 
 ## Phase 4: Core Web Workflows
 
-- [ ] Build the dashboard shell with Django templates.
-- [ ] Add building registry pages.
+- [x] Build the dashboard shell with Django templates.
+- [x] Add building registry pages.
 - [x] Add holdings pages for denizens, houses, kingdoms, and Three Crowns.
 - [ ] Use HTMX for filters, inline edits, form submissions, and preview panels.
 - [ ] Add audit-friendly create/update/delete behavior.
@@ -66,7 +66,8 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 - [x] Auto-calculate upkeep totals across owned buildings.
 - [x] Auto-calculate production totals.
 - [x] Show current deficits and surpluses.
-- [ ] Add alerts like "missing X to sustain Y."
+- [x] Add alerts like "missing X to sustain Y."
+- [ ] Add owner-specific and settlement-wide views.
 - [x] Add tests for upkeep, production totals, and balance calculations.
 
 ## Phase 6: Interactive Map

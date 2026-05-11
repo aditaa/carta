@@ -6,7 +6,8 @@ WSL with Ubuntu.
 ## Rewrite Status
 
 Carta Arcanum is being rewritten as a Django monolith. The first Django
-skeleton is in place.
+skeleton is in place, and the app now includes a working dashboard, building
+registry pages, holdings flows, and production balance services.
 
 ## System Requirements
 

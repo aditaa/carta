@@ -4,6 +4,7 @@ import pytest
 from django.urls import reverse
 
 from buildings.models import BuildingDefinition, OwnedBuilding
+from ownership.models import House, HouseMembership
 from production.models import ProductionRecipe
 from resources.models import Resource
 from rulesets.models import ItemReference, Ruleset
@@ -38,6 +39,48 @@ def test_home_page_returns_success(client):
     assert response.status_code == 200
     assert b"Carta Arcanum" in response.content
     assert b"Sign in" in response.content
+
+
+@pytest.mark.django_db
+def test_home_page_shows_owner_balance_overview(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=user, house=house)
+    orchard = BuildingDefinition.objects.create(
+        ruleset=ruleset,
+        key="orchard",
+        name="Orchard",
+        category="basic",
+    )
+    house_keep = BuildingDefinition.objects.create(
+        ruleset=ruleset,
+        key="keep",
+        name="Keep",
+        category="defensive",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=house_keep,
+        owner_scope=OwnedBuilding.OwnerScope.HOUSE,
+        house=house,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    client.force_login(user)
+
+    response = client.get(reverse("dashboard:home"))
+
+    assert response.status_code == 200
+    assert b"Owner Balance Overview" in response.content
+    assert b"Denizen: Dashboard User" in response.content
+    assert b"House: House Bramble" in response.content
 
 
 @pytest.mark.django_db

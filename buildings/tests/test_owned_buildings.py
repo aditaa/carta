@@ -116,6 +116,37 @@ def test_can_model_denizen_house_and_kingdom_buildings():
     assert str(OwnedBuilding.objects.get(nickname="Aster's Orchard")) == "Aster's Orchard"
 
 
+def test_owned_building_owner_label_returns_actual_owner():
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+
+    denizen_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+    )
+    house_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.HOUSE,
+        house=house,
+    )
+    kingdom_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.KINGDOM,
+        kingdom=kingdom,
+    )
+
+    assert denizen_building.owner_label == f"Denizen: {user.display_name}"
+    assert house_building.owner_label == f"House: {house.name}"
+    assert kingdom_building.owner_label == f"Kingdom: {kingdom.name}"
+
+
 def test_can_log_building_registry_event():
     ruleset = create_ruleset()
     definition = create_definition(ruleset)

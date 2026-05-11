@@ -94,6 +94,26 @@ def test_can_model_denizen_house_kingdom_and_three_crowns_accounts():
     assert HoldingAccount.objects.count() == 7
 
 
+def test_holding_account_owner_label_returns_owner_details():
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+
+    denizen_account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    house_account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.HOUSE, house=house)
+    house_denizen_account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.HOUSE_DENIZEN,
+        user=create_user("house-denizen@example.test"),
+        house=house,
+    )
+
+    assert denizen_account.owner_label == f"Denizen: {user.display_name}"
+    assert house_account.owner_label == f"House: {house.name}"
+    assert (
+        house_denizen_account.owner_label
+        == f"{house_denizen_account.user.display_name} (House: {house.name})"
+    )
+
+
 def test_deposit_creates_balance_and_ledger_entry():
     ruleset = create_ruleset()
     account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=create_user())

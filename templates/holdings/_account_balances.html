@@ -1,7 +1,7 @@
 {% for account in accounts %}
   <tr{% if account.id == updated_account_id %} class="updated"{% endif %}>
     <td><a href="{% url 'holdings:detail' account.id %}">{{ account }}</a></td>
-    <td>{{ account.get_scope_display }}</td>
+    <td>{{ account.owner_label }}</td>
     <td>
       {% for balance in account.balances.all %}
         <span class="balance-pill">

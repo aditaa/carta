@@ -3,6 +3,7 @@ from django.shortcuts import render
 
 from buildings.services import visible_owned_buildings
 from production.services import (
+    balance_by_owner,
     deficit_totals,
     production_alerts,
     production_totals,
@@ -25,6 +26,7 @@ def home(request):
             "surpluses": surplus_totals(buildings),
             "alerts": production_alerts(buildings),
         }
+        context["owner_panels"] = balance_by_owner(buildings)
     return render(request, "dashboard/home.html", context)
 
 
