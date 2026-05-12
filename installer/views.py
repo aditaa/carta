@@ -1,11 +1,15 @@
 import io
 import secrets
+import threading
 
 from django.conf import settings
-from django.contrib.auth import get_user_model, login
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.signing import BadSignature
+from django.db import close_old_connections
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 
 from installer.forms import DatabaseConfigForm, InstallerSuperUserForm
 from installer.services import (
@@ -21,6 +25,8 @@ from installer.services import (
 
 INSTALLER_SUPERUSER_COOKIE = "carta_installer_superuser"
 INSTALLER_SUPERUSER_PAYLOADS: dict[str, dict[str, str]] = {}
+INSTALLER_SETUP_JOBS: dict[str, dict[str, str | bool]] = {}
+INSTALLER_SETUP_JOBS_LOCK = threading.Lock()
 
 
 def index(request):
@@ -101,27 +107,14 @@ def application_setup(request):
     command_output = ""
     command_error = ""
     completed = False
+    job_id = ""
     superuser = _installer_superuser_from_cookie(request)
     if request.method == "POST":
-        stdout = io.StringIO()
         if not superuser:
             command_error = "Create the installer admin account before running setup."
         else:
-            try:
-                call_command("migrate", stdout=stdout, no_input=True)
-                call_command(
-                    "import_rules",
-                    settings.CURRENT_RULES_FILE,
-                    stdout=stdout,
-                )
-                user = _create_installer_superuser(superuser)
-                lock_installer()
-            except Exception as exc:
-                command_error = str(exc)
-            else:
-                completed = True
-                login(request, user)
-        command_output = stdout.getvalue()
+            job_id = start_application_setup_job(superuser)
+            _clear_installer_superuser(request)
     response = render(
         request,
         "installer/application.html",
@@ -130,12 +123,87 @@ def application_setup(request):
             "command_error": command_error,
             "command_output": command_output,
             "has_superuser": bool(superuser),
+            "job_id": job_id,
+            "job_started": bool(job_id),
         },
     )
-    if completed:
-        _clear_installer_superuser(request)
+    if job_id:
         response.delete_cookie(INSTALLER_SUPERUSER_COOKIE)
     return response
+
+
+def application_setup_status(request, job_id: str):
+    with INSTALLER_SETUP_JOBS_LOCK:
+        job = INSTALLER_SETUP_JOBS.get(job_id, {}).copy()
+    if not job:
+        return JsonResponse({"status": "missing", "error": "Setup job was not found."}, status=404)
+    if job.get("status") == "complete":
+        job["redirect_url"] = reverse("accounts:login")
+    return JsonResponse(job)
+
+
+def start_application_setup_job(superuser: dict[str, str]) -> str:
+    job_id = secrets.token_urlsafe(16)
+    with INSTALLER_SETUP_JOBS_LOCK:
+        INSTALLER_SETUP_JOBS[job_id] = {
+            "status": "running",
+            "message": "Starting setup",
+            "output": "",
+            "error": "",
+        }
+    thread = threading.Thread(
+        target=_run_application_setup_job,
+        args=(job_id, superuser),
+        daemon=True,
+    )
+    thread.start()
+    return job_id
+
+
+def _run_application_setup_job(job_id: str, superuser: dict[str, str]) -> None:
+    stdout = io.StringIO()
+    close_old_connections()
+    try:
+        _update_application_setup_job(job_id, message="Running database migrations")
+        call_command("migrate", stdout=stdout, no_input=True)
+        _update_application_setup_job(job_id, output=stdout.getvalue())
+
+        _update_application_setup_job(job_id, message="Importing the current rules file")
+        call_command(
+            "import_rules",
+            settings.CURRENT_RULES_FILE,
+            stdout=stdout,
+        )
+        _update_application_setup_job(job_id, output=stdout.getvalue())
+
+        _update_application_setup_job(job_id, message="Creating the superuser")
+        _create_installer_superuser(superuser)
+
+        _update_application_setup_job(job_id, message="Locking the installer")
+        lock_installer()
+    except Exception as exc:
+        _update_application_setup_job(
+            job_id,
+            status="error",
+            message="Setup failed",
+            output=stdout.getvalue(),
+            error=str(exc),
+        )
+    else:
+        _update_application_setup_job(
+            job_id,
+            status="complete",
+            message="Setup completed. The installer is now locked.",
+            output=stdout.getvalue(),
+        )
+    finally:
+        close_old_connections()
+
+
+def _update_application_setup_job(job_id: str, **changes: str) -> None:
+    with INSTALLER_SETUP_JOBS_LOCK:
+        if job_id in INSTALLER_SETUP_JOBS:
+            INSTALLER_SETUP_JOBS[job_id].update(changes)
 
 
 def _installer_superuser_from_cookie(request) -> dict[str, str] | None:
