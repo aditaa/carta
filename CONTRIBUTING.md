@@ -34,6 +34,7 @@ python -m ruff check .
 python -m ruff format --check .
 python manage.py check
 python manage.py makemigrations --check --dry-run
+python -m pytest buildings/tests holdings/tests dashboard/tests -q
 python -m pytest
 ```
 

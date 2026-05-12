@@ -116,6 +116,37 @@ def test_can_model_denizen_house_and_kingdom_buildings():
     assert str(OwnedBuilding.objects.get(nickname="Aster's Orchard")) == "Aster's Orchard"
 
 
+def test_owned_building_owner_label_returns_actual_owner():
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+
+    denizen_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+    )
+    house_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.HOUSE,
+        house=house,
+    )
+    kingdom_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.KINGDOM,
+        kingdom=kingdom,
+    )
+
+    assert denizen_building.owner_label == f"Denizen: {user.display_name}"
+    assert house_building.owner_label == f"House: {house.name}"
+    assert kingdom_building.owner_label == f"Kingdom: {kingdom.name}"
+
+
 def test_can_log_building_registry_event():
     ruleset = create_ruleset()
     definition = create_definition(ruleset)
@@ -463,6 +494,44 @@ def test_user_can_edit_visible_building(client):
     assert building.status == OwnedBuilding.Status.DAMAGED
     entry = BuildingLedgerEntry.objects.get(action=BuildingLedgerEntry.Action.UPDATED)
     assert entry.changes["nickname"] == {"from": "Old Orchard", "to": "Renamed Orchard"}
+
+
+def test_htmx_building_create_form_request_returns_partial_template(client):
+    ruleset = create_ruleset()
+    create_definition(ruleset)
+    user = create_user()
+    client.force_login(user)
+
+    response = client.get(reverse("buildings:create"), headers={"HX-Request": "true"})
+
+    assert response.status_code == 200
+    assert b"Add building" in response.content
+    assert b"hx-post" in response.content
+    assert b"Cancel" in response.content
+
+
+def test_htmx_building_edit_form_request_returns_partial_template(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        nickname="Old Orchard",
+    )
+    client.force_login(user)
+
+    response = client.get(
+        reverse("buildings:edit", args=[building.id]),
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert b"Edit building" in response.content
+    assert b"hx-post" in response.content
+    assert b"Cancel" in response.content
 
 
 def test_user_cannot_edit_hidden_building(client):

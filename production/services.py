@@ -80,6 +80,72 @@ def net_resource_balance(buildings) -> list[ItemTotal]:
     return _total_lines(net)
 
 
+def _format_quantity(quantity: Decimal) -> str:
+    if quantity == quantity.to_integral_value():
+        return str(quantity.quantize(Decimal(1)))
+    return str(quantity.normalize())
+
+
+def production_alerts(buildings) -> list[str]:
+    net = net_resource_balance(buildings)
+    if not net:
+        return ["No active buildings with production or upkeep."]
+
+    alerts = []
+    for line in net:
+        formatted_quantity = _format_quantity(abs(line.quantity))
+        if line.quantity < 0:
+            alerts.append(
+                f"Missing {formatted_quantity} {line.item_type}:"
+                f"{line.item_key} to balance upkeep and inputs."
+            )
+        elif line.quantity > 0:
+            alerts.append(f"Surplus {formatted_quantity} {line.item_type}:{line.item_key}.")
+
+    if not alerts:
+        alerts.append("Production and upkeep are balanced.")
+
+    return alerts
+
+
+def balance_by_owner(buildings) -> list[dict]:
+    owner_groups: dict[tuple[str, int], list] = {}
+    for building in buildings:
+        owner_key = _owner_group_key(building)
+        owner_groups.setdefault(owner_key, []).append(building)
+
+    panels = []
+    for key, group in sorted(owner_groups.items()):
+        production = production_totals(group)
+        panels.append(
+            {
+                "owner": _owner_label(group[0]),
+                "building_count": len(group),
+                "upkeep": upkeep_totals(group),
+                "production_inputs": production["inputs"],
+                "production_outputs": production["outputs"],
+                "deficits": deficit_totals(group),
+                "surpluses": surplus_totals(group),
+                "alerts": production_alerts(group),
+            }
+        )
+    return panels
+
+
+def _owner_group_key(building) -> tuple[str, int]:
+    if getattr(building, "user_id", None) is not None:
+        return ("user", building.user_id)
+    if getattr(building, "house_id", None) is not None:
+        return ("house", building.house_id)
+    if getattr(building, "kingdom_id", None) is not None:
+        return ("kingdom", building.kingdom_id)
+    return ("unknown", getattr(building, "id", 0))
+
+
+def _owner_label(building) -> str:
+    return getattr(building, "owner_label", "Unknown owner")
+
+
 def deficit_totals(buildings) -> list[ItemTotal]:
     return [
         ItemTotal(

@@ -14,6 +14,14 @@
       <section class="dashboard-panel">
         <h2>Production Balance</h2>
         <p class="muted">{{ balance_panel.building_count }} visible buildings included.</p>
+        <section class="alerts-panel">
+          <h3>Alerts</h3>
+          <ul class="alerts-list">
+            {% for message in balance_panel.alerts %}
+              <li>{{ message }}</li>
+            {% endfor %}
+          </ul>
+        </section>
         <div class="balance-grid">
           <article>
             <h3>Upkeep</h3>
@@ -57,6 +65,28 @@
           </article>
         </div>
       </section>
+
+      {% if owner_panels %}
+        <section class="dashboard-panel">
+          <h2>Owner Balance Overview</h2>
+          <div class="owner-grid">
+            {% for owner in owner_panels %}
+              <article>
+                <h3>{{ owner.owner }}</h3>
+                <p class="muted">{{ owner.building_count }} visible buildings</p>
+                <div class="owner-summary">
+                  <p><strong>Alerts</strong></p>
+                  <ul class="alerts-list">
+                    {% for message in owner.alerts %}
+                      <li>{{ message }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
     {% endif %}
   </section>
 {% endblock %}

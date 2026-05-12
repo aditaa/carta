@@ -85,8 +85,9 @@ target architecture for new feature work.
 ## Rewrite Status
 
 The first Django skeleton is in place with a custom email-based user model,
-`DenizenProfile`, MySQL settings, a dashboard placeholder, a health endpoint,
-and smoke tests.
+`DenizenProfile`, MySQL settings, a dashboard home page, a health endpoint,
+building registry pages, holdings pages, production balance services, and
+smoke tests.
 
 Carta Arcanum remains Linux-first. On Windows, use WSL with Ubuntu.
 
@@ -150,9 +151,12 @@ detailed Django rewrite checklist.
 ## Development Status
 
 This repository is pivoting from a split FastAPI/React app to a Django
-monolith. The next build steps are:
+monolith. Core dashboard, building, holdings, and production balance flows are
+now implemented. The next build steps are:
 
-1. Expand the rules import to titles, phases, and unlocks once rules data exists.
-2. Expand the accounts, ownership, and permissions model.
-3. Build server-rendered dashboard, registry, holdings, and permissions flows.
-4. Add production totals, the interactive map, and dependency solving.
+1. Complete permissions and visibility boundaries for denizen, house,
+   kingdom, and Three Crowns data.
+2. Finish HTMX workflows for building and holding edits.
+3. Stabilize production alerts and owner-specific balance overviews.
+4. Add the installer, interactive map, and dependency solver after the first
+   version is usable.

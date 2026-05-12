@@ -5,8 +5,10 @@ import pytest
 from buildings.models import BuildingDefinition, OwnedBuilding
 from production.models import ProductionRecipe
 from production.services import (
+    balance_by_owner,
     deficit_totals,
     net_resource_balance,
+    production_alerts,
     production_totals,
     surplus_totals,
     upkeep_totals,
@@ -40,13 +42,13 @@ def create_building_definition(ruleset, key="orchard"):
     )
 
 
-def create_user():
+def create_user(email="producer@example.test", display_name="Producer"):
     from django.contrib.auth import get_user_model
 
     return get_user_model().objects.create_user(
-        email="producer@example.test",
+        email=email,
         password="swordfish",
-        display_name="Producer",
+        display_name=display_name,
     )
 
 
@@ -235,3 +237,135 @@ def test_deficit_and_surplus_totals_split_net_balance():
     assert deficits[0].quantity == Decimal("3")
     assert surpluses[0].item_key == "food"
     assert surpluses[0].quantity == Decimal("5")
+
+
+def test_production_alerts_reports_missing_and_surplus_messages():
+    ruleset = create_ruleset()
+    orchard = create_building_definition(ruleset)
+    user = create_user()
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    recipe = ProductionRecipe.objects.create(
+        ruleset=ruleset,
+        key="orchard_food",
+        building=orchard,
+        recipe_type="production",
+    )
+    add_item_ref(
+        ruleset=ruleset,
+        owner_type="building_definition",
+        owner_key="orchard",
+        purpose=ItemReference.Purpose.BUILDING_UPKEEP,
+        item_key="food",
+        amount="2",
+    )
+    add_item_ref(
+        ruleset=ruleset,
+        owner_type="production_recipe",
+        owner_key=recipe.key,
+        purpose=ItemReference.Purpose.RECIPE_INPUT,
+        item_key="wood",
+        amount="3",
+    )
+    add_item_ref(
+        ruleset=ruleset,
+        owner_type="production_recipe",
+        owner_key=recipe.key,
+        purpose=ItemReference.Purpose.RECIPE_OUTPUT,
+        item_key="food",
+        amount="8",
+    )
+
+    alerts = production_alerts([building])
+
+    assert "Missing 3 resource:wood to balance upkeep and inputs." in alerts
+    assert "Surplus 6 resource:food." in alerts
+
+
+def test_balance_by_owner_returns_panels_for_each_owner():
+    ruleset = create_ruleset()
+    orchard = create_building_definition(ruleset)
+    keep = create_building_definition(ruleset, key="keep")
+    user = create_user()
+    other_user = create_user(
+        "other@example.test",
+        display_name="Other Producer",
+    )
+    first_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    second_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=keep,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=other_user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    add_item_ref(
+        ruleset=ruleset,
+        owner_type="building_definition",
+        owner_key=orchard.key,
+        purpose=ItemReference.Purpose.BUILDING_UPKEEP,
+        item_key="food",
+        amount="1",
+    )
+    add_item_ref(
+        ruleset=ruleset,
+        owner_type="building_definition",
+        owner_key=keep.key,
+        purpose=ItemReference.Purpose.BUILDING_UPKEEP,
+        item_key="wood",
+        amount="2",
+    )
+
+    panels = balance_by_owner([first_building, second_building])
+
+    assert any(panel["owner"] == f"Denizen: {user.display_name}" for panel in panels)
+    assert any(panel["owner"] == f"Denizen: {other_user.display_name}" for panel in panels)
+    assert {panel["building_count"] for panel in panels} == {1}
+
+
+def test_balance_by_owner_keeps_duplicate_display_name_users_separate():
+    ruleset = create_ruleset()
+    orchard = create_building_definition(ruleset)
+    user = create_user(display_name="Same Name")
+    other_user = create_user("other@example.test", display_name="Same Name")
+
+    first_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    second_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=other_user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    add_item_ref(
+        ruleset=ruleset,
+        owner_type="building_definition",
+        owner_key=orchard.key,
+        purpose=ItemReference.Purpose.BUILDING_UPKEEP,
+        item_key="food",
+        amount="1",
+    )
+
+    panels = balance_by_owner([first_building, second_building])
+
+    assert len(panels) == 2
+    assert all(panel["building_count"] == 1 for panel in panels)
+    assert any(panel["owner"] == f"Denizen: {user.display_name}" for panel in panels)
+    assert any(panel["owner"] == f"Denizen: {other_user.display_name}" for panel in panels)

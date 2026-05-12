@@ -94,6 +94,26 @@ def test_can_model_denizen_house_kingdom_and_three_crowns_accounts():
     assert HoldingAccount.objects.count() == 7
 
 
+def test_holding_account_owner_label_returns_owner_details():
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+
+    denizen_account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    house_account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.HOUSE, house=house)
+    house_denizen_account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.HOUSE_DENIZEN,
+        user=create_user("house-denizen@example.test"),
+        house=house,
+    )
+
+    assert denizen_account.owner_label == f"Denizen: {user.display_name}"
+    assert house_account.owner_label == f"House: {house.name}"
+    assert (
+        house_denizen_account.owner_label
+        == f"{house_denizen_account.user.display_name} (House: {house.name})"
+    )
+
+
 def test_deposit_creates_balance_and_ledger_entry():
     ruleset = create_ruleset()
     account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=create_user())
@@ -663,3 +683,69 @@ def test_user_cannot_transfer_to_read_only_holding_account(client):
     assert b"Select a valid choice" in response.content
     assert HoldingBalance.objects.get(account=source, item_key="wood").quantity == Decimal("8")
     assert not HoldingBalance.objects.filter(account=read_only_destination).exists()
+
+
+def test_htmx_adjust_form_request_returns_partial_template(client):
+    user = create_user()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    client.force_login(user)
+
+    response = client.get(
+        reverse("holdings:adjust", args=[account.id]),
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert b"adjust-form" in response.content
+    assert b"csrfmiddlewaretoken" in response.content
+    assert b"Save adjustment" in response.content
+
+
+def test_htmx_adjust_form_submission_updates_balances_inline(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    client.force_login(user)
+
+    response = client.post(
+        reverse("holdings:adjust", args=[account.id]),
+        {
+            "action": HoldingLedgerEntry.Action.DEPOSIT,
+            "ruleset": ruleset.id,
+            "item_type": ItemReference.ItemType.RESOURCE,
+            "item_key": "wood",
+            "quantity": "5",
+            "note": "HTMX deposit",
+        },
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert b"updated" in response.content  # Should contain updated account ID class
+    assert b"5.00 resource:wood" in response.content  # Should show the new balance
+    balance = HoldingBalance.objects.get(account=account, item_key="wood")
+    assert balance.quantity == Decimal("5")
+
+
+def test_htmx_adjust_form_submission_shows_validation_errors_inline(client):
+    user = create_user()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    client.force_login(user)
+
+    response = client.post(
+        reverse("holdings:adjust", args=[account.id]),
+        {
+            "action": HoldingLedgerEntry.Action.DEPOSIT,
+            "ruleset": "",
+            "item_type": ItemReference.ItemType.RESOURCE,
+            "item_key": "wood",
+            "quantity": "-5",
+            "note": "Invalid deposit",
+        },
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert b'hx-swap-oob="true"' in response.content
+    assert b"adjust-form" in response.content
+    assert b"Select a valid choice" in response.content or b"quantity" in response.content
