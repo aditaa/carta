@@ -84,6 +84,68 @@ def test_home_page_shows_owner_balance_overview(client):
 
 
 @pytest.mark.django_db
+def test_home_page_links_to_owner_detail(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    orchard = BuildingDefinition.objects.create(
+        ruleset=ruleset,
+        key="orchard",
+        name="Orchard",
+        category="basic",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    client.force_login(user)
+
+    response = client.get(reverse("dashboard:home"))
+
+    assert response.status_code == 200
+    assert b"/owners/user/" in response.content
+
+
+@pytest.mark.django_db
+def test_owner_detail_page_shows_owner_balance(client):
+    ruleset = create_ruleset()
+    user = create_user()
+    orchard = BuildingDefinition.objects.create(
+        ruleset=ruleset,
+        key="orchard",
+        name="Orchard",
+        category="basic",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    client.force_login(user)
+
+    response = client.get(reverse("dashboard:owner_detail", args=["user", user.id]))
+
+    assert response.status_code == 200
+    assert b"Orchard" in response.content
+    assert b"Owner Production Balance" in response.content
+    assert b"Visible Buildings" in response.content
+
+
+@pytest.mark.django_db
+def test_owner_detail_404_for_nonexistent_owner(client):
+    user = create_user()
+    client.force_login(user)
+
+    response = client.get(reverse("dashboard:owner_detail", args=["user", 999]))
+
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
 def test_home_page_shows_balance_panel_for_visible_buildings(client):
     ruleset = create_ruleset()
     user = create_user()
