@@ -7,7 +7,7 @@ Arcanum is and how to run it.
 ## Guides
 
 - [Install guide](INSTALL.md): Linux and WSL setup, MySQL configuration,
-  installer recovery, and optional service setup.
+  installer recovery, fresh reinstall, upgrade, and optional service setup.
 - [Architecture notes](ARCHITECTURE.md): Django app layout, boundaries, rules
   handling, and future map direction.
 - [Roadmap](ROADMAP.md): high-level milestone plan.
