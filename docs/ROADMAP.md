@@ -4,7 +4,7 @@ This is the high-level todo list for rebuilding Carta Arcanum as a Django
 monolith. The previous FastAPI and React implementation has been removed and
 should not drive the new architecture.
 
-Use `TRANSITION_TODO.md` for the detailed task checklist.
+Use [TRANSITION_TODO.md](TRANSITION_TODO.md) for the detailed task checklist.
 
 ## Phase 0: Rewrite Preparation
 
@@ -24,6 +24,8 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
   deployment mode.
 - [x] Add a local GUI path for validating and saving MySQL connection settings.
 - [x] Add a local GUI path for running migrations and importing rules.
+- [x] Add a first-run installer flow with prerequisite checks, superuser
+  creation, application setup, and installer locking.
 - [x] Add Django templates, static files, and base layout.
 - [x] Add pytest or Django test runner setup.
 - [x] Add linting and formatting checks for the new codebase.
@@ -96,6 +98,12 @@ Use `TRANSITION_TODO.md` for the detailed task checklist.
 
 ## Later Ideas
 
+- [ ] Add a superuser status and settings section for checking app health and
+  configuring runtime options after install.
+- [ ] Surface `.env.local` and `installer.lock` write-permission checks on the
+  future superuser status page.
+- [ ] Add an optional Linux service helper for running Carta Arcanum from a
+  cloned release branch.
 - [ ] Scenario save/load.
 - [ ] Multiple campaigns or worlds.
 - [ ] Owner/faction filters.

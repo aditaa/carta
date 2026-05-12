@@ -56,6 +56,13 @@ DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ["127.0.0.1", "localhost"])
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 INSTALLER_ENV_FILE = Path(os.getenv("CARTA_INSTALLER_ENV_FILE", BASE_DIR / ".env.local"))
+INSTALLER_LOCK_FILE = Path(os.getenv("CARTA_INSTALLER_LOCK_FILE", BASE_DIR / "installer.lock"))
+CURRENT_RULES_FILE = Path(
+    os.getenv(
+        "CARTA_CURRENT_RULES_FILE",
+        BASE_DIR / "rules" / "carta-arcanum-2.1.4.rules.json",
+    )
+)
 
 INSTALLED_APPS = [
     "accounts",

@@ -55,6 +55,10 @@ FastAPI/React split app to a Django monolith.
   files.
 - [x] Add a local GUI path for validating and saving MySQL connection settings.
 - [x] Add a local GUI path for running migrations and importing rules.
+- [x] Add first-run redirect to the installer before setup is complete.
+- [x] Add installer prerequisite checks.
+- [x] Add installer superuser creation.
+- [x] Lock the installer after successful setup.
 - [x] Add local development settings documentation.
 - [x] Create initial URL configuration.
 - [x] Create base template layout.
@@ -217,6 +221,12 @@ FastAPI/React split app to a Django monolith.
 - [ ] Add useful list displays, filters, and search fields.
 - [ ] Protect dangerous admin edits where rules data should stay import-owned.
 - [ ] Add admin-only import status page or command output guidance.
+- [ ] Add a superuser status page for install health and core runtime checks.
+- [ ] Add a superuser settings section for app configuration.
+- [ ] Add `.env.local` and `installer.lock` write-permission checks to the
+  future superuser status page.
+- [ ] Add an optional systemd service helper or documented command for running
+  the app from a cloned release branch.
 - [ ] Add deployment health checks.
 - [ ] Add static file collection docs.
 - [ ] Add production service docs for Linux.
@@ -225,11 +235,11 @@ FastAPI/React split app to a Django monolith.
 ## 14. Documentation
 
 - [x] Update `README.md` after the Django skeleton exists.
-- [x] Update `INSTALL.md` with exact Django setup commands.
+- [x] Update `docs/INSTALL.md` with exact Django setup commands.
 - [x] Update `CONTRIBUTING.md` with exact lint, test, migration, and rules
   import commands.
 - [x] Update `AGENTS.md` when the app layout is finalized.
-- [x] Keep `ROADMAP.md` high-level and use this file for transition detail.
+- [x] Keep `docs/ROADMAP.md` high-level and use this file for transition detail.
 - [x] Add user-facing notes for first-run setup or admin creation.
 
 ## 15. Feature Parity Check

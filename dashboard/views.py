@@ -1,7 +1,8 @@
 from django.http import Http404, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 from buildings.services import visible_owned_buildings
+from installer.services import installer_is_locked
 from production.services import (
     balance_by_owner,
     deficit_totals,
@@ -13,6 +14,9 @@ from production.services import (
 
 
 def home(request):
+    if not installer_is_locked():
+        return redirect("installer:index")
+
     context = {}
     if request.user.is_authenticated:
         buildings = visible_owned_buildings(request.user)

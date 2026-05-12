@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import json
 import os
+import platform
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 import pymysql
+from django import get_version
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db import DatabaseError, ProgrammingError
+from django.db import DatabaseError, ProgrammingError, connections
 
 
 @dataclass(frozen=True)
@@ -46,6 +49,21 @@ def test_mysql_connection(config: DatabaseConfig) -> None:
     connection.close()
 
 
+def apply_database_config(config: DatabaseConfig) -> None:
+    database = settings.DATABASES["default"]
+    database.update(
+        {
+            "HOST": config.host,
+            "PORT": str(config.port),
+            "NAME": config.database,
+            "USER": config.user,
+            "PASSWORD": config.password,
+            "TEST": {"NAME": config.test_database},
+        }
+    )
+    connections.close_all()
+
+
 def write_database_env(config: DatabaseConfig, path: Path | None = None) -> Path:
     path = path or settings.INSTALLER_ENV_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -69,10 +87,84 @@ def write_database_env(config: DatabaseConfig, path: Path | None = None) -> Path
 
 
 def installer_is_locked() -> bool:
+    if installer_lock_path().exists():
+        return True
+
     try:
         return get_user_model().objects.exists()
     except (DatabaseError, ProgrammingError):
         return False
+
+
+def installer_lock_path() -> Path:
+    return settings.INSTALLER_LOCK_FILE
+
+
+def lock_installer() -> Path:
+    path = installer_lock_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = path.with_suffix(f"{path.suffix}.tmp")
+    temporary_path.write_text(
+        "Carta Arcanum installer completed.\n"
+        "Remove this file only if you intentionally need to rerun setup.\n",
+        encoding="utf-8",
+    )
+    os.replace(temporary_path, path)
+    return path
+
+
+def prerequisite_checks() -> list[dict[str, str | bool]]:
+    env_file = settings.INSTALLER_ENV_FILE
+    lock_file = installer_lock_path()
+    rules_file = settings.CURRENT_RULES_FILE
+    return [
+        {
+            "label": "Linux runtime",
+            "ok": platform.system() == "Linux",
+            "detail": f"Detected {platform.system()}. Carta Arcanum is supported on Linux/WSL.",
+        },
+        {
+            "label": "Python",
+            "ok": sys.version_info >= (3, 11),
+            "detail": platform.python_version(),
+        },
+        {
+            "label": "Django",
+            "ok": True,
+            "detail": get_version(),
+        },
+        {
+            "label": "MySQL driver",
+            "ok": True,
+            "detail": f"PyMySQL {pymysql.__version__}",
+        },
+        {
+            "label": "Rules file",
+            "ok": rules_file.exists(),
+            "detail": str(rules_file),
+        },
+        {
+            "label": "Installer config path",
+            "ok": _path_is_writable(env_file.parent),
+            "detail": str(env_file),
+        },
+        {
+            "label": "Installer lock path",
+            "ok": _path_is_writable(lock_file.parent),
+            "detail": str(lock_file),
+        },
+    ]
+
+
+def _path_is_writable(path: Path) -> bool:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        probe = path / ".carta-write-test"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink()
+    except OSError:
+        return False
+    return True
 
 
 def _env_line(key: str, value: str) -> str:

@@ -3,6 +3,12 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 
+@pytest.fixture(autouse=True)
+def installed_app(settings, tmp_path):
+    settings.INSTALLER_LOCK_FILE = tmp_path / "installer.lock"
+    settings.INSTALLER_LOCK_FILE.write_text("installed\n", encoding="utf-8")
+
+
 def create_user(email: str = "denizen@example.test"):
     return get_user_model().objects.create_user(
         email=email,

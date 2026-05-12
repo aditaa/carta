@@ -2,11 +2,15 @@ from pathlib import Path
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.db import OperationalError
 from django.test import override_settings
 from django.urls import reverse
 
-from installer.services import DatabaseConfig, installer_is_locked, write_database_env
+from installer.services import (
+    DatabaseConfig,
+    installer_is_locked,
+    lock_installer,
+    write_database_env,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -24,26 +28,26 @@ def database_form_data(**overrides):
     return data
 
 
-def test_installer_index_links_setup_steps(client):
-    response = client.get(reverse("installer:index"))
+def test_installer_index_shows_prerequisite_checks(client, tmp_path):
+    lock_file = tmp_path / "installer.lock"
+
+    with override_settings(INSTALLER_LOCK_FILE=lock_file):
+        response = client.get(reverse("installer:index"))
 
     assert response.status_code == 200
-    assert b"Configure database" in response.content
-    assert b"Run app setup" in response.content
-    assert b"Create admin" in response.content
+    assert b"Welcome to Carta Arcanum" in response.content
+    assert b"Python" in response.content
+    assert b"MySQL driver" in response.content
 
 
-def test_installer_index_reports_locked_state_after_user_exists(client, db):
-    get_user_model().objects.create_user(
-        email="admin@example.test",
-        password="swordfish",
-        display_name="Admin",
-    )
-
-    response = client.get(reverse("installer:index"))
+def test_installer_index_reports_locked_state_after_lock_file_exists(client, tmp_path):
+    lock_file = tmp_path / "installer.lock"
+    with override_settings(INSTALLER_LOCK_FILE=lock_file):
+        lock_installer()
+        response = client.get(reverse("installer:index"))
 
     assert response.status_code == 200
-    assert b"Setup is complete and the installer is locked" in response.content
+    assert b"The installer is locked" in response.content
 
 
 def test_database_setup_page_returns_success(client):
@@ -54,18 +58,15 @@ def test_database_setup_page_returns_success(client):
     assert b"Test and save" in response.content
 
 
-def test_database_setup_locks_after_user_exists(client, db):
-    get_user_model().objects.create_user(
-        email="admin@example.test",
-        password="swordfish",
-        display_name="Admin",
-    )
-
-    response = client.get(reverse("installer:database"))
+def test_database_setup_locks_after_lock_file_exists(client, tmp_path):
+    lock_file = tmp_path / "installer.lock"
+    with override_settings(INSTALLER_LOCK_FILE=lock_file):
+        lock_installer()
+        response = client.get(reverse("installer:database"))
 
     assert response.status_code == 200
     assert b"The installer is locked" in response.content
-    assert b"Test and save" not in response.content
+    assert b"Test and save database" not in response.content
 
 
 def test_database_setup_saves_config_after_successful_connection(client, monkeypatch, tmp_path):
@@ -76,13 +77,14 @@ def test_database_setup_saves_config_after_successful_connection(client, monkeyp
         tested_configs.append(config)
 
     monkeypatch.setattr("installer.views.test_mysql_connection", fake_test_connection)
+    monkeypatch.setattr("installer.views.apply_database_config", lambda config: None)
 
     with override_settings(INSTALLER_ENV_FILE=env_file):
         response = client.post(reverse("installer:database"), database_form_data(password="secret"))
 
     assert response.status_code == 200
-    assert b"Database connection saved" in response.content
-    assert b"Continue to app setup" in response.content
+    assert b"Database connection saved and applied" in response.content
+    assert b"Next: create superuser" in response.content
     assert tested_configs == [
         DatabaseConfig(
             host="127.0.0.1",
@@ -149,44 +151,72 @@ def test_write_database_env_quotes_values(tmp_path):
     assert 'MYSQL_PASSWORD="secret with spaces"' in content
 
 
+def test_superuser_setup_saves_account_in_signed_cookie(client):
+    response = client.post(
+        reverse("installer:superuser"),
+        {
+            "email": "admin@example.test",
+            "display_name": "Admin",
+            "password1": "swordfish",
+            "password2": "swordfish",
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.url == reverse("installer:application")
+    assert "carta_installer_superuser" in response.cookies
+    assert "swordfish" not in response.cookies["carta_installer_superuser"].value
+
+
 def test_application_setup_page_returns_success(client):
     response = client.get(reverse("installer:application"))
 
     assert response.status_code == 200
     assert b"App setup" in response.content
-    assert b"Run setup" in response.content
+    assert b"Install and lock setup" in response.content
 
 
-def test_application_setup_locks_after_user_exists(client, db):
-    get_user_model().objects.create_user(
-        email="admin@example.test",
-        password="swordfish",
-        display_name="Admin",
-    )
-
-    response = client.get(reverse("installer:application"))
+def test_application_setup_locks_after_lock_file_exists(client, tmp_path):
+    lock_file = tmp_path / "installer.lock"
+    with override_settings(INSTALLER_LOCK_FILE=lock_file):
+        lock_installer()
+        response = client.get(reverse("installer:application"))
 
     assert response.status_code == 200
     assert b"The installer is locked" in response.content
-    assert b"Run setup" not in response.content
+    assert b"Install and lock setup" not in response.content
 
 
-def test_application_setup_runs_migrations_and_imports_rules(client, monkeypatch):
+def test_application_setup_runs_migrations_imports_rules_creates_admin_and_locks(
+    client, monkeypatch, tmp_path
+):
     calls = []
+    lock_file = tmp_path / "installer.lock"
 
     def fake_call_command(name, *args, **kwargs):
         calls.append((name, args, kwargs))
         kwargs["stdout"].write(f"{name} completed\n")
 
     monkeypatch.setattr("installer.views.call_command", fake_call_command)
+    client.post(
+        reverse("installer:superuser"),
+        {
+            "email": "admin@example.test",
+            "display_name": "Admin",
+            "password1": "swordfish",
+            "password2": "swordfish",
+        },
+    )
 
-    response = client.post(reverse("installer:application"))
+    with override_settings(INSTALLER_LOCK_FILE=lock_file):
+        response = client.post(reverse("installer:application"))
 
     assert response.status_code == 200
-    assert b"Database migrations and rules import completed" in response.content
-    assert b"Create the first admin" in response.content
+    assert b"Setup completed. The installer is now locked." in response.content
+    assert b"Open login page" in response.content
     assert b"migrate completed" in response.content
     assert b"import_rules completed" in response.content
+    assert lock_file.exists()
     assert calls[0][0] == "migrate"
     assert calls[0][2]["no_input"] is True
     assert calls[1][0] == "import_rules"
@@ -199,28 +229,40 @@ def test_application_setup_reports_command_failure(client, monkeypatch):
         raise RuntimeError("setup failed")
 
     monkeypatch.setattr("installer.views.call_command", fake_call_command)
+    client.post(
+        reverse("installer:superuser"),
+        {
+            "email": "admin@example.test",
+            "display_name": "Admin",
+            "password1": "swordfish",
+            "password2": "swordfish",
+        },
+    )
 
     response = client.post(reverse("installer:application"))
 
     assert response.status_code == 200
     assert b"setup failed" in response.content
-    assert b"Database migrations and rules import completed" not in response.content
+    assert b"Setup completed" not in response.content
 
 
-def test_installer_lock_stays_open_when_database_is_not_ready(monkeypatch):
-    def fake_exists():
-        raise OperationalError("database unavailable")
-
-    monkeypatch.setattr("installer.services.get_user_model", lambda: FakeUserModel(fake_exists))
-
-    assert not installer_is_locked()
+def test_installer_lock_stays_open_without_lock_file(tmp_path):
+    with override_settings(INSTALLER_LOCK_FILE=tmp_path / "installer.lock"):
+        assert not installer_is_locked()
 
 
-class FakeUserModel:
-    def __init__(self, exists):
-        self.objects = FakeManager(exists)
+def test_installer_lock_closes_when_users_exist_without_lock_file(tmp_path):
+    get_user_model().objects.create_user(
+        email="admin@example.test",
+        password="swordfish",
+        display_name="Admin",
+    )
+
+    with override_settings(INSTALLER_LOCK_FILE=tmp_path / "installer.lock"):
+        assert installer_is_locked()
 
 
-class FakeManager:
-    def __init__(self, exists):
-        self.exists = exists
+def test_installer_lock_closes_when_lock_file_exists(tmp_path):
+    with override_settings(INSTALLER_LOCK_FILE=tmp_path / "installer.lock"):
+        lock_installer()
+        assert installer_is_locked()

@@ -42,7 +42,8 @@ body {
 
 .site-nav a,
 .site-nav button,
-.auth-form button {
+.auth-form button,
+.button-link {
   color: #17201c;
   font: inherit;
   font-weight: 700;
@@ -177,6 +178,90 @@ p {
   margin-top: 8px;
   padding: 8px 12px;
   background: #e6eadf;
+}
+
+.auth-form button:disabled {
+  color: #6f786f;
+  background: #ede8dd;
+  cursor: not-allowed;
+}
+
+.button-link {
+  display: inline-block;
+  padding: 10px 14px;
+  border: 1px solid #aab5a8;
+  border-radius: 6px;
+  background: #e6eadf;
+  text-decoration: none;
+}
+
+.installer-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 22px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.installer-steps.compact {
+  margin: 14px 0 18px;
+}
+
+.installer-steps li {
+  min-width: 0;
+  padding: 8px 6px;
+  border: 1px solid #ddd3bd;
+  border-radius: 6px;
+  background: #fffdf8;
+  color: #6f786f;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.installer-steps li.is-complete {
+  border-color: #aab5a8;
+  background: #e6eadf;
+  color: #245f3f;
+}
+
+.installer-steps li.is-active {
+  border-color: #7f8c7b;
+  background: #17201c;
+  color: #fffdf8;
+}
+
+.check-list {
+  display: grid;
+  gap: 10px;
+  margin: 24px 0;
+}
+
+.check-row {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr;
+  gap: 4px 12px;
+  padding: 12px;
+  border: 1px solid #ddd3bd;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.check-row strong {
+  grid-row: span 2;
+}
+
+.check-row small {
+  color: #6f786f;
+}
+
+.check-row.is-ok strong {
+  color: #245f3f;
+}
+
+.check-row.is-error strong {
+  color: #9d2f2f;
 }
 
 .table-wrap {

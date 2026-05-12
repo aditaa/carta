@@ -2,30 +2,29 @@
 
 Thanks for helping build Carta Arcanum.
 
-## Project Direction
+## Start Here
 
-This project is a planning and tracking app for Carta Arcanum. Contributions
-should support one or more of these goals:
+Carta Arcanum is a Django monolith backed by MySQL and server-rendered Django
+templates. The supported runtime is Linux; use WSL with Ubuntu when developing
+from Windows.
 
-- Track buildings and ownership.
-- Track inputs, outputs, upkeep, deficits, and surpluses.
-- Visualize production chains.
-- Calculate missing resources for desired outputs.
-- Support phase-based progression.
-- Keep rules data versioned and replaceable when the game changes.
+Read these before changing code:
 
-## Local Development
+- [README](README.md) for the short project overview and daily commands.
+- [Install guide](docs/INSTALL.md) for complete Linux setup.
+- [Architecture notes](docs/ARCHITECTURE.md) for app layout and boundaries.
+- [Roadmap](docs/ROADMAP.md) for planned work.
 
-The project is being rewritten as a Django monolith. The target stack is:
+## Workflow
 
-- Python and Django for the web app.
-- MySQL for persistence.
-- Django templates with HTMX for targeted dynamic interactions.
-- Canvas or PixiJS for the future interactive hex map.
-- Linux for supported runtime environments.
+1. Create a focused branch.
+2. Read the existing code around the change.
+3. Keep rules data separate from application logic.
+4. Add or update tests for behavior changes.
+5. Update docs when setup, architecture, or user workflows change.
+6. Open a pull request with a short summary and verification notes.
 
-See `INSTALL.md` for Linux install and run commands. On Windows, use WSL with
-Ubuntu.
+## Quality Checks
 
 Before opening a pull request, run:
 
@@ -34,45 +33,40 @@ python -m ruff format --check .
 python -m ruff check .
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python -m pytest tests/test_settings.py ownership/tests production/tests buildings/tests holdings/tests
-python -m pytest accounts/tests dashboard/tests installer/tests
-python -m pytest rulesets/tests
+python manage.py migrate --noinput
+python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
+python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
+python -m pytest
 ```
 
-The full test suite expects MySQL to be running. Use the narrower non-database
-smoke checks from `INSTALL.md` when MySQL is not available locally.
-These commands mirror CI's separate format, lint, Django project check, domain
-service test, web workflow test, and rules import test jobs so failures stay
-easy to locate.
-
-## Contribution Workflow
-
-1. Create a focused branch for the change.
-2. Keep rules changes separate from application logic changes when possible.
-3. Add or update tests for behavior changes.
-4. Update documentation when setup, architecture, or user workflows change.
-5. Open a pull request with a short summary and verification notes.
+The full test suite expects MySQL to be running. If MySQL is not available
+locally, run the narrower smoke checks from the README and let CI be the source
+of truth for MySQL-only coverage.
 
 ## Rules Updates
 
-Rules are stored in `rules/` as manually maintained versioned data files. If
-the game rules change:
+Rules are manually maintained versioned data files in `rules/`.
+
+When game rules change:
 
 1. Add a new versioned rules file.
 2. Preserve older rules files for historical compatibility.
 3. Include rules version and maintainer notes in the new file.
-4. Avoid hard-coding rules in Django models, views, templates, or solver code.
+4. Import rules through `python manage.py import_rules`.
+5. Do not hard-code rules in Django models, views, templates, migrations, or
+   solver code.
 
 ## Coding Standards
 
-- Keep business logic outside of Django views, forms, and templates.
-- Use Django forms, model validation, and explicit service functions for web
-  workflows.
+- Keep domain logic in service modules, not views, forms, templates, or template
+  tags.
+- Use Django forms and model validation for web workflows.
 - Keep solver logic deterministic and testable.
 - Prefer explicit resource and building identifiers over display names.
-- Use HTMX for focused dynamic behavior, not as a substitute for domain logic.
-- Keep map and visualization data preparation in Django domain services.
-  Rendering should target Canvas or PixiJS once map work begins.
+- Use HTMX for focused partial updates, previews, filters, inline edits, and
+  setup flows.
+- Keep custom JavaScript small and localized.
+- Target Canvas or PixiJS for future large hex-grid map work.
 
 ## Pull Request Checklist
 
@@ -80,5 +74,6 @@ the game rules change:
 - Documentation is updated when needed.
 - Rules data remains separate from app logic.
 - Tests or verification notes are included.
-- Format, lint, Django checks, and the split pytest groups pass locally.
+- Format, lint, Django checks, migrations, rules import, and relevant tests pass
+  locally or in CI.
 - No unrelated formatting or generated files are included.
