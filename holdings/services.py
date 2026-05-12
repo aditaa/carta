@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Q
 
 from holdings.models import (
     HoldingAccount,
@@ -18,6 +19,9 @@ from ownership.services import (
     can_view_user,
     has_house_role,
     has_kingdom_role,
+    visible_house_ids,
+    visible_kingdom_ids,
+    visible_user_ids,
 )
 from rulesets.models import Ruleset
 
@@ -191,10 +195,19 @@ def visible_holding_accounts(viewer):
     if viewer.is_superuser:
         return accounts
 
-    visible_ids = [
-        account.id for account in accounts if _can_view_account(viewer=viewer, account=account)
-    ]
-    return accounts.filter(id__in=visible_ids)
+    user_ids = visible_user_ids(viewer)
+    house_ids = visible_house_ids(viewer)
+    kingdom_ids = visible_kingdom_ids(viewer)
+    return accounts.filter(
+        Q(user_id__in=user_ids)
+        | (Q(house_id__in=house_ids) & ~Q(scope=HoldingAccount.Scope.HOUSE_DENIZEN))
+        | Q(kingdom_id__in=kingdom_ids)
+        | (
+            Q(scope=HoldingAccount.Scope.HOUSE_DENIZEN)
+            & Q(user_id__in=user_ids)
+            & Q(house_id__in=house_ids)
+        )
+    )
 
 
 def editable_holding_accounts(viewer):

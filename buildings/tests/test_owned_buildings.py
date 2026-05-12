@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 
+from buildings.forms import OwnedBuildingForm
 from buildings.models import BuildingDefinition, BuildingLedgerEntry, OwnedBuilding
 from buildings.services import log_building_event, registry_summary, visible_owned_buildings
 from ownership.models import House, HouseMembership, Kingdom, KingdomMembership
@@ -207,6 +208,32 @@ def test_visible_owned_buildings_includes_personal_and_shared_house_buildings():
     assert hidden.id not in visible_ids
 
 
+@pytest.mark.django_db
+def test_visible_owned_buildings_includes_kingdom_buildings_for_members():
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    viewer = create_user()
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    KingdomMembership.objects.create(user=viewer, kingdom=kingdom)
+    kingdom_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.KINGDOM,
+        kingdom=kingdom,
+    )
+    hidden = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.KINGDOM,
+        kingdom=Kingdom.objects.create(key="other", name="Other Kingdom"),
+    )
+
+    visible_ids = set(visible_owned_buildings(viewer).values_list("id", flat=True))
+
+    assert kingdom_building.id in visible_ids
+    assert hidden.id not in visible_ids
+
+
 def test_registry_summary_counts_visible_buildings_by_status_and_category():
     ruleset = create_ruleset()
     orchard = create_definition(ruleset)
@@ -337,6 +364,145 @@ def test_building_registry_page_filters_visible_buildings(client):
     assert response.context["summary"]["total"] == 1
 
 
+def test_building_registry_page_filters_by_owner(client):
+    ruleset = create_ruleset()
+    orchard = create_definition(ruleset)
+    viewer = create_user()
+    stranger = create_user("stranger@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=viewer, house=house)
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.HOUSE,
+        house=house,
+        nickname="House Orchard",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=viewer,
+        nickname="Personal Orchard",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=stranger,
+        nickname="Hidden Orchard",
+    )
+    client.force_login(viewer)
+
+    response = client.get(
+        reverse("buildings:index"),
+        {
+            "owner": f"house:{house.id}",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"House Orchard" in response.content
+    assert b"Personal Orchard" not in response.content
+    assert b"Hidden Orchard" not in response.content
+    assert response.context["summary"]["total"] == 1
+
+
+def test_building_registry_page_filters_by_visible_denizen_owner(client):
+    ruleset = create_ruleset()
+    orchard = create_definition(ruleset)
+    viewer = create_user("viewer@example.test")
+    viewer.display_name = "Viewer"
+    viewer.save()
+    housemate = create_user("housemate@example.test")
+    housemate.display_name = "Housemate"
+    housemate.save()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=viewer, house=house)
+    HouseMembership.objects.create(user=housemate, house=house)
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=viewer,
+        nickname="Personal Orchard",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=housemate,
+        nickname="Housemate Orchard",
+    )
+    client.force_login(viewer)
+
+    response = client.get(
+        reverse("buildings:index"),
+        {
+            "owner": f"user:{housemate.id}",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"Housemate" in response.content
+    assert b"Housemate Orchard" in response.content
+    assert b"Personal Orchard" not in response.content
+    assert response.context["summary"]["total"] == 1
+
+
+def test_building_registry_superuser_can_filter_by_any_visible_owner(client):
+    ruleset = create_ruleset()
+    orchard = create_definition(ruleset)
+    admin = get_user_model().objects.create_superuser(
+        email="admin@example.test",
+        password="swordfish",
+        display_name="Admin",
+    )
+    owner = create_user("owner@example.test")
+    owner.display_name = "Owner"
+    owner.save()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=owner,
+        nickname="Owner Orchard",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.HOUSE,
+        house=house,
+        nickname="House Orchard",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.KINGDOM,
+        kingdom=kingdom,
+        nickname="Kingdom Orchard",
+    )
+    client.force_login(admin)
+
+    response = client.get(
+        reverse("buildings:index"),
+        {
+            "owner": f"user:{owner.id}",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"Owner" in response.content
+    assert b"House: House Bramble" in response.content
+    assert b"Kingdom: ValRann" in response.content
+    assert b"Owner Orchard" in response.content
+    assert b"House Orchard" not in response.content
+    assert b"Kingdom Orchard" not in response.content
+    assert response.context["summary"]["total"] == 1
+
+
 def test_building_registry_page_ignores_invalid_choice_filters(client):
     ruleset = create_ruleset()
     definition = create_definition(ruleset)
@@ -438,6 +604,26 @@ def test_non_member_cannot_create_house_building(client):
     )
 
     assert response.status_code == 200
+    assert not OwnedBuilding.objects.filter(nickname="Invalid Orchard").exists()
+
+
+def test_malformed_owner_choice_shows_form_error():
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    form = OwnedBuildingForm(
+        user,
+        {
+            "definition": definition.id,
+            "owner": "user:not-a-number",
+            "nickname": "Invalid Orchard",
+            "status": OwnedBuilding.Status.ACTIVE,
+        },
+    )
+    form.fields["owner"].choices = [*form.fields["owner"].choices, ("user:not-a-number", "Bad")]
+
+    assert not form.is_valid()
+    assert "Choose a valid owner." in form.non_field_errors()
     assert not OwnedBuilding.objects.filter(nickname="Invalid Orchard").exists()
 
 

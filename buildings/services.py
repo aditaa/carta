@@ -1,9 +1,36 @@
 from __future__ import annotations
 
-from django.db.models import Count
+from django.contrib.auth import get_user_model
+from django.db.models import Count, Q
 
 from buildings.models import BuildingLedgerEntry, OwnedBuilding
-from ownership.services import can_view_house, can_view_kingdom, can_view_user
+from ownership.models import House, Kingdom
+from ownership.services import (
+    visible_house_ids,
+    visible_kingdom_ids,
+    visible_user_ids,
+)
+
+
+def building_owner_choices(viewer, *, include_visible_users: bool = False) -> list[tuple[str, str]]:
+    choices: list[tuple[str, str]] = []
+    user_ids = visible_user_ids(viewer) if include_visible_users else {viewer.id}
+    users = (
+        get_user_model()
+        .objects.filter(id__in=user_ids)
+        .order_by(
+            "display_name",
+            "email",
+        )
+    )
+    choices.extend((f"user:{user.id}", user.display_name) for user in users)
+
+    houses = House.objects.filter(id__in=visible_house_ids(viewer)).order_by("name")
+    choices.extend((f"house:{house.id}", f"House: {house.name}") for house in houses)
+
+    kingdoms = Kingdom.objects.filter(id__in=visible_kingdom_ids(viewer)).order_by("name")
+    choices.extend((f"kingdom:{kingdom.id}", f"Kingdom: {kingdom.name}") for kingdom in kingdoms)
+    return choices
 
 
 def visible_owned_buildings(viewer):
@@ -19,12 +46,12 @@ def visible_owned_buildings(viewer):
     if viewer.is_superuser:
         return buildings
 
-    visible_ids = [
-        building.id
-        for building in buildings
-        if _can_view_owned_building(viewer=viewer, building=building)
-    ]
-    return buildings.filter(id__in=visible_ids)
+    user_ids = visible_user_ids(viewer)
+    house_ids = visible_house_ids(viewer)
+    kingdom_ids = visible_kingdom_ids(viewer)
+    return buildings.filter(
+        Q(user_id__in=user_ids) | Q(house_id__in=house_ids) | Q(kingdom_id__in=kingdom_ids)
+    )
 
 
 def registry_summary(buildings):
@@ -59,13 +86,3 @@ def log_building_event(
         changes=changes or {},
         note=note,
     )
-
-
-def _can_view_owned_building(*, viewer, building: OwnedBuilding) -> bool:
-    if building.user_id is not None:
-        return can_view_user(viewer, building.user)
-    if building.house_id is not None:
-        return can_view_house(viewer, building.house)
-    if building.kingdom_id is not None:
-        return can_view_kingdom(viewer, building.kingdom)
-    return False

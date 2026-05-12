@@ -5,7 +5,12 @@ from django.urls import reverse
 
 from buildings.forms import OwnedBuildingForm
 from buildings.models import BuildingLedgerEntry, OwnedBuilding
-from buildings.services import log_building_event, registry_summary, visible_owned_buildings
+from buildings.services import (
+    building_owner_choices,
+    log_building_event,
+    registry_summary,
+    visible_owned_buildings,
+)
 
 
 @login_required
@@ -19,7 +24,7 @@ def index(request):
         {
             "buildings": buildings,
             "filters": filters,
-            "filter_options": _registry_filter_options(base_buildings),
+            "filter_options": _registry_filter_options(request.user, base_buildings),
             "summary": registry_summary(buildings),
         },
     )
@@ -110,16 +115,18 @@ def _registry_filters(request) -> dict:
         "status": request.GET.get("status", ""),
         "category": request.GET.get("category", ""),
         "owner_scope": request.GET.get("owner_scope", ""),
+        "owner": request.GET.get("owner", ""),
     }
 
 
-def _registry_filter_options(buildings) -> dict:
+def _registry_filter_options(user, buildings) -> dict:
     return {
         "statuses": OwnedBuilding.Status.choices,
         "categories": buildings.values_list("definition__category", flat=True)
         .distinct()
         .order_by("definition__category"),
         "owner_scopes": OwnedBuilding.OwnerScope.choices,
+        "owners": _owner_filter_options(user),
     }
 
 
@@ -130,7 +137,21 @@ def _filter_buildings(buildings, filters: dict):
         buildings = buildings.filter(definition__category=filters["category"])
     if filters["owner_scope"] in OwnedBuilding.OwnerScope.values:
         buildings = buildings.filter(owner_scope=filters["owner_scope"])
+    owner = filters["owner"]
+    if owner:
+        owner_type, _, raw_id = owner.partition(":")
+        if raw_id.isdigit():
+            if owner_type == "user":
+                buildings = buildings.filter(user_id=raw_id)
+            elif owner_type == "house":
+                buildings = buildings.filter(house_id=raw_id)
+            elif owner_type == "kingdom":
+                buildings = buildings.filter(kingdom_id=raw_id)
     return buildings
+
+
+def _owner_filter_options(user) -> list[tuple[str, str]]:
+    return building_owner_choices(user, include_visible_users=True)
 
 
 def _building_snapshot(building: OwnedBuilding) -> dict:

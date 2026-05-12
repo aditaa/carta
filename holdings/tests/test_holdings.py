@@ -278,6 +278,31 @@ def test_house_denizen_account_requires_visibility_to_user_and_house():
     assert hidden_account.id not in visible_ids
 
 
+@pytest.mark.django_db
+def test_kingdom_member_can_view_kingdom_and_house_holdings():
+    viewer = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    house.kingdom = kingdom
+    house.save()
+    KingdomMembership.objects.create(user=viewer, kingdom=kingdom)
+    kingdom_account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.KINGDOM,
+        kingdom=kingdom,
+    )
+    house_account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.HOUSE, house=house)
+    stranger_account = HoldingAccount.objects.create(
+        scope=HoldingAccount.Scope.DENIZEN,
+        user=create_user("stranger@example.test"),
+    )
+
+    visible_ids = set(visible_holding_accounts(viewer).values_list("id", flat=True))
+
+    assert kingdom_account.id in visible_ids
+    assert house_account.id in visible_ids
+    assert stranger_account.id not in visible_ids
+
+
 def test_editable_holding_accounts_require_owner_or_member_role():
     viewer = create_user()
     house = House.objects.create(key="bramble", name="House Bramble")
