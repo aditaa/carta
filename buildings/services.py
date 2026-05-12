@@ -65,5 +65,3 @@ def log_building_event(
         changes=changes or {},
         note=note,
     )
-
-

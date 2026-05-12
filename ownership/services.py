@@ -92,9 +92,7 @@ def visible_kingdom_ids(viewer) -> set[int]:
     if not _is_active_user(viewer):
         return set()
     if viewer.is_superuser:
-        return set(
-            Kingdom.objects.values_list("id", flat=True)
-        )
+        return set(Kingdom.objects.values_list("id", flat=True))
     return set(
         KingdomMembership.objects.filter(
             user=viewer,
