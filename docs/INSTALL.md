@@ -32,6 +32,16 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
+If the app will be opened through a DNS name or reverse proxy, edit `.env`
+before starting the server. For example:
+
+```text
+DJANGO_ALLOWED_HOSTS=carta.golden-blades.com,127.0.0.1,localhost
+DJANGO_CSRF_TRUSTED_ORIGINS=http://carta.golden-blades.com,https://carta.golden-blades.com
+```
+
+Restart the app after changing `.env`.
+
 Start MySQL and create the development database/user:
 
 ```bash
@@ -140,6 +150,20 @@ During first install, `runserver` may warn that it cannot check database
 migrations before MySQL is configured. That warning is expected; open the
 installer in the browser and enter the MySQL connection there.
 
+If the browser shows `DisallowedHost`, add the public hostname to
+`DJANGO_ALLOWED_HOSTS` in `.env`, then restart the app. For
+`carta.golden-blades.com`, use:
+
+```text
+DJANGO_ALLOWED_HOSTS=carta.golden-blades.com,127.0.0.1,localhost
+```
+
+If installer forms fail CSRF checks through the public hostname, also set:
+
+```text
+DJANGO_CSRF_TRUSTED_ORIGINS=http://carta.golden-blades.com,https://carta.golden-blades.com
+```
+
 ## Optional Service Setup
 
 For a first test install, running `python manage.py runserver 0.0.0.0:8000`
@@ -160,6 +184,7 @@ User=carta
 Group=carta
 WorkingDirectory=/opt/carta
 Environment=DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,your-server-ip
+Environment=DJANGO_CSRF_TRUSTED_ORIGINS=http://your-server-ip,https://your-server-ip
 ExecStart=/opt/carta/.venv/bin/python manage.py runserver 0.0.0.0:8000
 Restart=on-failure
 RestartSec=5
@@ -168,8 +193,8 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-Adjust `User`, `Group`, `WorkingDirectory`, and `DJANGO_ALLOWED_HOSTS` for the
-server. Then enable it:
+Adjust `User`, `Group`, `WorkingDirectory`, `DJANGO_ALLOWED_HOSTS`, and
+`DJANGO_CSRF_TRUSTED_ORIGINS` for the server. Then enable it:
 
 ```bash
 sudo systemctl daemon-reload
