@@ -10,6 +10,12 @@ from resources.models import Resource
 from rulesets.models import ItemReference, Ruleset
 
 
+@pytest.fixture(autouse=True)
+def installed_app(settings, tmp_path):
+    settings.INSTALLER_LOCK_FILE = tmp_path / "installer.lock"
+    settings.INSTALLER_LOCK_FILE.write_text("installed\n", encoding="utf-8")
+
+
 def create_ruleset():
     ruleset = Ruleset.objects.create(
         game="Carta Arcanum",

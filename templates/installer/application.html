@@ -9,17 +9,23 @@
     <p><a href="{% url 'installer:index' %}">Back to setup</a></p>
     {% if completed %}
       <p class="success-message">
-        Database migrations and rules import completed.
+        Setup completed. The installer is now locked.
       </p>
-      <p><a href="{% url 'accounts:setup' %}">Create the first admin</a></p>
+      <p><a class="button-link" href="{% url 'accounts:login' %}">Open login page</a></p>
     {% endif %}
     {% if command_error %}
       <p class="error-message">{{ command_error }}</p>
     {% endif %}
     <form class="auth-form" method="post">
       {% csrf_token %}
-      <button type="submit">Run setup</button>
+      <button type="submit" {% if not has_superuser %}disabled{% endif %}>Install and lock setup</button>
     </form>
+    {% if not has_superuser %}
+      <p class="error-message">
+        Create the installer superuser before running setup.
+      </p>
+      <p><a href="{% url 'installer:superuser' %}">Create superuser</a></p>
+    {% endif %}
     {% if command_output %}
       <pre class="installer-output">{{ command_output }}</pre>
     {% endif %}

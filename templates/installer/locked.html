@@ -7,8 +7,9 @@
     <p class="eyebrow">Installer</p>
     <h1>Setup complete</h1>
     <p>
-      The installer is locked because an account already exists.
+      The installer is locked. To intentionally rerun setup, stop the app and
+      remove the installer lock file documented in the install guide.
     </p>
-    <p><a href="{% url 'dashboard:home' %}">Return to Carta Arcanum</a></p>
+    <p><a class="button-link" href="{% url 'accounts:login' %}">Open login page</a></p>
   </section>
 {% endblock %}

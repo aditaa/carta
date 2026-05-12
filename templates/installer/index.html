@@ -5,28 +5,26 @@
 {% block content %}
   <section class="installer-shell">
     <p class="eyebrow">Installer</p>
-    <h1>Setup</h1>
-    {% if locked %}
-      <p class="success-message">
-        Setup is complete and the installer is locked.
+    <h1>Welcome to Carta Arcanum</h1>
+    <p>
+      This installer will check the server, save the MySQL connection, create
+      the first superuser, import the rules, and lock setup when it is done.
+    </p>
+    <div class="check-list">
+      {% for check in checks %}
+        <article class="check-row {% if check.ok %}is-ok{% else %}is-error{% endif %}">
+          <strong>{% if check.ok %}OK{% else %}Needs attention{% endif %}</strong>
+          <span>{{ check.label }}</span>
+          <small>{{ check.detail }}</small>
+        </article>
+      {% endfor %}
+    </div>
+    {% if can_continue %}
+      <p><a class="button-link" href="{% url 'installer:database' %}">Next: database setup</a></p>
+    {% else %}
+      <p class="error-message">
+        Fix the items marked above, then refresh this page to continue.
       </p>
     {% endif %}
-    <div class="setup-steps">
-      <article>
-        <h2>Database</h2>
-        <p>Test and save the local MySQL connection.</p>
-        <a href="{% url 'installer:database' %}">Configure database</a>
-      </article>
-      <article>
-        <h2>Application</h2>
-        <p>Run migrations and import the current Carta Arcanum rules.</p>
-        <a href="{% url 'installer:application' %}">Run app setup</a>
-      </article>
-      <article>
-        <h2>Admin</h2>
-        <p>Create the first admin account after the database is ready.</p>
-        <a href="{% url 'accounts:setup' %}">Create admin</a>
-      </article>
-    </div>
   </section>
 {% endblock %}

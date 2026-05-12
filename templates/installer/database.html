@@ -9,9 +9,9 @@
     <p><a href="{% url 'installer:index' %}">Back to setup</a></p>
     {% if saved %}
       <p class="success-message">
-        Database connection saved. Restart the server so the new settings are loaded, then continue setup.
+        Database connection saved and applied.
       </p>
-      <p><a href="{% url 'installer:application' %}">Continue to app setup</a></p>
+      <p><a class="button-link" href="{% url 'installer:superuser' %}">Next: create superuser</a></p>
     {% endif %}
     {% if connection_error %}
       <p class="error-message">{{ connection_error }}</p>
@@ -37,7 +37,7 @@
       <label for="{{ form.password.id_for_label }}">Password</label>
       {{ form.password }}
       {{ form.password.errors }}
-      <button type="submit">Test and save</button>
+      <button type="submit">Test and save database</button>
     </form>
   </section>
 {% endblock %}

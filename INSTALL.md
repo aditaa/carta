@@ -21,6 +21,8 @@ registry pages, holdings flows, and production balance services.
 From the repository root:
 
 ```bash
+git clone --branch stable <repository-url> carta
+cd carta
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip mysql-server
 python3 -m venv .venv
@@ -56,22 +58,18 @@ python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
 python manage.py runserver
 ```
 
-If you prefer to enter the MySQL connection through the web installer, start
-the server after installing dependencies and visit:
+For the guided first-run installer, start the server after installing
+dependencies and visit the app URL. The first page redirects to the installer
+until setup is complete:
 
 ```text
 http://127.0.0.1:8000/install/
 ```
 
-The installer validates the connection and saves local MySQL settings to
-`.env.local`. Restart the server after saving so Django reloads the new
-database settings, then continue in the GUI:
-
-```text
-http://127.0.0.1:8000/install/application/
-```
-
-The app setup page runs migrations and imports the current rules file.
+The installer checks prerequisites, validates the MySQL connection, saves local
+MySQL settings to `.env.local`, creates the first superuser, runs migrations,
+imports the current rules file, and writes `installer.lock` when setup is
+complete.
 
 The app should be available at:
 
@@ -79,14 +77,19 @@ The app should be available at:
 http://127.0.0.1:8000
 ```
 
-On first run, create the initial admin account in the web app:
+If setup must be intentionally rerun, stop the app and remove the lock file:
 
-```text
-http://127.0.0.1:8000/accounts/setup/
+```bash
+rm installer.lock
 ```
 
-The setup page is only available while no users exist. After the first admin is
-created, use the normal sign-in page.
+If the app cannot create the lock file, make the repository folder writable by
+the service user, for example:
+
+```bash
+sudo chown -R "$USER":"$USER" /path/to/carta
+chmod u+w /path/to/carta
+```
 
 ## Configuration
 

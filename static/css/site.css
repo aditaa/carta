@@ -42,7 +42,8 @@ body {
 
 .site-nav a,
 .site-nav button,
-.auth-form button {
+.auth-form button,
+.button-link {
   color: #17201c;
   font: inherit;
   font-weight: 700;
@@ -177,6 +178,53 @@ p {
   margin-top: 8px;
   padding: 8px 12px;
   background: #e6eadf;
+}
+
+.auth-form button:disabled {
+  color: #6f786f;
+  background: #ede8dd;
+  cursor: not-allowed;
+}
+
+.button-link {
+  display: inline-block;
+  padding: 10px 14px;
+  border: 1px solid #aab5a8;
+  border-radius: 6px;
+  background: #e6eadf;
+  text-decoration: none;
+}
+
+.check-list {
+  display: grid;
+  gap: 10px;
+  margin: 24px 0;
+}
+
+.check-row {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr;
+  gap: 4px 12px;
+  padding: 12px;
+  border: 1px solid #ddd3bd;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.check-row strong {
+  grid-row: span 2;
+}
+
+.check-row small {
+  color: #6f786f;
+}
+
+.check-row.is-ok strong {
+  color: #245f3f;
+}
+
+.check-row.is-error strong {
+  color: #9d2f2f;
 }
 
 .table-wrap {

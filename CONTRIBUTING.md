@@ -34,16 +34,21 @@ python -m ruff format --check .
 python -m ruff check .
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python -m pytest tests/test_settings.py ownership/tests production/tests buildings/tests holdings/tests
-python -m pytest accounts/tests dashboard/tests installer/tests
-python -m pytest rulesets/tests
+python manage.py migrate --noinput
+python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
+python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
+python -m pytest
 ```
 
 The full test suite expects MySQL to be running. Use the narrower non-database
 smoke checks from `INSTALL.md` when MySQL is not available locally.
-These commands mirror CI's separate format, lint, Django project check, domain
-service test, web workflow test, and rules import test jobs so failures stay
-easy to locate.
+
+CI runs these checks against real MySQL containers. The main MySQL job tests
+Python 3.11 and 3.12 against MySQL 8.0 and 8.4, applies migrations from
+scratch, imports the rules twice to verify idempotency, checks imported content,
+and runs the full test suite. Additional focused MySQL jobs split installer,
+web workflow, rules import, and domain-service tests so failures stay easy to
+locate.
 
 ## Contribution Workflow
 
@@ -81,4 +86,6 @@ the game rules change:
 - Rules data remains separate from app logic.
 - Tests or verification notes are included.
 - Format, lint, Django checks, and the split pytest groups pass locally.
+- MySQL migrations, rules import, and the full test suite pass locally or CI
+  is allowed to be the source of truth when local MySQL is unavailable.
 - No unrelated formatting or generated files are included.

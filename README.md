@@ -113,12 +113,19 @@ Run the full test suite after MySQL is running and configured:
 ```bash
 python manage.py migrate
 python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
+python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
 python -m pytest
 ```
 
-The local web installer starts at `/install/`. It can test and save the MySQL
-connection to `.env.local`, then run migrations and import the current rules
-file after the server restarts with the saved settings.
+CI runs the full MySQL install/test path across Python 3.11 and 3.12 with
+MySQL 8.0 and 8.4. It also runs focused MySQL suites for installer, web
+workflow, rules import, and domain-service behavior.
+
+The local web installer starts at `/install/`. On first start, the root page
+redirects there until setup is complete. The installer checks prerequisites,
+tests and saves the MySQL connection to `.env.local`, creates the first
+superuser, runs migrations, imports the current rules file, and writes
+`installer.lock` so setup cannot be rerun accidentally.
 
 ## Rules Data
 

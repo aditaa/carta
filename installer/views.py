@@ -1,21 +1,39 @@
 import io
 
 from django.conf import settings
+from django.contrib.auth import get_user_model, login
+from django.core import signing
 from django.core.management import call_command
-from django.shortcuts import render
+from django.core.signing import BadSignature
+from django.shortcuts import redirect, render
 
-from installer.forms import DatabaseConfigForm
+from installer.forms import DatabaseConfigForm, InstallerSuperUserForm
 from installer.services import (
     DatabaseConfig,
+    apply_database_config,
     current_database_config,
     installer_is_locked,
+    lock_installer,
+    prerequisite_checks,
     test_mysql_connection,
     write_database_env,
 )
 
+INSTALLER_SUPERUSER_COOKIE = "carta_installer_superuser"
+
 
 def index(request):
-    return render(request, "installer/index.html", {"locked": installer_is_locked()})
+    if installer_is_locked():
+        return render(request, "installer/locked.html")
+    checks = prerequisite_checks()
+    return render(
+        request,
+        "installer/index.html",
+        {
+            "checks": checks,
+            "can_continue": all(check["ok"] for check in checks),
+        },
+    )
 
 
 def database_setup(request):
@@ -34,6 +52,7 @@ def database_setup(request):
                 connection_error = str(exc)
             else:
                 write_database_env(config)
+                apply_database_config(config)
                 saved = True
     else:
         form = DatabaseConfigForm(initial=current_database_config().__dict__)
@@ -49,6 +68,29 @@ def database_setup(request):
     )
 
 
+def superuser_setup(request):
+    if installer_is_locked():
+        return render(request, "installer/locked.html")
+
+    if request.method == "POST":
+        form = InstallerSuperUserForm(request.POST)
+        if form.is_valid():
+            response = redirect("installer:application")
+            response.set_signed_cookie(
+                INSTALLER_SUPERUSER_COOKIE,
+                signing.dumps(form.session_payload(), salt=INSTALLER_SUPERUSER_COOKIE),
+                salt=INSTALLER_SUPERUSER_COOKIE,
+                max_age=3600,
+                httponly=True,
+                samesite="Strict",
+            )
+            return response
+    else:
+        form = InstallerSuperUserForm()
+
+    return render(request, "installer/superuser.html", {"form": form})
+
+
 def application_setup(request):
     if installer_is_locked():
         return render(request, "installer/locked.html")
@@ -56,30 +98,51 @@ def application_setup(request):
     command_output = ""
     command_error = ""
     completed = False
+    superuser = _installer_superuser_from_cookie(request)
     if request.method == "POST":
         stdout = io.StringIO()
-        try:
-            call_command("migrate", stdout=stdout, no_input=True)
-            call_command(
-                "import_rules",
-                settings.BASE_DIR / "rules" / "carta-arcanum-2.1.4.rules.json",
-                stdout=stdout,
-            )
-        except Exception as exc:
-            command_error = str(exc)
+        if not superuser:
+            command_error = "Create the installer admin account before running setup."
         else:
-            completed = True
+            try:
+                call_command("migrate", stdout=stdout, no_input=True)
+                call_command(
+                    "import_rules",
+                    settings.BASE_DIR / "rules" / "carta-arcanum-2.1.4.rules.json",
+                    stdout=stdout,
+                )
+                user = _create_installer_superuser(superuser)
+                lock_installer()
+            except Exception as exc:
+                command_error = str(exc)
+            else:
+                completed = True
+                login(request, user)
         command_output = stdout.getvalue()
-
-    return render(
+    response = render(
         request,
         "installer/application.html",
         {
             "completed": completed,
             "command_error": command_error,
             "command_output": command_output,
+            "has_superuser": bool(superuser),
         },
     )
+    if completed:
+        response.delete_cookie(INSTALLER_SUPERUSER_COOKIE)
+    return response
+
+
+def _installer_superuser_from_cookie(request) -> dict[str, str] | None:
+    try:
+        payload = request.get_signed_cookie(
+            INSTALLER_SUPERUSER_COOKIE,
+            salt=INSTALLER_SUPERUSER_COOKIE,
+        )
+        return signing.loads(payload, salt=INSTALLER_SUPERUSER_COOKIE)
+    except (BadSignature, KeyError):
+        return None
 
 
 def _config_from_form(form: DatabaseConfigForm) -> DatabaseConfig:
@@ -91,3 +154,21 @@ def _config_from_form(form: DatabaseConfigForm) -> DatabaseConfig:
         user=form.cleaned_data["user"],
         password=form.cleaned_data["password"],
     )
+
+
+def _create_installer_superuser(payload: dict[str, str]):
+    User = get_user_model()
+    user, _ = User.objects.get_or_create(
+        email=payload["email"],
+        defaults={
+            "display_name": payload["display_name"],
+            "is_staff": True,
+            "is_superuser": True,
+        },
+    )
+    user.display_name = payload["display_name"]
+    user.is_staff = True
+    user.is_superuser = True
+    user.set_password(payload["password"])
+    user.save()
+    return user
