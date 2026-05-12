@@ -10,7 +10,8 @@ from pathlib import Path
 import pymysql
 from django import get_version
 from django.conf import settings
-from django.db import connections
+from django.contrib.auth import get_user_model
+from django.db import DatabaseError, ProgrammingError, connections
 
 
 @dataclass(frozen=True)
@@ -86,7 +87,13 @@ def write_database_env(config: DatabaseConfig, path: Path | None = None) -> Path
 
 
 def installer_is_locked() -> bool:
-    return installer_lock_path().exists()
+    if installer_lock_path().exists():
+        return True
+
+    try:
+        return get_user_model().objects.exists()
+    except (DatabaseError, ProgrammingError):
+        return False
 
 
 def installer_lock_path() -> Path:

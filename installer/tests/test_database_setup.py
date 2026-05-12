@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
 
@@ -164,6 +165,7 @@ def test_superuser_setup_saves_account_in_signed_cookie(client):
     assert response.status_code == 302
     assert response.url == reverse("installer:application")
     assert "carta_installer_superuser" in response.cookies
+    assert "swordfish" not in response.cookies["carta_installer_superuser"].value
 
 
 def test_application_setup_page_returns_success(client):
@@ -247,6 +249,17 @@ def test_application_setup_reports_command_failure(client, monkeypatch):
 def test_installer_lock_stays_open_without_lock_file(tmp_path):
     with override_settings(INSTALLER_LOCK_FILE=tmp_path / "installer.lock"):
         assert not installer_is_locked()
+
+
+def test_installer_lock_closes_when_users_exist_without_lock_file(tmp_path):
+    get_user_model().objects.create_user(
+        email="admin@example.test",
+        password="swordfish",
+        display_name="Admin",
+    )
+
+    with override_settings(INSTALLER_LOCK_FILE=tmp_path / "installer.lock"):
+        assert installer_is_locked()
 
 
 def test_installer_lock_closes_when_lock_file_exists(tmp_path):

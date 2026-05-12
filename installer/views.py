@@ -1,8 +1,8 @@
 import io
+import secrets
 
 from django.conf import settings
 from django.contrib.auth import get_user_model, login
-from django.core import signing
 from django.core.management import call_command
 from django.core.signing import BadSignature
 from django.shortcuts import redirect, render
@@ -20,6 +20,7 @@ from installer.services import (
 )
 
 INSTALLER_SUPERUSER_COOKIE = "carta_installer_superuser"
+INSTALLER_SUPERUSER_PAYLOADS: dict[str, dict[str, str]] = {}
 
 
 def index(request):
@@ -75,10 +76,12 @@ def superuser_setup(request):
     if request.method == "POST":
         form = InstallerSuperUserForm(request.POST)
         if form.is_valid():
+            token = secrets.token_urlsafe(32)
+            INSTALLER_SUPERUSER_PAYLOADS[token] = form.session_payload()
             response = redirect("installer:application")
             response.set_signed_cookie(
                 INSTALLER_SUPERUSER_COOKIE,
-                signing.dumps(form.session_payload(), salt=INSTALLER_SUPERUSER_COOKIE),
+                token,
                 salt=INSTALLER_SUPERUSER_COOKIE,
                 max_age=3600,
                 httponly=True,
@@ -130,6 +133,7 @@ def application_setup(request):
         },
     )
     if completed:
+        _clear_installer_superuser(request)
         response.delete_cookie(INSTALLER_SUPERUSER_COOKIE)
     return response
 
@@ -140,9 +144,20 @@ def _installer_superuser_from_cookie(request) -> dict[str, str] | None:
             INSTALLER_SUPERUSER_COOKIE,
             salt=INSTALLER_SUPERUSER_COOKIE,
         )
-        return signing.loads(payload, salt=INSTALLER_SUPERUSER_COOKIE)
     except (BadSignature, KeyError):
         return None
+    return INSTALLER_SUPERUSER_PAYLOADS.get(payload)
+
+
+def _clear_installer_superuser(request) -> None:
+    try:
+        token = request.get_signed_cookie(
+            INSTALLER_SUPERUSER_COOKIE,
+            salt=INSTALLER_SUPERUSER_COOKIE,
+        )
+    except (BadSignature, KeyError):
+        return
+    INSTALLER_SUPERUSER_PAYLOADS.pop(token, None)
 
 
 def _config_from_form(form: DatabaseConfigForm) -> DatabaseConfig:
