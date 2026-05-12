@@ -100,6 +100,10 @@ Use [TRANSITION_TODO.md](TRANSITION_TODO.md) for the detailed task checklist.
 
 - [ ] Add a superuser status and settings section for checking app health and
   configuring runtime options after install.
+- [ ] Add a web-based maintenance and upgrade flow to the superuser
+  status/settings area so admins can check the current version, review upgrade
+  readiness, run safe maintenance steps, and see clear backup/rollback
+  guidance.
 - [ ] Surface `.env.local` and `installer.lock` write-permission checks on the
   future superuser status page.
 - [ ] Add an optional Linux service helper for running Carta Arcanum from a
