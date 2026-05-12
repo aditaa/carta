@@ -1,13 +1,36 @@
 from __future__ import annotations
 
+from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 
 from buildings.models import BuildingLedgerEntry, OwnedBuilding
+from ownership.models import House, Kingdom
 from ownership.services import (
     visible_house_ids,
     visible_kingdom_ids,
     visible_user_ids,
 )
+
+
+def building_owner_choices(viewer, *, include_visible_users: bool = False) -> list[tuple[str, str]]:
+    choices: list[tuple[str, str]] = []
+    user_ids = visible_user_ids(viewer) if include_visible_users else {viewer.id}
+    users = (
+        get_user_model()
+        .objects.filter(id__in=user_ids)
+        .order_by(
+            "display_name",
+            "email",
+        )
+    )
+    choices.extend((f"user:{user.id}", user.display_name) for user in users)
+
+    houses = House.objects.filter(id__in=visible_house_ids(viewer)).order_by("name")
+    choices.extend((f"house:{house.id}", f"House: {house.name}") for house in houses)
+
+    kingdoms = Kingdom.objects.filter(id__in=visible_kingdom_ids(viewer)).order_by("name")
+    choices.extend((f"kingdom:{kingdom.id}", f"Kingdom: {kingdom.name}") for kingdom in kingdoms)
+    return choices
 
 
 def visible_owned_buildings(viewer):

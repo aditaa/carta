@@ -1,4 +1,3 @@
-from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -6,9 +5,12 @@ from django.urls import reverse
 
 from buildings.forms import OwnedBuildingForm
 from buildings.models import BuildingLedgerEntry, OwnedBuilding
-from buildings.services import log_building_event, registry_summary, visible_owned_buildings
-from ownership.models import House, Kingdom, KingdomMembership
-from ownership.services import visible_house_ids, visible_user_ids
+from buildings.services import (
+    building_owner_choices,
+    log_building_event,
+    registry_summary,
+    visible_owned_buildings,
+)
 
 
 @login_required
@@ -149,28 +151,7 @@ def _filter_buildings(buildings, filters: dict):
 
 
 def _owner_filter_options(user) -> list[tuple[str, str]]:
-    visible_users = (
-        get_user_model()
-        .objects.filter(id__in=visible_user_ids(user))
-        .order_by(
-            "display_name",
-            "email",
-        )
-    )
-    choices = [
-        (f"user:{visible_user.id}", visible_user.display_name) for visible_user in visible_users
-    ]
-    houses = House.objects.filter(id__in=visible_house_ids(user)).order_by("name")
-    choices.extend((f"house:{house.id}", f"House: {house.name}") for house in houses)
-    if user.is_superuser:
-        kingdoms = Kingdom.objects.order_by("name")
-    else:
-        kingdom_ids = KingdomMembership.objects.filter(user=user, active=True).values_list(
-            "kingdom_id", flat=True
-        )
-        kingdoms = Kingdom.objects.filter(id__in=kingdom_ids).order_by("name")
-    choices.extend((f"kingdom:{kingdom.id}", f"Kingdom: {kingdom.name}") for kingdom in kingdoms)
-    return choices
+    return building_owner_choices(user, include_visible_users=True)
 
 
 def _building_snapshot(building: OwnedBuilding) -> dict:

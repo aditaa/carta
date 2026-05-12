@@ -2,8 +2,9 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 from buildings.models import BuildingDefinition, OwnedBuilding
-from ownership.models import House, Kingdom, KingdomMembership
-from ownership.services import visible_house_ids
+from buildings.services import building_owner_choices
+from ownership.models import House
+from ownership.services import visible_house_ids, visible_kingdom_ids
 
 
 class OwnedBuildingForm(forms.ModelForm):
@@ -42,14 +43,7 @@ class OwnedBuildingForm(forms.ModelForm):
         return building
 
     def _owner_choices(self):
-        choices = [(f"user:{self.user.id}", f"{self.user.display_name}")]
-        houses = House.objects.filter(id__in=visible_house_ids(self.user)).order_by("name")
-        choices.extend((f"house:{house.id}", f"House: {house.name}") for house in houses)
-        choices.extend(
-            (f"kingdom:{kingdom.id}", f"Kingdom: {kingdom.name}")
-            for kingdom in self._visible_kingdoms()
-        )
-        return choices
+        return building_owner_choices(self.user)
 
     def _initial_owner(self):
         if self.instance.user_id:
@@ -60,24 +54,16 @@ class OwnedBuildingForm(forms.ModelForm):
             return f"kingdom:{self.instance.kingdom_id}"
         return ""
 
-    def _visible_kingdoms(self):
-        if self.user.is_superuser:
-            return Kingdom.objects.order_by("name")
-        kingdom_ids = KingdomMembership.objects.filter(
-            user=self.user,
-            active=True,
-        ).values("kingdom_id")
-        return Kingdom.objects.filter(id__in=kingdom_ids).order_by("name")
-
     def _apply_owner(self, building: OwnedBuilding, owner_value: str) -> None:
         owner_type, _, raw_id = owner_value.partition(":")
-        if not raw_id:
+        if not raw_id or not raw_id.isdigit():
             raise ValidationError("Choose a valid owner.")
 
+        owner_id = int(raw_id)
         building.user = None
         building.house = None
         building.kingdom = None
-        if owner_type == "user" and int(raw_id) == self.user.id:
+        if owner_type == "user" and owner_id == self.user.id:
             building.owner_scope = OwnedBuilding.OwnerScope.DENIZEN
             building.user = self.user
             return
@@ -91,7 +77,7 @@ class OwnedBuildingForm(forms.ModelForm):
             building.owner_scope = OwnedBuilding.OwnerScope.HOUSE
             building.house_id = raw_id
             return
-        if owner_type == "kingdom" and self._visible_kingdoms().filter(id=raw_id).exists():
+        if owner_type == "kingdom" and owner_id in visible_kingdom_ids(self.user):
             building.owner_scope = OwnedBuilding.OwnerScope.KINGDOM
             building.kingdom_id = raw_id
             return

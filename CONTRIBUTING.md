@@ -30,16 +30,20 @@ Ubuntu.
 Before opening a pull request, run:
 
 ```bash
-python -m ruff check .
 python -m ruff format --check .
+python -m ruff check .
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python -m pytest buildings/tests holdings/tests dashboard/tests -q
-python -m pytest
+python -m pytest tests/test_settings.py ownership/tests production/tests buildings/tests holdings/tests
+python -m pytest accounts/tests dashboard/tests installer/tests
+python -m pytest rulesets/tests
 ```
 
 The full test suite expects MySQL to be running. Use the narrower non-database
 smoke checks from `INSTALL.md` when MySQL is not available locally.
+These commands mirror CI's separate format, lint, Django project check, domain
+service test, web workflow test, and rules import test jobs so failures stay
+easy to locate.
 
 ## Contribution Workflow
 
@@ -76,5 +80,5 @@ the game rules change:
 - Documentation is updated when needed.
 - Rules data remains separate from app logic.
 - Tests or verification notes are included.
-- Lint, format, and tests pass locally.
+- Format, lint, Django checks, and the split pytest groups pass locally.
 - No unrelated formatting or generated files are included.

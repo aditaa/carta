@@ -449,6 +449,59 @@ def test_building_registry_page_filters_by_visible_denizen_owner(client):
     assert response.context["summary"]["total"] == 1
 
 
+def test_building_registry_superuser_can_filter_by_any_visible_owner(client):
+    ruleset = create_ruleset()
+    orchard = create_definition(ruleset)
+    admin = get_user_model().objects.create_superuser(
+        email="admin@example.test",
+        password="swordfish",
+        display_name="Admin",
+    )
+    owner = create_user("owner@example.test")
+    owner.display_name = "Owner"
+    owner.save()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=owner,
+        nickname="Owner Orchard",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.HOUSE,
+        house=house,
+        nickname="House Orchard",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.KINGDOM,
+        kingdom=kingdom,
+        nickname="Kingdom Orchard",
+    )
+    client.force_login(admin)
+
+    response = client.get(
+        reverse("buildings:index"),
+        {
+            "owner": f"user:{owner.id}",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"Owner" in response.content
+    assert b"House: House Bramble" in response.content
+    assert b"Kingdom: ValRann" in response.content
+    assert b"Owner Orchard" in response.content
+    assert b"House Orchard" not in response.content
+    assert b"Kingdom Orchard" not in response.content
+    assert response.context["summary"]["total"] == 1
+
+
 def test_building_registry_page_ignores_invalid_choice_filters(client):
     ruleset = create_ruleset()
     definition = create_definition(ruleset)

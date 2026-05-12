@@ -190,7 +190,8 @@ def test_application_setup_runs_migrations_and_imports_rules(client, monkeypatch
     assert calls[0][0] == "migrate"
     assert calls[0][2]["no_input"] is True
     assert calls[1][0] == "import_rules"
-    assert str(calls[1][1][0]).endswith("rules/carta-arcanum-2.1.4.rules.json")
+    assert calls[1][1][0].name == "carta-arcanum-2.1.4.rules.json"
+    assert calls[1][1][0].parent.name == "rules"
 
 
 def test_application_setup_reports_command_failure(client, monkeypatch):
