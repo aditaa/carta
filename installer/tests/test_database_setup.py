@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
 
+from installer import views
 from installer.services import (
     DatabaseConfig,
     installer_is_locked,
@@ -13,6 +14,12 @@ from installer.services import (
 )
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def clear_installer_state():
+    views.INSTALLER_SETUP_JOBS.clear()
+    views.INSTALLER_SUPERUSER_PAYLOADS.clear()
 
 
 def database_form_data(**overrides):
@@ -174,6 +181,8 @@ def test_application_setup_page_returns_success(client):
     assert response.status_code == 200
     assert b"App setup" in response.content
     assert b"Install and lock setup" in response.content
+    assert b"Setup is running" in response.content
+    assert b"Running database migrations" in response.content
 
 
 def test_application_setup_locks_after_lock_file_exists(client, tmp_path):
@@ -187,48 +196,14 @@ def test_application_setup_locks_after_lock_file_exists(client, tmp_path):
     assert b"Install and lock setup" not in response.content
 
 
-def test_application_setup_runs_migrations_imports_rules_creates_admin_and_locks(
-    client, monkeypatch, tmp_path
-):
-    calls = []
-    lock_file = tmp_path / "installer.lock"
+def test_application_setup_starts_background_job(client, monkeypatch):
+    started = []
 
-    def fake_call_command(name, *args, **kwargs):
-        calls.append((name, args, kwargs))
-        kwargs["stdout"].write(f"{name} completed\n")
+    def fake_start_job(superuser):
+        started.append(superuser)
+        return "job-1"
 
-    monkeypatch.setattr("installer.views.call_command", fake_call_command)
-    client.post(
-        reverse("installer:superuser"),
-        {
-            "email": "admin@example.test",
-            "display_name": "Admin",
-            "password1": "swordfish",
-            "password2": "swordfish",
-        },
-    )
-
-    with override_settings(INSTALLER_LOCK_FILE=lock_file):
-        response = client.post(reverse("installer:application"))
-
-    assert response.status_code == 200
-    assert b"Setup completed. The installer is now locked." in response.content
-    assert b"Open login page" in response.content
-    assert b"migrate completed" in response.content
-    assert b"import_rules completed" in response.content
-    assert lock_file.exists()
-    assert calls[0][0] == "migrate"
-    assert calls[0][2]["no_input"] is True
-    assert calls[1][0] == "import_rules"
-    assert calls[1][1][0].name == "carta-arcanum-2.1.4.rules.json"
-    assert calls[1][1][0].parent.name == "rules"
-
-
-def test_application_setup_reports_command_failure(client, monkeypatch):
-    def fake_call_command(name, *args, **kwargs):
-        raise RuntimeError("setup failed")
-
-    monkeypatch.setattr("installer.views.call_command", fake_call_command)
+    monkeypatch.setattr("installer.views.start_application_setup_job", fake_start_job)
     client.post(
         reverse("installer:superuser"),
         {
@@ -242,8 +217,131 @@ def test_application_setup_reports_command_failure(client, monkeypatch):
     response = client.post(reverse("installer:application"))
 
     assert response.status_code == 200
-    assert b"setup failed" in response.content
-    assert b"Setup completed" not in response.content
+    assert b'data-status-url="/install/application/status/job-1/"' in response.content
+    assert started == [
+        {
+            "email": "admin@example.test",
+            "display_name": "Admin",
+            "password": "swordfish",
+        }
+    ]
+    assert "carta_installer_superuser" in response.cookies
+    assert response.cookies["carta_installer_superuser"].value == ""
+
+
+def test_application_setup_job_runs_migrations_imports_rules_creates_admin_and_locks(
+    client, monkeypatch, tmp_path
+):
+    calls = []
+    job_id = "job-1"
+    lock_file = tmp_path / "installer.lock"
+
+    def fake_call_command(name, *args, **kwargs):
+        calls.append((name, args, kwargs))
+        kwargs["stdout"].write(f"{name} completed\n")
+
+    monkeypatch.setattr("installer.views.call_command", fake_call_command)
+    monkeypatch.setattr("installer.views.close_old_connections", lambda: None)
+    with override_settings(INSTALLER_LOCK_FILE=lock_file):
+        views.INSTALLER_SETUP_JOBS[job_id] = {
+            "status": "running",
+            "message": "Starting setup",
+            "output": "",
+            "error": "",
+        }
+        views._run_application_setup_job(
+            job_id,
+            {
+                "email": "admin@example.test",
+                "display_name": "Admin",
+                "password": "swordfish",
+            },
+        )
+
+    job = views.INSTALLER_SETUP_JOBS[job_id]
+    assert job["status"] == "complete"
+    assert job["message"] == "Setup completed. The installer is now locked."
+    assert "migrate completed" in job["output"]
+    assert "import_rules completed" in job["output"]
+    assert get_user_model().objects.get(email="admin@example.test").is_superuser
+    assert lock_file.exists()
+    assert calls[0][0] == "migrate"
+    assert calls[0][2]["no_input"] is True
+    assert calls[1][0] == "import_rules"
+    assert calls[1][1][0].name == "carta-arcanum-2.1.4.rules.json"
+    assert calls[1][1][0].parent.name == "rules"
+
+
+def test_application_setup_status_returns_job_state(client):
+    views.INSTALLER_SETUP_JOBS["job-1"] = {
+        "status": "running",
+        "message": "Running database migrations",
+        "output": "migrate started",
+        "error": "",
+    }
+
+    response = client.get(reverse("installer:application_status", args=["job-1"]))
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "running",
+        "message": "Running database migrations",
+        "output": "migrate started",
+        "error": "",
+    }
+
+
+def test_application_setup_status_adds_redirect_after_completion(client):
+    views.INSTALLER_SETUP_JOBS["job-1"] = {
+        "status": "complete",
+        "message": "Setup completed.",
+        "output": "",
+        "error": "",
+    }
+
+    response = client.get(reverse("installer:application_status", args=["job-1"]))
+
+    assert response.status_code == 200
+    assert response.json()["redirect_url"] == reverse("accounts:login")
+
+
+def test_application_setup_status_reports_missing_job(client):
+    response = client.get(reverse("installer:application_status", args=["missing"]))
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "status": "missing",
+        "error": "Setup job was not found.",
+    }
+
+
+def test_application_setup_job_reports_command_failure(monkeypatch):
+    job_id = "job-1"
+
+    def fake_call_command(name, *args, **kwargs):
+        raise RuntimeError("setup failed")
+
+    monkeypatch.setattr("installer.views.call_command", fake_call_command)
+    views.INSTALLER_SETUP_JOBS[job_id] = {
+        "status": "running",
+        "message": "Starting setup",
+        "output": "",
+        "error": "",
+    }
+
+    views._run_application_setup_job(
+        job_id,
+        {
+            "email": "admin@example.test",
+            "display_name": "Admin",
+            "password": "swordfish",
+        },
+    )
+
+    job = views.INSTALLER_SETUP_JOBS[job_id]
+    assert job["status"] == "error"
+    assert job["message"] == "Setup failed"
+    assert job["error"] == "setup failed"
 
 
 def test_installer_lock_stays_open_without_lock_file(tmp_path):

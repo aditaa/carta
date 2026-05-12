@@ -23,10 +23,33 @@
     {% if command_error %}
       <p class="error-message">{{ command_error }}</p>
     {% endif %}
-    <form class="auth-form" method="post">
+    <form id="install-form" class="auth-form" method="post">
       {% csrf_token %}
-      <button type="submit" {% if not has_superuser %}disabled{% endif %}>Install and lock setup</button>
+      <button id="install-submit" type="submit" {% if not has_superuser %}disabled{% endif %}>Install and lock setup</button>
     </form>
+    <div
+      id="install-progress"
+      class="installer-progress"
+      role="status"
+      aria-live="polite"
+      {% if job_started %}data-status-url="{% url 'installer:application_status' job_id %}"{% else %}hidden{% endif %}
+    >
+      <div class="progress-heading">
+        <span class="progress-spinner" aria-hidden="true"></span>
+        <h2 id="install-progress-title">{% if job_started %}Setup is running{% else %}Setup is running{% endif %}</h2>
+      </div>
+      <p id="install-progress-message">
+        This can take a minute while Carta Arcanum prepares the database and rules.
+      </p>
+      <ol>
+        <li>Running database migrations</li>
+        <li>Importing the current rules file</li>
+        <li>Creating the superuser</li>
+        <li>Locking the installer</li>
+      </ol>
+      <pre id="install-progress-output" class="installer-output compact" hidden></pre>
+      <p id="install-progress-error" class="error-message" hidden></p>
+    </div>
     {% if not has_superuser %}
       <p class="error-message">
         Create the installer superuser before running setup.
@@ -37,4 +60,58 @@
       <pre class="installer-output">{{ command_output }}</pre>
     {% endif %}
   </section>
+  <script>
+    (() => {
+      const form = document.getElementById("install-form");
+      const progress = document.getElementById("install-progress");
+      const submit = document.getElementById("install-submit");
+      const title = document.getElementById("install-progress-title");
+      const message = document.getElementById("install-progress-message");
+      const output = document.getElementById("install-progress-output");
+      const error = document.getElementById("install-progress-error");
+      if (!form || !progress || !submit) {
+        return;
+      }
+      form.addEventListener("submit", () => {
+        submit.disabled = true;
+        submit.textContent = "Installing...";
+        progress.hidden = false;
+      });
+      const pollStatus = () => {
+        const statusUrl = progress.dataset.statusUrl;
+        if (!statusUrl) {
+          return;
+        }
+        fetch(statusUrl, { headers: { "Accept": "application/json" } })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.message) {
+              message.textContent = data.message;
+            }
+            if (data.output) {
+              output.hidden = false;
+              output.textContent = data.output;
+            }
+            if (data.status === "error") {
+              title.textContent = "Setup needs attention";
+              error.hidden = false;
+              error.textContent = data.error || "Setup failed.";
+              return;
+            }
+            if (data.status === "complete") {
+              title.textContent = "Setup completed";
+              if (data.redirect_url) {
+                window.location.assign(data.redirect_url);
+              }
+              return;
+            }
+            window.setTimeout(pollStatus, 2000);
+          })
+          .catch(() => {
+            window.setTimeout(pollStatus, 4000);
+          });
+      };
+      pollStatus();
+    })();
+  </script>
 {% endblock %}
