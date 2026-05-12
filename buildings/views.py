@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -7,7 +8,7 @@ from buildings.forms import OwnedBuildingForm
 from buildings.models import BuildingLedgerEntry, OwnedBuilding
 from buildings.services import log_building_event, registry_summary, visible_owned_buildings
 from ownership.models import House, Kingdom, KingdomMembership
-from ownership.services import visible_house_ids
+from ownership.services import visible_house_ids, visible_user_ids
 
 
 @login_required
@@ -148,7 +149,17 @@ def _filter_buildings(buildings, filters: dict):
 
 
 def _owner_filter_options(user) -> list[tuple[str, str]]:
-    choices = [(f"user:{user.id}", f"{user.display_name}")]
+    visible_users = (
+        get_user_model()
+        .objects.filter(id__in=visible_user_ids(user))
+        .order_by(
+            "display_name",
+            "email",
+        )
+    )
+    choices = [
+        (f"user:{visible_user.id}", visible_user.display_name) for visible_user in visible_users
+    ]
     houses = House.objects.filter(id__in=visible_house_ids(user)).order_by("name")
     choices.extend((f"house:{house.id}", f"House: {house.name}") for house in houses)
     if user.is_superuser:

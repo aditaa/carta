@@ -27,9 +27,7 @@ def visible_owned_buildings(viewer):
     house_ids = visible_house_ids(viewer)
     kingdom_ids = visible_kingdom_ids(viewer)
     return buildings.filter(
-        Q(user_id__in=user_ids)
-        | Q(house_id__in=house_ids)
-        | Q(kingdom_id__in=kingdom_ids)
+        Q(user_id__in=user_ids) | Q(house_id__in=house_ids) | Q(kingdom_id__in=kingdom_ids)
     )
 
 
