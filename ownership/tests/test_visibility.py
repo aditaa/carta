@@ -8,6 +8,8 @@ from ownership.services import (
     can_view_user,
     has_house_role,
     visible_house_ids,
+    visible_kingdom_ids,
+    visible_user_ids,
 )
 
 
@@ -93,3 +95,31 @@ def test_superuser_can_view_users_houses_and_kingdoms():
     assert can_view_house(viewer, house)
     assert can_view_kingdom(viewer, kingdom)
     assert visible_house_ids(viewer) == {house.id}
+
+
+@pytest.mark.django_db
+def test_visible_user_ids_include_housemates_and_kingdom_members():
+    viewer = create_user("viewer@example.test", "Viewer")
+    housemate = create_user("housemate@example.test", "Housemate")
+    kingdommate = create_user("kingdommate@example.test", "Kingdommate")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    HouseMembership.objects.create(user=viewer, house=house, role=Role.MEMBER)
+    HouseMembership.objects.create(user=housemate, house=house, role=Role.MEMBER)
+    KingdomMembership.objects.create(user=viewer, kingdom=kingdom, role=Role.MEMBER)
+    KingdomMembership.objects.create(user=kingdommate, kingdom=kingdom, role=Role.MEMBER)
+
+    visible_ids = visible_user_ids(viewer)
+
+    assert viewer.id in visible_ids
+    assert housemate.id in visible_ids
+    assert kingdommate.id in visible_ids
+
+
+@pytest.mark.django_db
+def test_visible_kingdom_ids_include_user_kingdom_memberships():
+    viewer = create_user("viewer@example.test", "Viewer")
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    KingdomMembership.objects.create(user=viewer, kingdom=kingdom, role=Role.MEMBER)
+
+    assert visible_kingdom_ids(viewer) == {kingdom.id}

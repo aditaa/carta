@@ -88,6 +88,55 @@ def visible_house_ids(viewer) -> set[int]:
     return house_ids
 
 
+def visible_kingdom_ids(viewer) -> set[int]:
+    if not _is_active_user(viewer):
+        return set()
+    if viewer.is_superuser:
+        return set(
+            Kingdom.objects.values_list("id", flat=True)
+        )
+    return set(
+        KingdomMembership.objects.filter(
+            user=viewer,
+            active=True,
+        ).values_list("kingdom_id", flat=True)
+    )
+
+
+def visible_user_ids(viewer) -> set[int]:
+    if not _is_active_user(viewer):
+        return set()
+    if viewer.is_superuser:
+        return set(get_user_model().objects.filter(is_active=True).values_list("id", flat=True))
+
+    house_ids = set(
+        HouseMembership.objects.filter(
+            user=viewer,
+            active=True,
+        ).values_list("house_id", flat=True)
+    )
+    kingdom_ids = set(
+        KingdomMembership.objects.filter(
+            user=viewer,
+            active=True,
+        ).values_list("kingdom_id", flat=True)
+    )
+    user_ids = set(
+        HouseMembership.objects.filter(
+            active=True,
+            house_id__in=house_ids,
+        ).values_list("user_id", flat=True)
+    )
+    user_ids.update(
+        KingdomMembership.objects.filter(
+            active=True,
+            kingdom_id__in=kingdom_ids,
+        ).values_list("user_id", flat=True)
+    )
+    user_ids.add(viewer.id)
+    return user_ids
+
+
 def _membership_meets_role(membership, minimum_role: Role) -> bool:
     if membership is None:
         return False

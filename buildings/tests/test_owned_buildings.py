@@ -207,6 +207,32 @@ def test_visible_owned_buildings_includes_personal_and_shared_house_buildings():
     assert hidden.id not in visible_ids
 
 
+@pytest.mark.django_db
+def test_visible_owned_buildings_includes_kingdom_buildings_for_members():
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    viewer = create_user()
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    KingdomMembership.objects.create(user=viewer, kingdom=kingdom)
+    kingdom_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.KINGDOM,
+        kingdom=kingdom,
+    )
+    hidden = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.KINGDOM,
+        kingdom=Kingdom.objects.create(key="other", name="Other Kingdom"),
+    )
+
+    visible_ids = set(visible_owned_buildings(viewer).values_list("id", flat=True))
+
+    assert kingdom_building.id in visible_ids
+    assert hidden.id not in visible_ids
+
+
 def test_registry_summary_counts_visible_buildings_by_status_and_category():
     ruleset = create_ruleset()
     orchard = create_definition(ruleset)

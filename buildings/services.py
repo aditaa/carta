@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from buildings.models import BuildingLedgerEntry, OwnedBuilding
-from ownership.services import can_view_house, can_view_kingdom, can_view_user
+from ownership.services import (
+    visible_house_ids,
+    visible_kingdom_ids,
+    visible_user_ids,
+)
 
 
 def visible_owned_buildings(viewer):
@@ -19,12 +23,14 @@ def visible_owned_buildings(viewer):
     if viewer.is_superuser:
         return buildings
 
-    visible_ids = [
-        building.id
-        for building in buildings
-        if _can_view_owned_building(viewer=viewer, building=building)
-    ]
-    return buildings.filter(id__in=visible_ids)
+    user_ids = visible_user_ids(viewer)
+    house_ids = visible_house_ids(viewer)
+    kingdom_ids = visible_kingdom_ids(viewer)
+    return buildings.filter(
+        Q(user_id__in=user_ids)
+        | Q(house_id__in=house_ids)
+        | Q(kingdom_id__in=kingdom_ids)
+    )
 
 
 def registry_summary(buildings):
@@ -61,11 +67,3 @@ def log_building_event(
     )
 
 
-def _can_view_owned_building(*, viewer, building: OwnedBuilding) -> bool:
-    if building.user_id is not None:
-        return can_view_user(viewer, building.user)
-    if building.house_id is not None:
-        return can_view_house(viewer, building.house)
-    if building.kingdom_id is not None:
-        return can_view_kingdom(viewer, building.kingdom)
-    return False
