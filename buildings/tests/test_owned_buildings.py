@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 
+from buildings.forms import OwnedBuildingForm
 from buildings.models import BuildingDefinition, BuildingLedgerEntry, OwnedBuilding
 from buildings.services import log_building_event, registry_summary, visible_owned_buildings
 from ownership.models import House, HouseMembership, Kingdom, KingdomMembership
@@ -603,6 +604,26 @@ def test_non_member_cannot_create_house_building(client):
     )
 
     assert response.status_code == 200
+    assert not OwnedBuilding.objects.filter(nickname="Invalid Orchard").exists()
+
+
+def test_malformed_owner_choice_shows_form_error():
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    form = OwnedBuildingForm(
+        user,
+        {
+            "definition": definition.id,
+            "owner": "user:not-a-number",
+            "nickname": "Invalid Orchard",
+            "status": OwnedBuilding.Status.ACTIVE,
+        },
+    )
+    form.fields["owner"].choices = [*form.fields["owner"].choices, ("user:not-a-number", "Bad")]
+
+    assert not form.is_valid()
+    assert "Choose a valid owner." in form.non_field_errors()
     assert not OwnedBuilding.objects.filter(nickname="Invalid Orchard").exists()
 
 
