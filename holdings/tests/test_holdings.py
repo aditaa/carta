@@ -725,3 +725,27 @@ def test_htmx_adjust_form_submission_updates_balances_inline(client):
     assert b"5.00 resource:wood" in response.content  # Should show the new balance
     balance = HoldingBalance.objects.get(account=account, item_key="wood")
     assert balance.quantity == Decimal("5")
+
+
+def test_htmx_adjust_form_submission_shows_validation_errors_inline(client):
+    user = create_user()
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.DENIZEN, user=user)
+    client.force_login(user)
+
+    response = client.post(
+        reverse("holdings:adjust", args=[account.id]),
+        {
+            "action": HoldingLedgerEntry.Action.DEPOSIT,
+            "ruleset": "",
+            "item_type": ItemReference.ItemType.RESOURCE,
+            "item_key": "wood",
+            "quantity": "-5",
+            "note": "Invalid deposit",
+        },
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert b"hx-swap-oob=\"true\"" in response.content
+    assert b"adjust-form" in response.content
+    assert b"Select a valid choice" in response.content or b"quantity" in response.content

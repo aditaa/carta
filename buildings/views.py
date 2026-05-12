@@ -46,9 +46,7 @@ def create(request):
         form = OwnedBuildingForm(request.user)
 
     template = (
-        "buildings/_form.html"
-        if request.headers.get("HX-Request")
-        else "buildings/form.html"
+        "buildings/_form.html" if request.headers.get("HX-Request") else "buildings/form.html"
     )
     return render(request, template, {"form": form})
 
@@ -77,9 +75,7 @@ def edit(request, building_id):
         form = OwnedBuildingForm(request.user, instance=building)
 
     template = (
-        "buildings/_form.html"
-        if request.headers.get("HX-Request")
-        else "buildings/form.html"
+        "buildings/_form.html" if request.headers.get("HX-Request") else "buildings/form.html"
     )
     return render(request, template, {"form": form, "building": building})
 

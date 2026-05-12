@@ -1,7 +1,8 @@
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 
 from holdings.forms import HoldingAdjustmentForm, HoldingTransferForm
 from holdings.models import HoldingAccount
@@ -40,21 +41,35 @@ def adjust(request, account_id):
                 # Handle HTMX request - return updated account balances
                 if request.headers.get("HX-Request"):
                     accounts = visible_holding_accounts(request.user).prefetch_related("balances")
-                    return render(request, "holdings/_account_balances.html", {
-                        "accounts": accounts,
-                        "updated_account_id": account.id
-                    })
+                    return render(
+                        request,
+                        "holdings/_account_balances.html",
+                        {"accounts": accounts, "updated_account_id": account.id},
+                    )
                 return redirect("holdings:index")
+        elif request.headers.get("HX-Request"):
+            accounts = visible_holding_accounts(request.user).prefetch_related("balances")
+            balances_html = render_to_string(
+                "holdings/_account_balances.html",
+                {"accounts": accounts, "updated_account_id": account.id},
+                request=request,
+            )
+            form_html = render_to_string(
+                "holdings/_adjust_form.html",
+                {"account": account, "form": form},
+                request=request,
+            )
+            return HttpResponse(
+                balances_html
+                + f'<div id="adjust-modal-content" hx-swap-oob="true">{form_html}</div>'
+            )
     else:
         form = HoldingAdjustmentForm()
-    
+
     # Handle HTMX request for form display
     if request.headers.get("HX-Request"):
-        return render(request, "holdings/_adjust_form.html", {
-            "account": account, 
-            "form": form
-        })
-    
+        return render(request, "holdings/_adjust_form.html", {"account": account, "form": form})
+
     return render(
         request,
         "holdings/adjust.html",
