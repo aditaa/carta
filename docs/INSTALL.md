@@ -124,6 +124,140 @@ chmod u+w /path/to/carta
 
 If a service user runs the app, use that service user instead of `$USER`.
 
+## Fresh Reinstall
+
+Use this path only when you want to erase the current Carta Arcanum install and
+start with a blank book. It removes app data from the MySQL database.
+
+Before wiping anything, stop the app:
+
+```bash
+sudo systemctl stop carta
+```
+
+If you are running the app manually, stop the `runserver` process with
+`Ctrl+C` instead.
+
+Make a backup first:
+
+```bash
+mysqldump -u carta -p carta_arcanum > carta_arcanum_backup.sql
+cp .env .env.backup
+cp .env.local .env.local.backup 2>/dev/null || true
+```
+
+Then reset the application database:
+
+```bash
+sudo mysql
+```
+
+```sql
+DROP DATABASE IF EXISTS carta_arcanum;
+CREATE DATABASE carta_arcanum CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON carta_arcanum.* TO 'carta'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+Remove installer state so the guided setup can run again:
+
+```bash
+rm -f installer.lock
+rm -f .env.local
+```
+
+Keep `.env` if the hostname, secret key, and other app settings are still
+valid. Remove or edit `.env` only if you intentionally want to reconfigure
+those values.
+
+Install current dependencies and restart the app:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+python manage.py runserver 0.0.0.0:8000
+```
+
+Open `/install/` and complete the installer again. If you use systemd, start
+the service instead:
+
+```bash
+sudo systemctl start carta
+```
+
+## Upgrade Existing Install
+
+Use this path when you want to keep current data and move to a newer version of
+Carta Arcanum.
+
+Stop the app:
+
+```bash
+sudo systemctl stop carta
+```
+
+If you are running `runserver` manually, stop it with `Ctrl+C`.
+
+Back up the database and local settings:
+
+```bash
+mysqldump -u carta -p carta_arcanum > carta_arcanum_pre_upgrade.sql
+cp .env .env.pre_upgrade
+cp .env.local .env.local.pre_upgrade 2>/dev/null || true
+```
+
+Fetch and switch to the release branch or tag you want to run:
+
+```bash
+git fetch origin
+git checkout stable
+git pull --ff-only origin stable
+```
+
+Install updated dependencies:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Apply database migrations:
+
+```bash
+python manage.py migrate
+```
+
+If the release includes a new rules file, import that file after confirming the
+version in `rules/`:
+
+```bash
+python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
+```
+
+Do not remove `installer.lock` during a normal upgrade. Keeping it prevents the
+first-run installer from reopening on an existing database.
+
+Run a quick health check:
+
+```bash
+python manage.py check
+```
+
+Start the app again:
+
+```bash
+sudo systemctl start carta
+```
+
+For a manual test server, use:
+
+```bash
+python manage.py runserver 0.0.0.0:8000
+```
+
+If the upgrade fails, stop the app, restore the database backup, restore the
+previous checkout, reinstall dependencies, and start the app again.
+
 ## Troubleshooting First Start
 
 If `runserver` reports this MySQL authentication error:
