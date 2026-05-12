@@ -746,6 +746,6 @@ def test_htmx_adjust_form_submission_shows_validation_errors_inline(client):
     )
 
     assert response.status_code == 200
-    assert b"hx-swap-oob=\"true\"" in response.content
+    assert b'hx-swap-oob="true"' in response.content
     assert b"adjust-form" in response.content
     assert b"Select a valid choice" in response.content or b"quantity" in response.content
