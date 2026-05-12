@@ -14,6 +14,10 @@ and dependency solving.
   2.1.4.
 - `rules.schema.json`: validation schema for rules data.
 
+Reference source material used while maintaining rules data belongs in
+`docs/reference/`. The current 2.1.4 PDF source is stored there rather than in
+the repository root.
+
 ## Dataset Expectations
 
 Each rules file should be edited directly and organized as arrays:

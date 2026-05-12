@@ -1,103 +1,78 @@
 # Carta Arcanum
 
-Carta Arcanum is a planning app for tracking buildings, ownership, upkeep,
-production chains, deficits, surpluses, and phase progression for Carta
-Arcanum play.
+Carta Arcanum is a Django web app for tracking buildings, resources,
+ownership, upkeep, production chains, deficits, surpluses, and phase
+progression for Carta Arcanum play.
 
-The goal is to help players answer practical questions quickly:
+The app is meant to answer practical planning questions:
 
+- What does each denizen, house, kingdom, or Three Crowns account hold?
 - Who owns which buildings?
-- What does the settlement currently produce?
 - What upkeep is required to sustain the current build?
 - Which inputs are missing?
 - Which outputs are in surplus?
-- What dependency chain is needed to support a desired target?
+- What dependency chain supports a desired target?
 
-## Core Features
+## What This Is
 
-- Building registry for farms, shops, markets, towers, and future building
-  types.
-- Denizen authentication with permission-scoped visibility.
-- Denizen, house, kingdom, and Three Crowns holdings that accept rules-backed
-  currencies, resources, and units.
-- Ownership tracking for players, groups, or factions.
-- Input and output tracking for crops, currency, rarities, and other resources.
-- Auto-calculated upkeep totals across all owned buildings.
-- Deficit and surplus alerts such as "missing 3 crop to sustain 1 farm."
-- Interactive campaign map for territories, hexes, settlements, and points of
-  interest.
-- Phase-based progression tracker for settlement or campaign advancement.
+Carta Arcanum is being rebuilt as a Django monolith. The old FastAPI backend
+and React frontend have been removed; new work should target the current Django
+app structure.
 
-## Solver Goals
+Current foundations include:
 
-The planner should eventually allow a user to choose a desired output, such as
-"sustain 1 farm", and calculate:
+- Email-based denizen accounts and login.
+- Permission-aware ownership visibility.
+- Imported rulesets for resources, currencies, units, buildings, recipes,
+  ownership rules, and transports.
+- Building registry workflows.
+- Denizen, house, kingdom, and Three Crowns holdings.
+- Production, upkeep, deficit, and surplus services.
+- A first-run installer for local setup.
 
-- Required buildings.
-- Required inputs.
-- Full dependency chain.
-- Resource balance after upkeep.
-- Minimal loops that keep a production chain stable.
+Rules data lives in `rules/` and is imported into MySQL. Game values should
+stay in versioned rules files instead of being hard-coded into views, templates,
+models, migrations, or solver logic.
 
-Bonus solver capabilities:
+## How To Use
 
-- Dependency solver.
-- Minimal loop generator.
-- Resource balancing.
-- Interactive map and planning visualization.
-
-## Tech Stack
-
-Carta Arcanum is being rewritten as a Django monolith. The previous FastAPI
-backend and React frontend have been removed and should not be treated as the
-target architecture for new feature work.
-
-- Web framework: Python with Django.
-- Database: MySQL.
-- UI: Django templates with HTMX for targeted dynamic interactions.
-- Map and visualization: target Canvas or PixiJS for a large editable hex-grid
-  campaign map.
-- Supported runtime: Linux.
-
-## Proposed Project Layout
-
-```text
-.
-|-- carta/                # Django project settings and URL configuration
-|-- accounts/             # Users, roles, permissions, and visibility scopes
-|-- rulesets/             # Versioned rules loading, validation, and import
-|-- resources/            # Resources, currencies, units, and categories
-|-- buildings/            # Building registry and ownership behavior
-|-- ownership/            # Houses, kingdoms, owners, and faction records
-|-- holdings/             # Denizen, house, kingdom, and Three Crowns holdings
-|-- production/           # Recipes, upkeep, outputs, and balance services
-|-- progression/          # Phases, unlocks, and requirements
-|-- solver/               # Dependency solving and resource balancing
-|-- dashboard/            # Django views, templates, and page composition
-|-- rules/                # Manually maintained versioned game rules data
-|-- AGENTS.md             # Working notes for AI/dev agents
-|-- CONTRIBUTING.md       # Contribution workflow
-|-- INSTALL.md            # Linux install and run guide
-|-- ROADMAP.md            # Big milestone and todo tracker
-`-- README.md
-```
-
-## Rewrite Status
-
-The first Django skeleton is in place with a custom email-based user model,
-`DenizenProfile`, MySQL settings, a dashboard home page, a health endpoint,
-building registry pages, holdings pages, production balance services, and
-smoke tests.
-
-Carta Arcanum remains Linux-first. On Windows, use WSL with Ubuntu.
-
-## Quality Checks
+Carta Arcanum is supported on Linux. If you are on Windows, use WSL with
+Ubuntu.
 
 Install dependencies:
 
 ```bash
-python -m pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
 ```
+
+Start the app after MySQL is available:
+
+```bash
+python manage.py migrate
+python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
+python manage.py runserver
+```
+
+Open the app:
+
+```text
+http://127.0.0.1:8000/
+```
+
+On first run, the app redirects to the installer:
+
+```text
+http://127.0.0.1:8000/install/
+```
+
+The installer checks prerequisites, saves local MySQL settings to `.env.local`,
+creates the first superuser, runs migrations, imports the current rules file,
+and writes `installer.lock` when setup is complete.
+
+## Common Commands
 
 Run checks that do not require a local MySQL server:
 
@@ -108,62 +83,19 @@ python manage.py check
 python -m pytest dashboard/tests tests
 ```
 
-Run the full test suite after MySQL is running and configured:
+Run the full suite after MySQL is configured:
 
 ```bash
 python manage.py migrate
 python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
-python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
 python -m pytest
 ```
 
-CI runs the full MySQL install/test path across Python 3.11 and 3.12 with
-MySQL 8.0 and 8.4. It also runs focused MySQL suites for installer, web
-workflow, rules import, and domain-service behavior.
+## More Documentation
 
-The local web installer starts at `/install/`. On first start, the root page
-redirects there until setup is complete. The installer checks prerequisites,
-tests and saves the MySQL connection to `.env.local`, creates the first
-superuser, runs migrations, imports the current rules file, and writes
-`installer.lock` so setup cannot be rerun accidentally.
-
-## Rules Data
-
-Rules are intentionally kept separate in `rules/` so game changes can be
-entered manually without rewriting app logic.
-
-The starter rules file is:
-
-```text
-rules/carta-arcanum-2.1.4.rules.json
-```
-
-Application code should treat this as versioned input data made of arrays for
-currencies, resources, units, settlement tiers, building definitions,
-production recipes, ownership rules, transports, titles, and phases. The JSON
-file is the manual source of truth; Django models, migrations, templates, and
-solver logic should not hard-code values that belong in the rules file.
-
-Import the current rules file with:
-
-```bash
-python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
-```
-
-## Roadmap
-
-See `ROADMAP.md` for the milestone todo list and `TRANSITION_TODO.md` for the
-detailed Django rewrite checklist.
-
-## Development Status
-
-This repository is pivoting from a split FastAPI/React app to a Django
-monolith. Core dashboard, building, holdings, and production balance flows are
-now implemented. The next build steps are:
-
-1. Complete permissions and visibility boundaries for denizen, house,
-   kingdom, and Three Crowns data.
-2. Finish HTMX workflows for building and holding edits.
-3. Stabilize production alerts and owner-specific balance overviews.
-4. Add the installer, interactive map, and dependency solver after the first
-   version is usable.
+- [Docs index](docs/README.md)
+- [Install guide](docs/INSTALL.md)
+- [Project structure](docs/ARCHITECTURE.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Django transition checklist](docs/TRANSITION_TODO.md)
+- [Contributing](CONTRIBUTING.md)

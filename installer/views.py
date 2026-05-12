@@ -111,7 +111,7 @@ def application_setup(request):
                 call_command("migrate", stdout=stdout, no_input=True)
                 call_command(
                     "import_rules",
-                    settings.BASE_DIR / "rules" / "carta-arcanum-2.1.4.rules.json",
+                    settings.CURRENT_RULES_FILE,
                     stdout=stdout,
                 )
                 user = _create_installer_superuser(superuser)

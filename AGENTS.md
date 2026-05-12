@@ -102,7 +102,8 @@ When rules change:
 
 ## Documentation Guidelines
 
-- Update `README.md` when setup steps, architecture, or user-facing behavior
-  changes.
+- Keep `README.md` focused on what the project is and how to use it.
+- Put longer setup, architecture, roadmap, and transition details in `docs/`.
+- Update `docs/INSTALL.md` when setup steps change.
 - Update `CONTRIBUTING.md` when the development workflow changes.
 - Update this file when conventions for future agents change.

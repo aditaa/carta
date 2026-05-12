@@ -235,11 +235,11 @@ FastAPI/React split app to a Django monolith.
 ## 14. Documentation
 
 - [x] Update `README.md` after the Django skeleton exists.
-- [x] Update `INSTALL.md` with exact Django setup commands.
+- [x] Update `docs/INSTALL.md` with exact Django setup commands.
 - [x] Update `CONTRIBUTING.md` with exact lint, test, migration, and rules
   import commands.
 - [x] Update `AGENTS.md` when the app layout is finalized.
-- [x] Keep `ROADMAP.md` high-level and use this file for transition detail.
+- [x] Keep `docs/ROADMAP.md` high-level and use this file for transition detail.
 - [x] Add user-facing notes for first-run setup or admin creation.
 
 ## 15. Feature Parity Check

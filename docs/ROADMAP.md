@@ -4,7 +4,7 @@ This is the high-level todo list for rebuilding Carta Arcanum as a Django
 monolith. The previous FastAPI and React implementation has been removed and
 should not drive the new architecture.
 
-Use `TRANSITION_TODO.md` for the detailed task checklist.
+Use [TRANSITION_TODO.md](TRANSITION_TODO.md) for the detailed task checklist.
 
 ## Phase 0: Rewrite Preparation
 

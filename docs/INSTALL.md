@@ -16,7 +16,7 @@ registry pages, holdings flows, and production balance services.
 - MySQL 8 or compatible.
 - Node.js only if a future map, visualization, or asset pipeline requires it.
 
-## Planned Django Quick Start
+## Django Quick Start
 
 From the repository root:
 
@@ -50,17 +50,14 @@ GRANT CREATE, DROP ON *.* TO 'carta'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-Then run:
+For the guided first-run installer, start the server after installing
+dependencies and creating the MySQL database/user:
 
 ```bash
-python manage.py migrate
-python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
-python manage.py runserver
+python manage.py runserver 0.0.0.0:8000
 ```
 
-For the guided first-run installer, start the server after installing
-dependencies and visit the app URL. The first page redirects to the installer
-until setup is complete:
+The first page redirects to the installer until setup is complete:
 
 ```text
 http://127.0.0.1:8000/install/
@@ -70,6 +67,14 @@ The installer checks prerequisites, validates the MySQL connection, saves local
 MySQL settings to `.env.local`, creates the first superuser, runs migrations,
 imports the current rules file, and writes `installer.lock` when setup is
 complete.
+
+If you prefer to run setup from the command line instead of the installer:
+
+```bash
+python manage.py migrate
+python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
+python manage.py runserver 0.0.0.0:8000
+```
 
 The app should be available at:
 
@@ -108,6 +113,32 @@ chmod u+w /path/to/carta
 ```
 
 If a service user runs the app, use that service user instead of `$USER`.
+
+## Troubleshooting First Start
+
+If `runserver` reports this MySQL authentication error:
+
+```text
+'cryptography' package is required for sha256_password or caching_sha2_password auth methods
+```
+
+install the current requirements again inside the virtual environment:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+If the checkout is older and `requirements.txt` does not include
+`cryptography`, install it directly:
+
+```bash
+pip install "cryptography>=42.0,<46.0"
+```
+
+During first install, `runserver` may warn that it cannot check database
+migrations before MySQL is configured. That warning is expected; open the
+installer in the browser and enter the MySQL connection there.
 
 ## Optional Service Setup
 
@@ -157,6 +188,14 @@ sudo journalctl -u carta -f
 Django configuration should be read from environment variables. Keep secrets
 and database credentials out of version control. The optional web installer
 writes local database settings to `.env.local`, which is ignored by git.
+
+Common local settings are shown in `.env.example`. The Carta-specific settings
+are:
+
+- `CARTA_CURRENT_RULES_FILE`: rules JSON imported by the installer.
+- `CARTA_INSTALLER_ENV_FILE`: local env file written by the installer.
+- `CARTA_INSTALLER_LOCK_FILE`: lock file that prevents accidental installer
+  reruns.
 
 ## Checks
 

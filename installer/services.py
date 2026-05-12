@@ -116,7 +116,7 @@ def lock_installer() -> Path:
 def prerequisite_checks() -> list[dict[str, str | bool]]:
     env_file = settings.INSTALLER_ENV_FILE
     lock_file = installer_lock_path()
-    rules_file = settings.BASE_DIR / "rules" / "carta-arcanum-2.1.4.rules.json"
+    rules_file = settings.CURRENT_RULES_FILE
     return [
         {
             "label": "Linux runtime",
