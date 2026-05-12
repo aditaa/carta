@@ -72,7 +72,11 @@
           <div class="owner-grid">
             {% for owner in owner_panels %}
               <article>
-                <h3>{{ owner.owner }}</h3>
+                <h3>
+                  <a href="{% url 'dashboard:owner_detail' owner.owner_type owner.owner_id %}">
+                    {{ owner.owner }}
+                  </a>
+                </h3>
                 <p class="muted">{{ owner.building_count }} visible buildings</p>
                 <div class="owner-summary">
                   <p><strong>Alerts</strong></p>

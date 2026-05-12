@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}{{ owner_label }} – Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="dashboard-shell">
+    <h1>{{ owner_label }}</h1>
+    <p class="muted">Owner type: {{ owner_type }} / ID: {{ owner_id }}</p>
+    <section class="dashboard-panel">
+      <h2>Owner Production Balance</h2>
+      <p class="muted">{{ balance_panel.building_count }} visible buildings included.</p>
+      <section class="alerts-panel">
+        <h3>Alerts</h3>
+        <ul class="alerts-list">
+          {% for message in balance_panel.alerts %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+      <div class="balance-grid">
+        <article>
+          <h3>Upkeep</h3>
+          {% for item in balance_panel.upkeep %}
+            <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+          {% empty %}
+            <p class="muted">No upkeep.</p>
+          {% endfor %}
+        </article>
+        <article>
+          <h3>Inputs</h3>
+          {% for item in balance_panel.production_inputs %}
+            <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+          {% empty %}
+            <p class="muted">No inputs.</p>
+          {% endfor %}
+        </article>
+        <article>
+          <h3>Outputs</h3>
+          {% for item in balance_panel.production_outputs %}
+            <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+          {% empty %}
+            <p class="muted">No outputs.</p>
+          {% endfor %}
+        </article>
+        <article>
+          <h3>Deficits</h3>
+          {% for item in balance_panel.deficits %}
+            <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+          {% empty %}
+            <p class="muted">No deficits.</p>
+          {% endfor %}
+        </article>
+        <article>
+          <h3>Surpluses</h3>
+          {% for item in balance_panel.surpluses %}
+            <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+          {% empty %}
+            <p class="muted">No surpluses.</p>
+          {% endfor %}
+        </article>
+      </div>
+    </section>
+    <section class="dashboard-panel">
+      <h2>Visible Buildings</h2>
+      <ul class="owner-buildings">
+        {% for building in buildings %}
+          <li>{{ building.definition.name }} ({{ building.status }})</li>
+        {% empty %}
+          <li class="muted">No visible buildings for this owner.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </section>
+{% endblock %}

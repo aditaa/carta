@@ -120,6 +120,8 @@ def balance_by_owner(buildings) -> list[dict]:
         panels.append(
             {
                 "owner": _owner_label(group[0]),
+                "owner_type": key[0],
+                "owner_id": key[1],
                 "building_count": len(group),
                 "upkeep": upkeep_totals(group),
                 "production_inputs": production["inputs"],
