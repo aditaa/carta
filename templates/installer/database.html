@@ -6,6 +6,13 @@
   <section class="auth-shell">
     <p class="eyebrow">Installer</p>
     <h1>Database setup</h1>
+    <ol class="installer-steps compact" aria-label="Installer progress">
+      <li class="is-complete">Welcome</li>
+      <li class="is-active">Database</li>
+      <li>Superuser</li>
+      <li>Install</li>
+      <li>Login</li>
+    </ol>
     <p><a href="{% url 'installer:index' %}">Back to setup</a></p>
     {% if saved %}
       <p class="success-message">

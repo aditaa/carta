@@ -223,6 +223,8 @@ FastAPI/React split app to a Django monolith.
 - [ ] Add admin-only import status page or command output guidance.
 - [ ] Add a superuser status page for install health and core runtime checks.
 - [ ] Add a superuser settings section for app configuration.
+- [ ] Add `.env.local` and `installer.lock` write-permission checks to the
+  future superuser status page.
 - [ ] Add an optional systemd service helper or documented command for running
   the app from a cloned release branch.
 - [ ] Add deployment health checks.

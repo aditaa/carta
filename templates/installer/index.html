@@ -10,6 +10,13 @@
       This installer will check the server, save the MySQL connection, create
       the first superuser, import the rules, and lock setup when it is done.
     </p>
+    <ol class="installer-steps" aria-label="Installer progress">
+      <li class="is-active">Welcome</li>
+      <li>Database</li>
+      <li>Superuser</li>
+      <li>Install</li>
+      <li>Login</li>
+    </ol>
     <div class="check-list">
       {% for check in checks %}
         <article class="check-row {% if check.ok %}is-ok{% else %}is-error{% endif %}">

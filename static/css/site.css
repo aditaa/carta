@@ -195,6 +195,43 @@ p {
   text-decoration: none;
 }
 
+.installer-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 22px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.installer-steps.compact {
+  margin: 14px 0 18px;
+}
+
+.installer-steps li {
+  min-width: 0;
+  padding: 8px 6px;
+  border: 1px solid #ddd3bd;
+  border-radius: 6px;
+  background: #fffdf8;
+  color: #6f786f;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.installer-steps li.is-complete {
+  border-color: #aab5a8;
+  background: #e6eadf;
+  color: #245f3f;
+}
+
+.installer-steps li.is-active {
+  border-color: #7f8c7b;
+  background: #17201c;
+  color: #fffdf8;
+}
+
 .check-list {
   display: grid;
   gap: 10px;

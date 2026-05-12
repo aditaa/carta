@@ -77,11 +77,27 @@ The app should be available at:
 http://127.0.0.1:8000
 ```
 
-If setup must be intentionally rerun, stop the app and remove the lock file:
+## Installer Recovery
+
+The installer locks itself by writing `installer.lock` in the repository root.
+That file prevents accidental reruns after the app is live.
+
+If setup must be intentionally rerun, stop the app and remove only the lock
+file:
 
 ```bash
 rm installer.lock
 ```
+
+Then start the app again and open:
+
+```text
+http://127.0.0.1:8000/install/
+```
+
+Do not remove `.env.local` unless you want to re-enter the MySQL connection.
+Do not drop the MySQL database unless you intend to erase app data and start
+over.
 
 If the app cannot create the lock file, make the repository folder writable by
 the service user, for example:
@@ -89,6 +105,51 @@ the service user, for example:
 ```bash
 sudo chown -R "$USER":"$USER" /path/to/carta
 chmod u+w /path/to/carta
+```
+
+If a service user runs the app, use that service user instead of `$USER`.
+
+## Optional Service Setup
+
+For a first test install, running `python manage.py runserver 0.0.0.0:8000`
+from the repository folder is enough. For a longer-running test server, use a
+proper WSGI server later; this temporary systemd unit keeps the development
+server running for testers.
+
+Create `/etc/systemd/system/carta.service`:
+
+```ini
+[Unit]
+Description=Carta Arcanum test server
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=carta
+Group=carta
+WorkingDirectory=/opt/carta
+Environment=DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,your-server-ip
+ExecStart=/opt/carta/.venv/bin/python manage.py runserver 0.0.0.0:8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Adjust `User`, `Group`, `WorkingDirectory`, and `DJANGO_ALLOWED_HOSTS` for the
+server. Then enable it:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now carta
+sudo systemctl status carta
+```
+
+View logs with:
+
+```bash
+sudo journalctl -u carta -f
 ```
 
 ## Configuration

@@ -6,6 +6,13 @@
   <section class="auth-shell">
     <p class="eyebrow">Installer</p>
     <h1>Create superuser</h1>
+    <ol class="installer-steps compact" aria-label="Installer progress">
+      <li class="is-complete">Welcome</li>
+      <li class="is-complete">Database</li>
+      <li class="is-active">Superuser</li>
+      <li>Install</li>
+      <li>Login</li>
+    </ol>
     <p><a href="{% url 'installer:database' %}">Back to database setup</a></p>
     <form class="auth-form" method="post">
       {% csrf_token %}
