@@ -337,6 +337,50 @@ def test_building_registry_page_filters_visible_buildings(client):
     assert response.context["summary"]["total"] == 1
 
 
+def test_building_registry_page_filters_by_owner(client):
+    ruleset = create_ruleset()
+    orchard = create_definition(ruleset)
+    viewer = create_user()
+    stranger = create_user("stranger@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=viewer, house=house)
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.HOUSE,
+        house=house,
+        nickname="House Orchard",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=viewer,
+        nickname="Personal Orchard",
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=stranger,
+        nickname="Hidden Orchard",
+    )
+    client.force_login(viewer)
+
+    response = client.get(
+        reverse("buildings:index"),
+        {
+            "owner": f"house:{house.id}",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"House Orchard" in response.content
+    assert b"Personal Orchard" not in response.content
+    assert b"Hidden Orchard" not in response.content
+    assert response.context["summary"]["total"] == 1
+
+
 def test_building_registry_page_ignores_invalid_choice_filters(client):
     ruleset = create_ruleset()
     definition = create_definition(ruleset)

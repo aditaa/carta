@@ -27,11 +27,20 @@
         </select>
       </label>
       <label>
-        Owner
+        Owner type
         <select name="owner_scope">
           <option value="">All owners</option>
           {% for value, label in filter_options.owner_scopes %}
             <option value="{{ value }}"{% if filters.owner_scope == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Specific owner
+        <select name="owner">
+          <option value="">All owners</option>
+          {% for value, label in filter_options.owners %}
+            <option value="{{ value }}"{% if filters.owner == value %} selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </select>
       </label>
