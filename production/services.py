@@ -100,9 +100,7 @@ def production_alerts(buildings) -> list[str]:
                 f"{line.item_key} to balance upkeep and inputs."
             )
         elif line.quantity > 0:
-            alerts.append(
-                f"Surplus {formatted_quantity} {line.item_type}:{line.item_key}."
-            )
+            alerts.append(f"Surplus {formatted_quantity} {line.item_type}:{line.item_key}.")
 
     if not alerts:
         alerts.append("Production and upkeep are balanced.")
@@ -111,17 +109,17 @@ def production_alerts(buildings) -> list[str]:
 
 
 def balance_by_owner(buildings) -> list[dict]:
-    owner_groups: dict[str, list] = {}
+    owner_groups: dict[tuple[str, int], list] = {}
     for building in buildings:
-        owner_label = _owner_label(building)
-        owner_groups.setdefault(owner_label, []).append(building)
+        owner_key = _owner_group_key(building)
+        owner_groups.setdefault(owner_key, []).append(building)
 
     panels = []
-    for label, group in sorted(owner_groups.items()):
+    for key, group in sorted(owner_groups.items()):
         production = production_totals(group)
         panels.append(
             {
-                "owner": label,
+                "owner": _owner_label(group[0]),
                 "building_count": len(group),
                 "upkeep": upkeep_totals(group),
                 "production_inputs": production["inputs"],
@@ -132,6 +130,16 @@ def balance_by_owner(buildings) -> list[dict]:
             }
         )
     return panels
+
+
+def _owner_group_key(building) -> tuple[str, int]:
+    if getattr(building, "user_id", None) is not None:
+        return ("user", building.user_id)
+    if getattr(building, "house_id", None) is not None:
+        return ("house", building.house_id)
+    if getattr(building, "kingdom_id", None) is not None:
+        return ("kingdom", building.kingdom_id)
+    return ("unknown", getattr(building, "id", 0))
 
 
 def _owner_label(building) -> str:

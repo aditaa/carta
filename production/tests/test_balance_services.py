@@ -332,3 +332,40 @@ def test_balance_by_owner_returns_panels_for_each_owner():
     assert any(panel["owner"] == f"Denizen: {user.display_name}" for panel in panels)
     assert any(panel["owner"] == f"Denizen: {other_user.display_name}" for panel in panels)
     assert {panel["building_count"] for panel in panels} == {1}
+
+
+def test_balance_by_owner_keeps_duplicate_display_name_users_separate():
+    ruleset = create_ruleset()
+    orchard = create_building_definition(ruleset)
+    user = create_user(display_name="Same Name")
+    other_user = create_user("other@example.test", display_name="Same Name")
+
+    first_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    second_building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=other_user,
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    add_item_ref(
+        ruleset=ruleset,
+        owner_type="building_definition",
+        owner_key=orchard.key,
+        purpose=ItemReference.Purpose.BUILDING_UPKEEP,
+        item_key="food",
+        amount="1",
+    )
+
+    panels = balance_by_owner([first_building, second_building])
+
+    assert len(panels) == 2
+    assert all(panel["building_count"] == 1 for panel in panels)
+    assert any(panel["owner"] == f"Denizen: {user.display_name}" for panel in panels)
+    assert any(panel["owner"] == f"Denizen: {other_user.display_name}" for panel in panels)
