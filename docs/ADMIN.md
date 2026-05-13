@@ -107,12 +107,20 @@ status page after changing email settings.
 
 ## Upgrades
 
-The production install is expected to run from the `stable` branch. The upgrade
-button appears only for superusers and only when an upgrade is available.
+The production install defaults to the `stable` release branch. Test installs
+can change the release branch setting to `main`, which is the development
+branch, from `Settings -> Application Status`. The upgrade button appears only
+for superusers and only when an upgrade is available on the configured branch.
 
-An upgrade resets tracked code files back to Git, switches to `stable`, fetches
-and fast-forwards from origin, installs dependencies, runs migrations, collects
-static files, and runs the configured restart command when present.
+An upgrade resets tracked code files back to Git, fetches remotes, switches to
+the configured release branch, fast-forwards from origin, installs dependencies,
+runs migrations, collects static files, and runs the configured restart command
+when present.
+
+Pull requests targeting `stable` are guarded by the Stable Release Gate workflow.
+Stable release PRs must be ready for review and must come from `main`,
+`release/*`, or `hotfix/*`. Make that gate a required branch protection check on
+GitHub before relying on it as an enforcement mechanism.
 
 Before upgrading a live install, keep a normal database and environment backup.
 The upgrade workflow does not remove `.env`, `.env.local`, `installer.lock`, or

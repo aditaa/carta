@@ -1,20 +1,25 @@
 import logging
+import subprocess
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, override_settings
 
+import accounts.services as account_services
 from accounts.models import ApplicationSetting, AuditLogEntry
 from accounts.permissions import AuditAction, RolePresetKey
 from accounts.services import (
     apply_role_preset,
     changed_fields,
+    configured_release_branch,
     ensure_default_application_settings,
     log_audit,
     model_snapshot,
     start_upgrade_job,
+    upgrade_available,
     upgrade_job_status,
     validate_email_settings,
+    validate_release_branch,
 )
 from carta.middleware import SlowQueryLoggingMiddleware
 
@@ -132,6 +137,92 @@ def test_default_settings_include_slow_query_health_support(settings):
     ensure_default_application_settings()
 
     assert ApplicationSetting.objects.filter(key="email_backend").exists()
+
+
+@pytest.mark.django_db
+def test_default_settings_include_stable_release_branch():
+    ensure_default_application_settings()
+
+    assert ApplicationSetting.objects.get(key="release_branch").value == "stable"
+    assert configured_release_branch() == "stable"
+
+
+@pytest.mark.django_db
+def test_configured_release_branch_can_use_main_for_dev_installs():
+    ensure_default_application_settings()
+    ApplicationSetting.objects.filter(key="release_branch").update(value="main")
+
+    assert configured_release_branch() == "main"
+
+
+def test_validate_release_branch_rejects_unsafe_names():
+    assert validate_release_branch("main") == (True, "")
+    assert validate_release_branch("stable") == (True, "")
+    assert validate_release_branch("release/2026-05") == (True, "")
+
+    assert not validate_release_branch("")[0]
+    assert not validate_release_branch("-main")[0]
+    assert not validate_release_branch("feature//bad")[0]
+    assert not validate_release_branch("feature bad")[0]
+    assert not validate_release_branch("HEAD")[0]
+    assert not validate_release_branch("refs/heads/main.lock")[0]
+    assert not validate_release_branch("release/@{bad}")[0]
+
+
+@pytest.mark.django_db
+def test_upgrade_available_uses_configured_release_branch(monkeypatch):
+    ensure_default_application_settings()
+    ApplicationSetting.objects.filter(key="release_branch").update(value="main")
+    checked_refs = []
+    commands = []
+
+    def fake_git_ref_exists(ref):
+        checked_refs.append(ref)
+        return True
+
+    def fake_run_git(command):
+        commands.append(command)
+        return subprocess.CompletedProcess(
+            ["git", *command],
+            0,
+            stdout="0\t1\n",
+            stderr="",
+        )
+
+    monkeypatch.setattr("accounts.services._git_ref_exists", fake_git_ref_exists)
+    monkeypatch.setattr("accounts.services._run_git", fake_run_git)
+
+    assert upgrade_available()
+    assert checked_refs == ["origin/main"]
+    assert commands == [["rev-list", "--left-right", "--count", "HEAD...origin/main"]]
+
+
+@pytest.mark.django_db
+def test_upgrade_job_checks_out_configured_release_branch(monkeypatch):
+    ensure_default_application_settings()
+    ApplicationSetting.objects.filter(key="release_branch").update(value="main")
+    account_services.UPGRADE_JOBS["job-123"] = {
+        "status": "running",
+        "message": "Starting upgrade",
+        "output": "",
+        "error": "",
+    }
+    commands = []
+
+    def fake_completed_command(output, command):
+        commands.append(command)
+        output.write(f"$ {' '.join(command)}\n")
+
+    monkeypatch.setattr("accounts.services._append_completed_command", fake_completed_command)
+    monkeypatch.setattr("accounts.services.call_command", lambda *args, **kwargs: None)
+    monkeypatch.setattr("accounts.services.close_old_connections", lambda: None)
+
+    account_services._run_upgrade_job("job-123")
+
+    assert ["git", "checkout", "main"] in commands
+    assert ["git", "pull", "--ff-only", "origin", "main"] in commands
+    assert upgrade_job_status("job-123")["status"] == "complete"
+    account_services.UPGRADE_JOBS.pop("job-123", None)
 
 
 @pytest.mark.django_db
