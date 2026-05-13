@@ -33,19 +33,23 @@ from accounts.models import (
     DenizenProfile,
     MembershipInvitation,
 )
+from accounts.permissions import AuditAction
 from accounts.services import (
     application_setting_map,
     can_manage_user,
+    changed_fields,
     ensure_default_application_settings,
     git_changed_files,
     log_audit,
     manageable_user_queryset,
+    model_snapshot,
     reset_git_checkout,
     restore_git_file,
     start_upgrade_job,
     status_health_checks,
     upgrade_available,
     upgrade_job_status,
+    validate_email_settings,
 )
 from buildings.models import OwnedBuilding
 from holdings.models import HoldingAccount
@@ -190,10 +194,25 @@ def application_status(request):
             queryset=ApplicationSetting.objects.all(),
         )
         if formset.is_valid():
-            formset.save()
-            log_audit(request.user, "application_settings_updated", request.user)
-            messages.success(request, "Application settings updated.")
-            return redirect("accounts:application_status")
+            submitted_settings = {
+                form.instance.key: form.cleaned_data["value"] for form in formset.forms
+            }
+            email_validation = validate_email_settings(submitted_settings)
+            if not email_validation.ok:
+                for error in email_validation.errors:
+                    formset._non_form_errors.append(error)
+            else:
+                before = dict(ApplicationSetting.objects.values_list("key", "value"))
+                formset.save()
+                after = dict(ApplicationSetting.objects.values_list("key", "value"))
+                log_audit(
+                    request.user,
+                    AuditAction.APPLICATION_SETTINGS_UPDATED,
+                    request.user,
+                    {"changes": changed_fields(before, after)},
+                )
+                messages.success(request, "Application settings updated.")
+                return redirect("accounts:application_status")
     else:
         formset = settings_formset_class(queryset=ApplicationSetting.objects.all())
 
@@ -227,7 +246,12 @@ def send_test_email(request):
         except Exception as exc:
             messages.error(request, f"Test email failed: {exc}")
         else:
-            log_audit(request.user, "test_email_sent", request.user, {"recipient": recipient})
+            log_audit(
+                request.user,
+                AuditAction.TEST_EMAIL_SENT,
+                request.user,
+                {"recipient": recipient},
+            )
             messages.success(request, "Test email sent.")
     return redirect("accounts:application_status")
 
@@ -237,7 +261,13 @@ def start_upgrade(request):
     if request.method != "POST":
         return redirect("accounts:application_status")
     job_id = start_upgrade_job()
-    log_audit(request.user, "upgrade_started", request.user, {"job_id": job_id})
+    job = upgrade_job_status(job_id)
+    action = (
+        AuditAction.UPGRADE_REUSED_RUNNING_JOB
+        if job.get("message") != "Starting upgrade"
+        else AuditAction.UPGRADE_STARTED
+    )
+    log_audit(request.user, action, request.user, {"job_id": job_id})
     messages.success(request, "Upgrade started.")
     return redirect(reverse("accounts:upgrade_status", args=[job_id]))
 
@@ -277,7 +307,7 @@ def fix_git_file(request):
         except Exception as exc:
             messages.error(request, str(exc))
         else:
-            log_audit(request.user, "git_file_restored", request.user, {"path": path})
+            log_audit(request.user, AuditAction.GIT_FILE_RESTORED, request.user, {"path": path})
             messages.success(request, f"{path} restored from Git.")
     return redirect("accounts:application_status")
 
@@ -290,7 +320,7 @@ def reset_git_files(request):
         except Exception as exc:
             messages.error(request, str(exc))
         else:
-            log_audit(request.user, "git_checkout_reset", request.user)
+            log_audit(request.user, AuditAction.GIT_CHECKOUT_RESET, request.user)
             messages.success(request, "Git checkout reset to the committed state.")
     return redirect("accounts:application_status")
 
@@ -328,10 +358,17 @@ def house_admin_detail(request, house_id):
     )
     house = get_object_or_404(houses, pk=house_id)
     if request.method == "POST":
+        before = model_snapshot(house, ("key", "name", "description", "kingdom_id"))
         form = HouseForm(request.POST, instance=house)
         if form.is_valid():
             form.save()
-            log_audit(request.user, "house_updated", house)
+            after = model_snapshot(house, ("key", "name", "description", "kingdom_id"))
+            log_audit(
+                request.user,
+                AuditAction.HOUSE_UPDATED,
+                house,
+                {"changes": changed_fields(before, after)},
+            )
             messages.success(request, "House updated.")
             return redirect(reverse("accounts:house_admin_detail", args=[house.id]))
     else:
@@ -369,10 +406,17 @@ def kingdom_admin_detail(request, kingdom_id):
     )
     kingdom = get_object_or_404(kingdoms, pk=kingdom_id)
     if request.method == "POST":
+        before = model_snapshot(kingdom, ("key", "name", "description"))
         form = KingdomForm(request.POST, instance=kingdom)
         if form.is_valid():
             form.save()
-            log_audit(request.user, "kingdom_updated", kingdom)
+            after = model_snapshot(kingdom, ("key", "name", "description"))
+            log_audit(
+                request.user,
+                AuditAction.KINGDOM_UPDATED,
+                kingdom,
+                {"changes": changed_fields(before, after)},
+            )
             messages.success(request, "Kingdom updated.")
             return redirect(reverse("accounts:kingdom_admin_detail", args=[kingdom.id]))
     else:
@@ -467,7 +511,7 @@ def cancel_invitation(request, invitation_id):
         invitation.save(update_fields=["status", "responded_at"])
         log_audit(
             request.user,
-            "membership_invitation_cancelled",
+            AuditAction.MEMBERSHIP_INVITATION_CANCELLED,
             invitation,
             {"target": invitation.target_label},
         )
@@ -485,7 +529,7 @@ def invite_user(request):
             invitation.save()
             log_audit(
                 request.user,
-                "membership_invitation_created",
+                AuditAction.MEMBERSHIP_INVITATION_CREATED,
                 invitation,
                 {"invitee": str(invitation.invitee), "target": invitation.target_label},
             )
@@ -526,7 +570,12 @@ def user_create(request):
         if forms_are_valid:
             user = form.save()
             DenizenProfile.objects.get_or_create(user=user)
-            log_audit(request.user, "user_created", user)
+            log_audit(
+                request.user,
+                AuditAction.USER_CREATED,
+                user,
+                {"is_active": user.is_active, "is_staff": user.is_staff},
+            )
             messages.success(request, "User created.")
             return redirect(reverse("accounts:user_access_detail", args=[user.pk]))
     else:
@@ -541,6 +590,14 @@ def user_access_detail(request, user_id):
     profile, _ = DenizenProfile.objects.get_or_create(user=target_user)
 
     if request.method == "POST":
+        before_user = model_snapshot(
+            target_user,
+            ("email", "display_name", "is_active", "is_staff", "is_superuser"),
+        )
+        before_profile = model_snapshot(
+            profile,
+            ("character_name", "pronouns", "contact", "status", "system_account", "religion"),
+        )
         access_form = UserAccessForm(request.POST, instance=target_user)
         profile_form = DenizenProfileStatusForm(request.POST, instance=profile)
         house_formset = HouseMembershipAccessFormSet(
@@ -623,7 +680,30 @@ def user_access_detail(request, user_id):
                 profile_form.save()
                 house_formset.save()
                 kingdom_formset.save()
-                log_audit(request.user, "user_access_updated", target_user)
+                after_user = model_snapshot(
+                    target_user,
+                    ("email", "display_name", "is_active", "is_staff", "is_superuser"),
+                )
+                after_profile = model_snapshot(
+                    profile,
+                    (
+                        "character_name",
+                        "pronouns",
+                        "contact",
+                        "status",
+                        "system_account",
+                        "religion",
+                    ),
+                )
+                log_audit(
+                    request.user,
+                    AuditAction.USER_ACCESS_UPDATED,
+                    target_user,
+                    {
+                        "user_changes": changed_fields(before_user, after_user),
+                        "profile_changes": changed_fields(before_profile, after_profile),
+                    },
+                )
             messages.success(request, "User access settings updated.")
             return redirect(reverse("accounts:user_access_detail", args=[target_user.pk]))
     else:
@@ -662,7 +742,12 @@ def user_delete(request, user_id):
         target_user.is_active = False
         target_user.save(update_fields=["is_active"])
         DenizenProfile.objects.filter(user=target_user).update(status=DenizenProfile.Status.INACTIVE)
-        log_audit(request.user, "user_disabled", target_user)
+        log_audit(
+            request.user,
+            AuditAction.USER_DISABLED,
+            target_user,
+            {"changes": {"is_active": {"old": True, "new": False}}},
+        )
         messages.success(request, f"{display_name} was disabled.")
         return redirect("accounts:user_access_list")
 
@@ -680,7 +765,12 @@ def user_enable(request, user_id):
         target_user.is_active = True
         target_user.save(update_fields=["is_active"])
         DenizenProfile.objects.filter(user=target_user).update(status=DenizenProfile.Status.ACTIVE)
-        log_audit(request.user, "user_enabled", target_user)
+        log_audit(
+            request.user,
+            AuditAction.USER_ENABLED,
+            target_user,
+            {"changes": {"is_active": {"old": False, "new": True}}},
+        )
         messages.success(request, f"{target_user.display_name} was enabled.")
     return redirect(reverse("accounts:user_access_detail", args=[target_user.pk]))
 
@@ -700,7 +790,7 @@ def remove_house_membership(request, membership_id):
         membership.save(update_fields=["active"])
         log_audit(
             request.user,
-            "house_membership_removed",
+            AuditAction.HOUSE_MEMBERSHIP_REMOVED,
             membership.user,
             {"house": str(membership.house)},
         )
@@ -723,7 +813,7 @@ def remove_kingdom_membership(request, membership_id):
         membership.save(update_fields=["active"])
         log_audit(
             request.user,
-            "kingdom_membership_removed",
+            AuditAction.KINGDOM_MEMBERSHIP_REMOVED,
             membership.user,
             {"kingdom": str(membership.kingdom)},
         )
@@ -738,7 +828,7 @@ def change_own_password(request):
         if form.is_valid():
             form.save()
             update_session_auth_hash(request, request.user)
-            log_audit(request.user, "own_password_changed", request.user)
+            log_audit(request.user, AuditAction.OWN_PASSWORD_CHANGED, request.user)
             messages.success(request, "Password changed.")
             return redirect("dashboard:home")
     else:
@@ -755,7 +845,7 @@ def admin_change_password(request, user_id):
         form = AdminPasswordChangeForm(target_user, request.POST)
         if form.is_valid():
             form.save()
-            log_audit(request.user, "user_password_changed", target_user)
+            log_audit(request.user, AuditAction.USER_PASSWORD_CHANGED, target_user)
             messages.success(request, "Password updated.")
             return redirect(reverse("accounts:user_access_detail", args=[target_user.pk]))
     else:
@@ -819,7 +909,7 @@ def respond_to_invitation(request, invitation_id):
         invitation.save(update_fields=["status", "responded_at"])
         log_audit(
             request.user,
-            "membership_invitation_accepted",
+            AuditAction.MEMBERSHIP_INVITATION_ACCEPTED,
             invitation,
             {"target": invitation.target_label},
         )
@@ -830,7 +920,7 @@ def respond_to_invitation(request, invitation_id):
         invitation.save(update_fields=["status", "responded_at"])
         log_audit(
             request.user,
-            "membership_invitation_declined",
+            AuditAction.MEMBERSHIP_INVITATION_DECLINED,
             invitation,
             {"target": invitation.target_label},
         )

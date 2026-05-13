@@ -21,6 +21,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         ordering = ["email"]
+        indexes = [
+            models.Index(fields=["is_active", "is_staff"], name="acct_user_active_staff_idx"),
+        ]
 
     def __str__(self) -> str:
         return self.display_name or self.email
@@ -45,6 +48,10 @@ class DenizenProfile(models.Model):
 
     class Meta:
         ordering = ["user__email"]
+        indexes = [
+            models.Index(fields=["status"], name="acct_profile_status_idx"),
+            models.Index(fields=["system_account"], name="acct_profile_system_idx"),
+        ]
 
     def __str__(self) -> str:
         return self.character_name or str(self.user)
@@ -59,6 +66,9 @@ class ApplicationSetting(models.Model):
 
     class Meta:
         ordering = ["label", "key"]
+        indexes = [
+            models.Index(fields=["label", "key"], name="acct_setting_label_idx"),
+        ]
 
     def __str__(self) -> str:
         return self.label
@@ -81,6 +91,12 @@ class AuditLogEntry(models.Model):
 
     class Meta:
         ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["-created_at", "-id"], name="acct_audit_created_idx"),
+            models.Index(fields=["action", "-created_at"], name="acct_audit_action_idx"),
+            models.Index(fields=["actor", "-created_at"], name="acct_audit_actor_idx"),
+            models.Index(fields=["target_type", "target_id"], name="acct_audit_target_idx"),
+        ]
 
     def __str__(self) -> str:
         return f"{self.action} {self.target_label or self.target_type}"
@@ -126,6 +142,12 @@ class MembershipInvitation(models.Model):
 
     class Meta:
         ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["invitee", "status", "-created_at"], name="acct_inv_invitee_idx"),
+            models.Index(fields=["house", "status"], name="acct_inv_house_idx"),
+            models.Index(fields=["kingdom", "status"], name="acct_inv_kingdom_idx"),
+            models.Index(fields=["status", "-created_at"], name="acct_inv_status_idx"),
+        ]
 
     def clean(self):
         super().clean()

@@ -14,12 +14,14 @@ from django import get_version
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.db import close_old_connections, connection
 from django.db.migrations.executor import MigrationExecutor
 from django.db.models import Q
 
 from accounts.models import ApplicationSetting, AuditLogEntry
+from accounts.permissions import ROLE_PRESETS
 from installer.services import installer_lock_path
 from ownership.models import HouseMembership, KingdomMembership, Role
 from rulesets.models import Ruleset
@@ -104,48 +106,18 @@ DEFAULT_APPLICATION_SETTINGS = [
 UPGRADE_JOBS: dict[str, dict[str, str]] = {}
 UPGRADE_JOBS_LOCK = threading.Lock()
 
-ROLE_PRESETS = {
-    "player": {
-        "name": "Player",
-        "permissions": [],
-    },
-    "house_manager": {
-        "name": "House Manager",
-        "permissions": [
-            "accounts.view_user",
-            "accounts.view_denizenprofile",
-            "ownership.view_house",
-            "ownership.view_housemembership",
-        ],
-    },
-    "kingdom_admin": {
-        "name": "Kingdom Admin",
-        "permissions": [
-            "accounts.view_user",
-            "accounts.view_denizenprofile",
-            "ownership.view_house",
-            "ownership.view_housemembership",
-            "ownership.view_kingdom",
-            "ownership.view_kingdommembership",
-        ],
-    },
-    "app_staff": {
-        "name": "App Staff",
-        "permissions": [
-            "accounts.view_user",
-            "accounts.change_user",
-            "accounts.view_denizenprofile",
-            "accounts.change_denizenprofile",
-        ],
-    },
-}
-
 
 @dataclass(frozen=True)
 class HealthCheck:
     label: str
     ok: bool
     detail: str
+
+
+@dataclass(frozen=True)
+class EmailSettingsValidation:
+    ok: bool
+    errors: tuple[str, ...] = ()
 
 
 def ensure_default_application_settings() -> list[ApplicationSetting]:
@@ -198,6 +170,7 @@ def status_health_checks() -> list[HealthCheck]:
         _path_writable_check("Media root", settings.MEDIA_ROOT),
         _email_settings_check(),
         _restart_required_check(),
+        _slow_query_monitor_check(),
     ]
     checks.append(git_status_check())
     checks.append(git_file_integrity_check())
@@ -281,8 +254,11 @@ def reset_git_checkout() -> None:
 
 
 def start_upgrade_job() -> str:
-    job_id = secrets.token_urlsafe(16)
     with UPGRADE_JOBS_LOCK:
+        for existing_job_id, job in UPGRADE_JOBS.items():
+            if job.get("status") == "running":
+                return existing_job_id
+        job_id = secrets.token_urlsafe(16)
         UPGRADE_JOBS[job_id] = {
             "status": "running",
             "message": "Starting upgrade",
@@ -406,11 +382,34 @@ def _email_settings_check() -> HealthCheck:
     backend = settings_map.get("email_backend", "")
     host = settings_map.get("email_host", "")
     port = settings_map.get("email_port", "")
-    if not backend:
-        return HealthCheck("Email settings", False, "Email backend is not configured.")
-    if "smtp" in backend.lower() and (not host or not port):
-        return HealthCheck("Email settings", False, "SMTP backend needs host and port.")
+    validation = validate_email_settings(settings_map)
+    if not validation.ok:
+        return HealthCheck("Email settings", False, "; ".join(validation.errors))
     return HealthCheck("Email settings", True, f"{backend} via {host}:{port}")
+
+
+def validate_email_settings(settings_map: dict[str, str]) -> EmailSettingsValidation:
+    backend = settings_map.get("email_backend", "").strip()
+    host = settings_map.get("email_host", "").strip()
+    port = settings_map.get("email_port", "").strip()
+    from_address = settings_map.get("email_from_address", "").strip()
+    use_tls = settings_map.get("email_use_tls", "").strip().lower() == "true"
+    use_ssl = settings_map.get("email_use_ssl", "").strip().lower() == "true"
+    errors = []
+    if not backend:
+        errors.append("Email backend is not configured.")
+    if port and (not port.isdigit() or not 1 <= int(port) <= 65535):
+        errors.append("Email port must be a number from 1 to 65535.")
+    if use_tls and use_ssl:
+        errors.append("Email TLS and SSL cannot both be enabled.")
+    if "smtp" in backend.lower():
+        if not host:
+            errors.append("SMTP backend needs a host.")
+        if not port:
+            errors.append("SMTP backend needs a port.")
+        if not from_address:
+            errors.append("SMTP backend needs a from address.")
+    return EmailSettingsValidation(ok=not errors, errors=tuple(errors))
 
 
 def _restart_required_check() -> HealthCheck:
@@ -418,6 +417,17 @@ def _restart_required_check() -> HealthCheck:
     if required:
         return HealthCheck("Restart needed", False, "Application restart is required.")
     return HealthCheck("Restart needed", True, "No pending restart flag.")
+
+
+def _slow_query_monitor_check() -> HealthCheck:
+    threshold_ms = getattr(settings, "CARTA_SLOW_QUERY_MS", 0)
+    if threshold_ms <= 0:
+        return HealthCheck(
+            "Slow query monitor",
+            True,
+            "Disabled. Set CARTA_SLOW_QUERY_MS to enable.",
+        )
+    return HealthCheck("Slow query monitor", True, f"Logging queries over {threshold_ms} ms.")
 
 
 def _set_application_setting(key: str, value: str) -> None:
@@ -449,22 +459,47 @@ def _update_upgrade_job(job_id: str, **changes: str) -> None:
 
 
 def log_audit(actor, action: str, target, detail: dict | None = None) -> AuditLogEntry:
+    actor_id = str(getattr(actor, "pk", "")) if getattr(actor, "is_authenticated", False) else ""
+    actor_label = str(actor) if getattr(actor, "is_authenticated", False) else "System"
+    target_type = target.__class__.__name__
+    target_id = str(getattr(target, "pk", ""))
+    target_label = str(target)
+    audit_detail = {
+        "actor_id": actor_id,
+        "actor_label": actor_label,
+        "target_type": target_type,
+        "target_id": target_id,
+        "target_label": target_label,
+    }
+    audit_detail.update(detail or {})
     return AuditLogEntry.objects.create(
         actor=actor if getattr(actor, "is_authenticated", False) else None,
         action=action,
-        target_type=target.__class__.__name__,
-        target_id=str(getattr(target, "pk", "")),
-        target_label=str(target),
-        detail=detail or {},
+        target_type=target_type,
+        target_id=target_id,
+        target_label=target_label,
+        detail=audit_detail,
     )
+
+
+def model_snapshot(instance, fields: tuple[str, ...]) -> dict[str, str | bool | None]:
+    return {field: getattr(instance, field) for field in fields}
+
+
+def changed_fields(before: dict, after: dict) -> dict[str, dict[str, object]]:
+    return {
+        key: {"old": before.get(key), "new": after.get(key)}
+        for key in before.keys() | after.keys()
+        if before.get(key) != after.get(key)
+    }
 
 
 def ensure_default_role_groups() -> list[Group]:
     groups = []
     for preset in ROLE_PRESETS.values():
-        group, _ = Group.objects.get_or_create(name=preset["name"])
+        group, _ = Group.objects.get_or_create(name=preset.name)
         permissions = []
-        for permission_name in preset["permissions"]:
+        for permission_name in preset.permissions:
             app_label, codename = permission_name.split(".", 1)
             try:
                 permissions.append(
@@ -483,15 +518,17 @@ def ensure_default_role_groups() -> list[Group]:
 def role_preset_choices() -> list[tuple[str, str]]:
     ensure_default_role_groups()
     return [("", "Custom permissions")] + [
-        (key, preset["name"]) for key, preset in ROLE_PRESETS.items()
+        (key, preset.name) for key, preset in ROLE_PRESETS.items()
     ]
 
 
 def apply_role_preset(user, preset_key: str) -> None:
     if not preset_key:
         return
+    if preset_key not in ROLE_PRESETS:
+        raise ValidationError("Unknown role preset.")
     ensure_default_role_groups()
-    group_name = ROLE_PRESETS[preset_key]["name"]
+    group_name = ROLE_PRESETS[preset_key].name
     user.groups.add(Group.objects.get(name=group_name))
 
 

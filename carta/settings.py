@@ -55,6 +55,7 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ["127.0.0.1", "localhost"])
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+CARTA_SLOW_QUERY_MS = int(os.getenv("CARTA_SLOW_QUERY_MS", "0"))
 INSTALLER_ENV_FILE = Path(os.getenv("CARTA_INSTALLER_ENV_FILE", BASE_DIR / ".env.local"))
 INSTALLER_LOCK_FILE = Path(os.getenv("CARTA_INSTALLER_LOCK_FILE", BASE_DIR / "installer.lock"))
 CURRENT_RULES_FILE = Path(
@@ -89,6 +90,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "carta.middleware.SlowQueryLoggingMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
