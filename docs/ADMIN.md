@@ -124,7 +124,8 @@ verification workflow runs the quality checks, full MySQL-backed test suite
 across supported Python and MySQL versions, repeated focused suites, repeated
 rules imports, and migration idempotency checks. Make those stable workflows
 required branch protection checks on GitHub before relying on them as release
-enforcement.
+enforcement. Follow the stable release checklist in `docs/RELEASE.md` before
+promoting `main` to `stable`.
 
 Before upgrading a live install, keep a normal database and environment backup.
 The upgrade workflow does not remove `.env`, `.env.local`, `installer.lock`, or

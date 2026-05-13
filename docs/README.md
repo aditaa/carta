@@ -13,6 +13,8 @@ Arcanum is and how to run it.
   logging.
 - [Architecture notes](ARCHITECTURE.md): Django app layout, boundaries, rules
   handling, and future map direction.
+- [Release checklist](RELEASE.md): stable promotion, required checks, release
+  tags, and rollback notes.
 - [Roadmap](ROADMAP.md): high-level milestone plan.
 - [Django transition checklist](TRANSITION_TODO.md): detailed rewrite task
   tracker.
