@@ -76,16 +76,24 @@ user_manager_required = user_passes_test(_is_user_manager, login_url="accounts:l
 
 
 def _has_house_admin(user) -> bool:
-    return user.is_authenticated and user.is_active and (
-        user.is_superuser
-        or HouseMembership.objects.filter(user=user, active=True, role="admin").exists()
+    return (
+        user.is_authenticated
+        and user.is_active
+        and (
+            user.is_superuser
+            or HouseMembership.objects.filter(user=user, active=True, role="admin").exists()
+        )
     )
 
 
 def _has_kingdom_admin(user) -> bool:
-    return user.is_authenticated and user.is_active and (
-        user.is_superuser
-        or KingdomMembership.objects.filter(user=user, active=True, role="admin").exists()
+    return (
+        user.is_authenticated
+        and user.is_active
+        and (
+            user.is_superuser
+            or KingdomMembership.objects.filter(user=user, active=True, role="admin").exists()
+        )
     )
 
 
@@ -340,10 +348,14 @@ def audit_log_detail(request, entry_id):
 
 @house_admin_required
 def house_admin_list(request):
-    houses = House.objects.all() if request.user.is_superuser else House.objects.filter(
-        memberships__user=request.user,
-        memberships__active=True,
-        memberships__role="admin",
+    houses = (
+        House.objects.all()
+        if request.user.is_superuser
+        else House.objects.filter(
+            memberships__user=request.user,
+            memberships__active=True,
+            memberships__role="admin",
+        )
     )
     page = Paginator(houses.distinct().order_by("name"), 50).get_page(request.GET.get("page"))
     return render(request, "accounts/house_admin_list.html", {"page": page})
@@ -351,10 +363,14 @@ def house_admin_list(request):
 
 @house_admin_required
 def house_admin_detail(request, house_id):
-    houses = House.objects.all() if request.user.is_superuser else House.objects.filter(
-        memberships__user=request.user,
-        memberships__active=True,
-        memberships__role="admin",
+    houses = (
+        House.objects.all()
+        if request.user.is_superuser
+        else House.objects.filter(
+            memberships__user=request.user,
+            memberships__active=True,
+            memberships__role="admin",
+        )
     )
     house = get_object_or_404(houses, pk=house_id)
     if request.method == "POST":
@@ -388,10 +404,14 @@ def house_admin_detail(request, house_id):
 
 @kingdom_admin_required
 def kingdom_admin_list(request):
-    kingdoms = Kingdom.objects.all() if request.user.is_superuser else Kingdom.objects.filter(
-        memberships__user=request.user,
-        memberships__active=True,
-        memberships__role="admin",
+    kingdoms = (
+        Kingdom.objects.all()
+        if request.user.is_superuser
+        else Kingdom.objects.filter(
+            memberships__user=request.user,
+            memberships__active=True,
+            memberships__role="admin",
+        )
     )
     page = Paginator(kingdoms.distinct().order_by("name"), 50).get_page(request.GET.get("page"))
     return render(request, "accounts/kingdom_admin_list.html", {"page": page})
@@ -399,10 +419,14 @@ def kingdom_admin_list(request):
 
 @kingdom_admin_required
 def kingdom_admin_detail(request, kingdom_id):
-    kingdoms = Kingdom.objects.all() if request.user.is_superuser else Kingdom.objects.filter(
-        memberships__user=request.user,
-        memberships__active=True,
-        memberships__role="admin",
+    kingdoms = (
+        Kingdom.objects.all()
+        if request.user.is_superuser
+        else Kingdom.objects.filter(
+            memberships__user=request.user,
+            memberships__active=True,
+            memberships__role="admin",
+        )
     )
     kingdom = get_object_or_404(kingdoms, pk=kingdom_id)
     if request.method == "POST":
@@ -741,7 +765,9 @@ def user_delete(request, user_id):
         display_name = target_user.display_name
         target_user.is_active = False
         target_user.save(update_fields=["is_active"])
-        DenizenProfile.objects.filter(user=target_user).update(status=DenizenProfile.Status.INACTIVE)
+        DenizenProfile.objects.filter(user=target_user).update(
+            status=DenizenProfile.Status.INACTIVE
+        )
         log_audit(
             request.user,
             AuditAction.USER_DISABLED,
@@ -778,12 +804,15 @@ def user_enable(request, user_id):
 @user_manager_required
 def remove_house_membership(request, membership_id):
     membership = get_object_or_404(HouseMembership, pk=membership_id)
-    if not request.user.is_superuser and not HouseMembership.objects.filter(
-        user=request.user,
-        house=membership.house,
-        role="admin",
-        active=True,
-    ).exists():
+    if (
+        not request.user.is_superuser
+        and not HouseMembership.objects.filter(
+            user=request.user,
+            house=membership.house,
+            role="admin",
+            active=True,
+        ).exists()
+    ):
         return redirect("accounts:user_access_list")
     if request.method == "POST":
         membership.active = False
@@ -801,12 +830,15 @@ def remove_house_membership(request, membership_id):
 @user_manager_required
 def remove_kingdom_membership(request, membership_id):
     membership = get_object_or_404(KingdomMembership, pk=membership_id)
-    if not request.user.is_superuser and not KingdomMembership.objects.filter(
-        user=request.user,
-        kingdom=membership.kingdom,
-        role="admin",
-        active=True,
-    ).exists():
+    if (
+        not request.user.is_superuser
+        and not KingdomMembership.objects.filter(
+            user=request.user,
+            kingdom=membership.kingdom,
+            role="admin",
+            active=True,
+        ).exists()
+    ):
         return redirect("accounts:user_access_list")
     if request.method == "POST":
         membership.active = False
@@ -880,9 +912,11 @@ def respond_to_invitation(request, invitation_id):
     response = request.POST.get("response")
     if response == "accept":
         if invitation.house_id:
-            if HouseMembership.objects.filter(user=request.user, active=True).exclude(
-                house=invitation.house
-            ).exists():
+            if (
+                HouseMembership.objects.filter(user=request.user, active=True)
+                .exclude(house=invitation.house)
+                .exists()
+            ):
                 messages.error(request, "You already belong to another house.")
                 return redirect("accounts:my_invitations")
             membership, _ = HouseMembership.objects.get_or_create(
@@ -891,9 +925,11 @@ def respond_to_invitation(request, invitation_id):
                 defaults={"role": invitation.role, "active": True},
             )
         else:
-            if KingdomMembership.objects.filter(user=request.user, active=True).exclude(
-                kingdom=invitation.kingdom
-            ).exists():
+            if (
+                KingdomMembership.objects.filter(user=request.user, active=True)
+                .exclude(kingdom=invitation.kingdom)
+                .exists()
+            ):
                 messages.error(request, "You already belong to another kingdom.")
                 return redirect("accounts:my_invitations")
             membership, _ = KingdomMembership.objects.get_or_create(

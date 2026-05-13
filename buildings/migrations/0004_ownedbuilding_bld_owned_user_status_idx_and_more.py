@@ -5,25 +5,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('buildings', '0003_buildingledgerentry'),
-        ('ownership', '0003_house_own_house_kingdom_idx_house_own_house_name_idx_and_more'),
-        ('rulesets', '0003_alter_itemreference_purpose'),
+        ("buildings", "0003_buildingledgerentry"),
+        ("ownership", "0003_house_own_house_kingdom_idx_house_own_house_name_idx_and_more"),
+        ("rulesets", "0003_alter_itemreference_purpose"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddIndex(
-            model_name='ownedbuilding',
-            index=models.Index(fields=['user', 'status'], name='bld_owned_user_status_idx'),
+            model_name="ownedbuilding",
+            index=models.Index(fields=["user", "status"], name="bld_owned_user_status_idx"),
         ),
         migrations.AddIndex(
-            model_name='ownedbuilding',
-            index=models.Index(fields=['house', 'status'], name='bld_owned_house_status_idx'),
+            model_name="ownedbuilding",
+            index=models.Index(fields=["house", "status"], name="bld_owned_house_status_idx"),
         ),
         migrations.AddIndex(
-            model_name='ownedbuilding',
-            index=models.Index(fields=['kingdom', 'status'], name='bld_owned_kingdom_status_idx'),
+            model_name="ownedbuilding",
+            index=models.Index(fields=["kingdom", "status"], name="bld_owned_kingdom_status_idx"),
         ),
     ]

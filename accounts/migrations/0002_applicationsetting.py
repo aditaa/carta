@@ -4,24 +4,28 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('accounts', '0001_initial'),
+        ("accounts", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ApplicationSetting',
+            name="ApplicationSetting",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('key', models.SlugField(max_length=80, unique=True)),
-                ('label', models.CharField(max_length=160)),
-                ('value', models.TextField(blank=True)),
-                ('description', models.TextField(blank=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("key", models.SlugField(max_length=80, unique=True)),
+                ("label", models.CharField(max_length=160)),
+                ("value", models.TextField(blank=True)),
+                ("description", models.TextField(blank=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'ordering': ['label', 'key'],
+                "ordering": ["label", "key"],
             },
         ),
     ]

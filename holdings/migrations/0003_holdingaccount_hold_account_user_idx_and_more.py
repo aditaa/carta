@@ -5,49 +5,56 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('holdings', '0002_alter_holdingaccount_scope'),
-        ('ownership', '0003_house_own_house_kingdom_idx_house_own_house_name_idx_and_more'),
-        ('rulesets', '0003_alter_itemreference_purpose'),
+        ("holdings", "0002_alter_holdingaccount_scope"),
+        ("ownership", "0003_house_own_house_kingdom_idx_house_own_house_name_idx_and_more"),
+        ("rulesets", "0003_alter_itemreference_purpose"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddIndex(
-            model_name='holdingaccount',
-            index=models.Index(fields=['user', 'scope', 'active'], name='hold_account_user_idx'),
+            model_name="holdingaccount",
+            index=models.Index(fields=["user", "scope", "active"], name="hold_account_user_idx"),
         ),
         migrations.AddIndex(
-            model_name='holdingaccount',
-            index=models.Index(fields=['house', 'scope', 'active'], name='hold_account_house_idx'),
+            model_name="holdingaccount",
+            index=models.Index(fields=["house", "scope", "active"], name="hold_account_house_idx"),
         ),
         migrations.AddIndex(
-            model_name='holdingaccount',
-            index=models.Index(fields=['kingdom', 'scope', 'active'], name='hold_account_kingdom_idx'),
+            model_name="holdingaccount",
+            index=models.Index(
+                fields=["kingdom", "scope", "active"], name="hold_account_kingdom_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='holdingaccount',
-            index=models.Index(fields=['active', 'scope'], name='hold_account_active_idx'),
+            model_name="holdingaccount",
+            index=models.Index(fields=["active", "scope"], name="hold_account_active_idx"),
         ),
         migrations.AddIndex(
-            model_name='holdingbalance',
-            index=models.Index(fields=['account', 'ruleset'], name='hold_balance_account_idx'),
+            model_name="holdingbalance",
+            index=models.Index(fields=["account", "ruleset"], name="hold_balance_account_idx"),
         ),
         migrations.AddIndex(
-            model_name='holdingbalance',
-            index=models.Index(fields=['ruleset', 'item_type', 'item_key'], name='hold_balance_item_idx'),
+            model_name="holdingbalance",
+            index=models.Index(
+                fields=["ruleset", "item_type", "item_key"], name="hold_balance_item_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='holdingledgerentry',
-            index=models.Index(fields=['account', '-created_at'], name='hold_ledger_account_idx'),
+            model_name="holdingledgerentry",
+            index=models.Index(fields=["account", "-created_at"], name="hold_ledger_account_idx"),
         ),
         migrations.AddIndex(
-            model_name='holdingledgerentry',
-            index=models.Index(fields=['related_account', '-created_at'], name='hold_ledger_related_idx'),
+            model_name="holdingledgerentry",
+            index=models.Index(
+                fields=["related_account", "-created_at"], name="hold_ledger_related_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='holdingledgerentry',
-            index=models.Index(fields=['ruleset', 'item_type', 'item_key'], name='hold_ledger_item_idx'),
+            model_name="holdingledgerentry",
+            index=models.Index(
+                fields=["ruleset", "item_type", "item_key"], name="hold_ledger_item_idx"
+            ),
         ),
     ]

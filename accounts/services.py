@@ -192,8 +192,7 @@ def git_status_check() -> HealthCheck:
     )
     if divergence.returncode != 0:
         detail = (
-            f"{branch.stdout.strip()} @ {commit.stdout.strip()}, "
-            f"upstream {upstream.stdout.strip()}"
+            f"{branch.stdout.strip()} @ {commit.stdout.strip()}, upstream {upstream.stdout.strip()}"
         )
         return HealthCheck("Git checkout", True, detail)
 
@@ -551,16 +550,19 @@ def can_manage_user(viewer, target_user) -> bool:
         user=target_user,
         active=True,
     ).values("kingdom_id")
-    if KingdomMembership.objects.filter(
-        user=target_user,
-        active=True,
-        kingdom_id__in=viewer_kingdom_ids,
-    ).exists() or KingdomMembership.objects.filter(
-        user=viewer,
-        active=True,
-        role=Role.ADMIN,
-        kingdom_id__in=target_kingdom_ids,
-    ).exists():
+    if (
+        KingdomMembership.objects.filter(
+            user=target_user,
+            active=True,
+            kingdom_id__in=viewer_kingdom_ids,
+        ).exists()
+        or KingdomMembership.objects.filter(
+            user=viewer,
+            active=True,
+            role=Role.ADMIN,
+            kingdom_id__in=target_kingdom_ids,
+        ).exists()
+    ):
         return True
 
     viewer_house_ids = HouseMembership.objects.filter(

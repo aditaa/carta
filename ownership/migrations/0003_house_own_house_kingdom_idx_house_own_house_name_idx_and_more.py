@@ -5,47 +5,48 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('ownership', '0002_kingdom_house_housemembership_kingdommembership'),
+        ("ownership", "0002_kingdom_house_housemembership_kingdommembership"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddIndex(
-            model_name='house',
-            index=models.Index(fields=['kingdom', 'name'], name='own_house_kingdom_idx'),
+            model_name="house",
+            index=models.Index(fields=["kingdom", "name"], name="own_house_kingdom_idx"),
         ),
         migrations.AddIndex(
-            model_name='house',
-            index=models.Index(fields=['name', 'key'], name='own_house_name_idx'),
+            model_name="house",
+            index=models.Index(fields=["name", "key"], name="own_house_name_idx"),
         ),
         migrations.AddIndex(
-            model_name='housemembership',
-            index=models.Index(fields=['user', 'active', 'role'], name='own_hm_user_active_idx'),
+            model_name="housemembership",
+            index=models.Index(fields=["user", "active", "role"], name="own_hm_user_active_idx"),
         ),
         migrations.AddIndex(
-            model_name='housemembership',
-            index=models.Index(fields=['house', 'active', 'role'], name='own_hm_house_active_idx'),
+            model_name="housemembership",
+            index=models.Index(fields=["house", "active", "role"], name="own_hm_house_active_idx"),
         ),
         migrations.AddIndex(
-            model_name='housemembership',
-            index=models.Index(fields=['active', 'role'], name='own_hm_active_role_idx'),
+            model_name="housemembership",
+            index=models.Index(fields=["active", "role"], name="own_hm_active_role_idx"),
         ),
         migrations.AddIndex(
-            model_name='kingdom',
-            index=models.Index(fields=['name', 'key'], name='own_kingdom_name_idx'),
+            model_name="kingdom",
+            index=models.Index(fields=["name", "key"], name="own_kingdom_name_idx"),
         ),
         migrations.AddIndex(
-            model_name='kingdommembership',
-            index=models.Index(fields=['user', 'active', 'role'], name='own_km_user_active_idx'),
+            model_name="kingdommembership",
+            index=models.Index(fields=["user", "active", "role"], name="own_km_user_active_idx"),
         ),
         migrations.AddIndex(
-            model_name='kingdommembership',
-            index=models.Index(fields=['kingdom', 'active', 'role'], name='own_km_kingdom_active_idx'),
+            model_name="kingdommembership",
+            index=models.Index(
+                fields=["kingdom", "active", "role"], name="own_km_kingdom_active_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='kingdommembership',
-            index=models.Index(fields=['active', 'role'], name='own_km_active_role_idx'),
+            model_name="kingdommembership",
+            index=models.Index(fields=["active", "role"], name="own_km_active_role_idx"),
         ),
     ]
