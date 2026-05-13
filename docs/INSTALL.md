@@ -369,6 +369,8 @@ are:
 - `CARTA_INSTALLER_ENV_FILE`: local env file written by the installer.
 - `CARTA_INSTALLER_LOCK_FILE`: lock file that prevents accidental installer
   reruns.
+- `CARTA_SLOW_QUERY_MS`: optional slow-query logging threshold in milliseconds.
+  Set to `0` or leave unset to disable it.
 
 Superusers can also edit database-backed application settings from
 `Settings -> Application Status`. These are intended for non-secret operational
@@ -379,6 +381,16 @@ Email sending can use Django's console backend for development, a local SMTP
 relay, a provider SMTP service, or another Django email backend. Linux server
 mail often needs extra system configuration, so use the status page's email
 test button after changing email settings.
+
+## Future Performance Notes
+
+The admin/settings branch adds indexes for user status filters, audit log
+lookups, invitation status filters, and active house/kingdom ACL membership
+queries. As the app grows, likely future index candidates include owned
+buildings by owner/status/ruleset, holding accounts by owner, holding balances
+by account/item, and production/rules references by ruleset and item key. Use
+slow-query logs and database `EXPLAIN` output before adding those indexes so the
+schema follows real usage instead of guesswork.
 
 ## Checks
 

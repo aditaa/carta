@@ -81,6 +81,7 @@ The page includes checks for:
 - current rules file;
 - email backend configuration;
 - restart-needed state;
+- slow-query monitor status;
 - Git checkout status;
 - changed tracked files.
 
@@ -117,3 +118,14 @@ The audit log records administrative and security-sensitive actions such as
 settings changes, user creation, disabling or enabling users, password resets,
 membership changes, invitation changes, Git restore actions, and upgrades.
 Audit detail pages are superuser-only.
+
+## Query Monitoring
+
+Set `CARTA_SLOW_QUERY_MS` to log database queries that exceed that threshold
+during web requests. For example, `CARTA_SLOW_QUERY_MS=250` logs queries slower
+than 250 ms to the `carta.slow_queries` logger. Leave it unset or set it to `0`
+to disable slow-query logging.
+
+This is meant to catch heavy queries that only appear after real player usage
+creates larger datasets. Treat slow-query logs as leads for future service-level
+profiling, indexes, pagination, or query shape changes.

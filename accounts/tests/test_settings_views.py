@@ -116,6 +116,45 @@ def test_application_status_updates_editable_settings(client):
 
 
 @pytest.mark.django_db
+def test_application_status_rejects_invalid_email_settings(client):
+    staff = create_user("admin@example.test", staff=True, superuser=True)
+    client.force_login(staff)
+    client.get(reverse("accounts:application_status"))
+    settings_rows = list(ApplicationSetting.objects.order_by("id"))
+
+    post_data = {
+        "form-TOTAL_FORMS": str(len(settings_rows)),
+        "form-INITIAL_FORMS": str(len(settings_rows)),
+        "form-MIN_NUM_FORMS": "0",
+        "form-MAX_NUM_FORMS": "1000",
+    }
+    for index, setting in enumerate(settings_rows):
+        post_data[f"form-{index}-id"] = str(setting.id)
+        if setting.key == "email_backend":
+            value = "django.core.mail.backends.smtp.EmailBackend"
+        elif setting.key == "email_port":
+            value = "not-a-port"
+        elif setting.key == "email_use_tls":
+            value = "true"
+        elif setting.key == "email_use_ssl":
+            value = "true"
+        elif setting.key == "email_host":
+            value = ""
+        elif setting.key == "email_from_address":
+            value = ""
+        else:
+            value = setting.value
+        post_data[f"form-{index}-value"] = value
+
+    response = client.post(reverse("accounts:application_status"), post_data)
+
+    assert response.status_code == 200
+    assert b"Email port must be a number from 1 to 65535" in response.content
+    assert b"Email TLS and SSL cannot both be enabled" in response.content
+    assert ApplicationSetting.objects.get(key="email_port").value != "not-a-port"
+
+
+@pytest.mark.django_db
 def test_start_upgrade_redirects_to_status_page(client, monkeypatch):
     staff = create_user("admin@example.test", staff=True, superuser=True)
     client.force_login(staff)
