@@ -46,6 +46,12 @@ class HoldingAccount(models.Model):
 
     class Meta:
         ordering = ["scope", "name", "id"]
+        indexes = [
+            models.Index(fields=["user", "scope", "active"], name="hold_account_user_idx"),
+            models.Index(fields=["house", "scope", "active"], name="hold_account_house_idx"),
+            models.Index(fields=["kingdom", "scope", "active"], name="hold_account_kingdom_idx"),
+            models.Index(fields=["active", "scope"], name="hold_account_active_idx"),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["scope", "user"],
@@ -116,6 +122,10 @@ class HoldingBalance(models.Model):
 
     class Meta:
         ordering = ["account", "item_type", "item_key"]
+        indexes = [
+            models.Index(fields=["account", "ruleset"], name="hold_balance_account_idx"),
+            models.Index(fields=["ruleset", "item_type", "item_key"], name="hold_balance_item_idx"),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["account", "ruleset", "item_type", "item_key"],
@@ -160,6 +170,11 @@ class HoldingLedgerEntry(models.Model):
 
     class Meta:
         ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["account", "-created_at"], name="hold_ledger_account_idx"),
+            models.Index(fields=["related_account", "-created_at"], name="hold_ledger_related_idx"),
+            models.Index(fields=["ruleset", "item_type", "item_key"], name="hold_ledger_item_idx"),
+        ]
 
     def clean(self):
         super().clean()

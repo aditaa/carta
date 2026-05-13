@@ -386,11 +386,12 @@ test button after changing email settings.
 
 The admin/settings branch adds indexes for user status filters, audit log
 lookups, invitation status filters, and active house/kingdom ACL membership
-queries. As the app grows, likely future index candidates include owned
-buildings by owner/status/ruleset, holding accounts by owner, holding balances
-by account/item, and production/rules references by ruleset and item key. Use
-slow-query logs and database `EXPLAIN` output before adding those indexes so the
-schema follows real usage instead of guesswork.
+queries, owned buildings by owner/status, holding accounts by
+owner/scope/activity, holding balances by account/item, and holding ledger
+lookups. As the app grows, likely future index candidates include deeper
+production/rules references, planned event queues, map coordinates, and solver
+snapshots. Use slow-query logs and database `EXPLAIN` output before adding those
+indexes so the schema follows real usage instead of guesswork.
 
 ## Checks
 

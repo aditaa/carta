@@ -4,15 +4,22 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 
 from buildings.models import BuildingLedgerEntry, OwnedBuilding
-from ownership.models import House, Kingdom
+from ownership.models import House, Kingdom, Role
 from ownership.services import (
+    editable_house_ids,
+    editable_kingdom_ids,
     visible_house_ids,
     visible_kingdom_ids,
     visible_user_ids,
 )
 
 
-def building_owner_choices(viewer, *, include_visible_users: bool = False) -> list[tuple[str, str]]:
+def building_owner_choices(
+    viewer,
+    *,
+    include_visible_users: bool = False,
+    editable_only: bool = True,
+) -> list[tuple[str, str]]:
     choices: list[tuple[str, str]] = []
     user_ids = visible_user_ids(viewer) if include_visible_users else {viewer.id}
     users = (
@@ -25,10 +32,12 @@ def building_owner_choices(viewer, *, include_visible_users: bool = False) -> li
     )
     choices.extend((f"user:{user.id}", user.display_name) for user in users)
 
-    houses = House.objects.filter(id__in=visible_house_ids(viewer)).order_by("name")
+    house_ids = editable_house_ids(viewer) if editable_only else visible_house_ids(viewer)
+    houses = House.objects.filter(id__in=house_ids).order_by("name")
     choices.extend((f"house:{house.id}", f"House: {house.name}") for house in houses)
 
-    kingdoms = Kingdom.objects.filter(id__in=visible_kingdom_ids(viewer)).order_by("name")
+    kingdom_ids = editable_kingdom_ids(viewer) if editable_only else visible_kingdom_ids(viewer)
+    kingdoms = Kingdom.objects.filter(id__in=kingdom_ids).order_by("name")
     choices.extend((f"kingdom:{kingdom.id}", f"Kingdom: {kingdom.name}") for kingdom in kingdoms)
     return choices
 
@@ -52,6 +61,23 @@ def visible_owned_buildings(viewer):
     return buildings.filter(
         Q(user_id__in=user_ids) | Q(house_id__in=house_ids) | Q(kingdom_id__in=kingdom_ids)
     )
+
+
+def editable_owned_buildings(viewer):
+    buildings = visible_owned_buildings(viewer)
+    if not viewer.is_authenticated or not viewer.is_active:
+        return OwnedBuilding.objects.none()
+    if viewer.is_superuser:
+        return buildings
+    return buildings.filter(
+        Q(user_id=viewer.id)
+        | Q(house_id__in=editable_house_ids(viewer, Role.MEMBER))
+        | Q(kingdom_id__in=editable_kingdom_ids(viewer, Role.MEMBER))
+    )
+
+
+def can_edit_owned_building(viewer, building: OwnedBuilding) -> bool:
+    return editable_owned_buildings(viewer).filter(id=building.id).exists()
 
 
 def registry_summary(buildings):

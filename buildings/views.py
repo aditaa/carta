@@ -7,6 +7,7 @@ from buildings.forms import OwnedBuildingForm
 from buildings.models import BuildingLedgerEntry, OwnedBuilding
 from buildings.services import (
     building_owner_choices,
+    editable_owned_buildings,
     log_building_event,
     registry_summary,
     visible_owned_buildings,
@@ -18,11 +19,17 @@ def index(request):
     base_buildings = visible_owned_buildings(request.user)
     filters = _registry_filters(request)
     buildings = _filter_buildings(base_buildings, filters)
+    editable_ids = set(
+        editable_owned_buildings(request.user)
+        .filter(id__in=buildings.values("id"))
+        .values_list("id", flat=True)
+    )
     return render(
         request,
         "buildings/index.html",
         {
             "buildings": buildings,
+            "editable_building_ids": editable_ids,
             "filters": filters,
             "filter_options": _registry_filter_options(request.user, base_buildings),
             "summary": registry_summary(buildings),
@@ -58,7 +65,7 @@ def create(request):
 
 @login_required
 def edit(request, building_id):
-    building = get_visible_building_or_404(request.user, building_id)
+    building = get_editable_building_or_404(request.user, building_id)
     before = _building_snapshot(building)
     if request.method == "POST":
         form = OwnedBuildingForm(request.user, request.POST, instance=building)
@@ -87,7 +94,7 @@ def edit(request, building_id):
 
 @login_required
 def delete(request, building_id):
-    building = get_visible_building_or_404(request.user, building_id)
+    building = get_editable_building_or_404(request.user, building_id)
     if request.method == "POST":
         label = str(building)
         changes = _building_snapshot(building)
@@ -106,6 +113,13 @@ def delete(request, building_id):
 def get_visible_building_or_404(user, building_id) -> OwnedBuilding:
     building = get_object_or_404(OwnedBuilding, id=building_id)
     if not visible_owned_buildings(user).filter(id=building.id).exists():
+        raise Http404
+    return building
+
+
+def get_editable_building_or_404(user, building_id) -> OwnedBuilding:
+    building = get_object_or_404(OwnedBuilding, id=building_id)
+    if not editable_owned_buildings(user).filter(id=building.id).exists():
         raise Http404
     return building
 
@@ -151,7 +165,7 @@ def _filter_buildings(buildings, filters: dict):
 
 
 def _owner_filter_options(user) -> list[tuple[str, str]]:
-    return building_owner_choices(user, include_visible_users=True)
+    return building_owner_choices(user, include_visible_users=True, editable_only=False)
 
 
 def _building_snapshot(building: OwnedBuilding) -> dict:

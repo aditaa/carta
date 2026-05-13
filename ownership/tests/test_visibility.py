@@ -7,6 +7,8 @@ from ownership.services import (
     can_view_house,
     can_view_kingdom,
     can_view_user,
+    editable_house_ids,
+    editable_kingdom_ids,
     has_house_role,
     visible_house_ids,
     visible_kingdom_ids,
@@ -124,6 +126,20 @@ def test_visible_kingdom_ids_include_user_kingdom_memberships():
     KingdomMembership.objects.create(user=viewer, kingdom=kingdom, role=Role.MEMBER)
 
     assert visible_kingdom_ids(viewer) == {kingdom.id}
+
+
+@pytest.mark.django_db
+def test_editable_ids_exclude_read_only_memberships():
+    viewer = create_user("viewer@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    HouseMembership.objects.create(user=viewer, house=house, role=Role.READ_ONLY)
+    KingdomMembership.objects.create(user=viewer, kingdom=kingdom, role=Role.READ_ONLY)
+
+    assert visible_house_ids(viewer) == {house.id}
+    assert visible_kingdom_ids(viewer) == {kingdom.id}
+    assert editable_house_ids(viewer) == set()
+    assert editable_kingdom_ids(viewer) == set()
 
 
 @pytest.mark.django_db

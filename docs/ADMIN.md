@@ -20,6 +20,12 @@ database.
 - Standard users see only the account-level links they need, including in-app
   invitations and password management.
 
+ACL visibility and edit rights are intentionally separate. Read-only house or
+kingdom members can see shared records in their scope, but edit/delete actions
+are limited to editable memberships, the user's own records, or superusers.
+This distinction is enforced in the backend for buildings and holdings, and the
+UI hides action controls for read-only records.
+
 Users are never hard-deleted from the admin screens. Disabling a user marks the
 account inactive and preserves audit history, memberships, holdings, and other
 references. A scoped admin or superuser can re-enable a disabled user when that

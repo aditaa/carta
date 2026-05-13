@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from buildings.models import BuildingDefinition, OwnedBuilding
 from buildings.services import building_owner_choices
 from ownership.models import House
-from ownership.services import visible_house_ids, visible_kingdom_ids
+from ownership.services import editable_house_ids, editable_kingdom_ids
 
 
 class OwnedBuildingForm(forms.ModelForm):
@@ -70,14 +70,14 @@ class OwnedBuildingForm(forms.ModelForm):
         if (
             owner_type == "house"
             and House.objects.filter(
-                id__in=visible_house_ids(self.user),
+                id__in=editable_house_ids(self.user),
                 id=raw_id,
             ).exists()
         ):
             building.owner_scope = OwnedBuilding.OwnerScope.HOUSE
             building.house_id = raw_id
             return
-        if owner_type == "kingdom" and owner_id in visible_kingdom_ids(self.user):
+        if owner_type == "kingdom" and owner_id in editable_kingdom_ids(self.user):
             building.owner_scope = OwnedBuilding.OwnerScope.KINGDOM
             building.kingdom_id = raw_id
             return
