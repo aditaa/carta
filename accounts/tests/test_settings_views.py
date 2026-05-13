@@ -155,6 +155,32 @@ def test_application_status_rejects_invalid_email_settings(client):
 
 
 @pytest.mark.django_db
+def test_application_status_rejects_invalid_release_branch(client):
+    staff = create_user("admin@example.test", staff=True, superuser=True)
+    client.force_login(staff)
+    client.get(reverse("accounts:application_status"))
+    settings_rows = list(ApplicationSetting.objects.order_by("id"))
+
+    post_data = {
+        "form-TOTAL_FORMS": str(len(settings_rows)),
+        "form-INITIAL_FORMS": str(len(settings_rows)),
+        "form-MIN_NUM_FORMS": "0",
+        "form-MAX_NUM_FORMS": "1000",
+    }
+    for index, setting in enumerate(settings_rows):
+        post_data[f"form-{index}-id"] = str(setting.id)
+        post_data[f"form-{index}-value"] = (
+            "feature branch" if setting.key == "release_branch" else setting.value
+        )
+
+    response = client.post(reverse("accounts:application_status"), post_data)
+
+    assert response.status_code == 200
+    assert b"Release branch can only contain" in response.content
+    assert ApplicationSetting.objects.get(key="release_branch").value == "stable"
+
+
+@pytest.mark.django_db
 def test_start_upgrade_redirects_to_status_page(client, monkeypatch):
     staff = create_user("admin@example.test", staff=True, superuser=True)
     client.force_login(staff)

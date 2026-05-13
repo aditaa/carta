@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import platform
+import re
 import secrets
 import shlex
 import subprocess
@@ -25,6 +26,9 @@ from accounts.permissions import ROLE_PRESETS
 from installer.services import installer_lock_path
 from ownership.models import HouseMembership, KingdomMembership, Role
 from rulesets.models import Ruleset
+
+RELEASE_BRANCH_DEFAULT = "stable"
+RELEASE_BRANCH_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
 
 DEFAULT_APPLICATION_SETTINGS = [
     {
@@ -94,6 +98,15 @@ DEFAULT_APPLICATION_SETTINGS = [
         "label": "Restart command",
         "value": "",
         "description": "Optional command run after upgrade, such as systemctl restart carta.",
+    },
+    {
+        "key": "release_branch",
+        "label": "Release branch",
+        "value": RELEASE_BRANCH_DEFAULT,
+        "description": (
+            "Git branch used by in-app upgrades. "
+            "Use stable for releases or main for dev/test installs."
+        ),
     },
     {
         "key": "restart_required",
@@ -169,6 +182,7 @@ def status_health_checks() -> list[HealthCheck]:
         _path_writable_check("Static root", settings.STATIC_ROOT),
         _path_writable_check("Media root", settings.MEDIA_ROOT),
         _email_settings_check(),
+        _release_branch_check(),
         _restart_required_check(),
         _slow_query_monitor_check(),
     ]
@@ -205,12 +219,11 @@ def git_status_check() -> HealthCheck:
 
 
 def upgrade_available() -> bool:
-    upstream = _run_git(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"])
-    if upstream.returncode != 0:
+    release_branch = configured_release_branch()
+    target_ref = f"origin/{release_branch}"
+    if not _git_ref_exists(target_ref):
         return False
-    divergence = _run_git(
-        ["rev-list", "--left-right", "--count", f"HEAD...{upstream.stdout.strip()}"]
-    )
+    divergence = _run_git(["rev-list", "--left-right", "--count", f"HEAD...{target_ref}"])
     if divergence.returncode != 0:
         return False
     try:
@@ -278,6 +291,7 @@ def _run_upgrade_job(job_id: str) -> None:
     output = io.StringIO()
     close_old_connections()
     try:
+        release_branch = configured_release_branch()
         _update_upgrade_job(job_id, message="Resetting checkout to Git")
         _append_completed_command(output, ["git", "reset", "--hard", "HEAD"])
         _append_completed_command(output, ["git", "clean", "-fd"])
@@ -285,11 +299,11 @@ def _run_upgrade_job(job_id: str) -> None:
         _update_upgrade_job(job_id, message="Fetching latest code")
         _append_completed_command(output, ["git", "fetch", "--all", "--prune"])
 
-        _update_upgrade_job(job_id, message="Switching to stable branch")
-        _append_completed_command(output, ["git", "checkout", "stable"])
+        _update_upgrade_job(job_id, message=f"Switching to {release_branch} branch")
+        _append_completed_command(output, ["git", "checkout", release_branch])
 
         _update_upgrade_job(job_id, message="Pulling fast-forward updates")
-        _append_completed_command(output, ["git", "pull", "--ff-only"])
+        _append_completed_command(output, ["git", "pull", "--ff-only", "origin", release_branch])
 
         _update_upgrade_job(job_id, message="Running database migrations")
         call_command("migrate", stdout=output, no_input=True)
@@ -411,6 +425,40 @@ def validate_email_settings(settings_map: dict[str, str]) -> EmailSettingsValida
     return EmailSettingsValidation(ok=not errors, errors=tuple(errors))
 
 
+def configured_release_branch(settings_map: dict[str, str] | None = None) -> str:
+    settings_map = settings_map or application_setting_map()
+    branch = settings_map.get("release_branch", RELEASE_BRANCH_DEFAULT).strip()
+    return branch or RELEASE_BRANCH_DEFAULT
+
+
+def validate_release_branch(branch: str) -> tuple[bool, str]:
+    branch = branch.strip()
+    if not branch:
+        return False, "Release branch is required."
+    if branch.startswith("-"):
+        return False, "Release branch cannot start with a dash."
+    if branch.endswith("/") or "//" in branch or ".." in branch:
+        return False, "Release branch must be a normal Git branch name."
+    if not RELEASE_BRANCH_PATTERN.fullmatch(branch):
+        return (
+            False,
+            "Release branch can only contain letters, numbers, dots, dashes, "
+            "underscores, and slashes.",
+        )
+    return True, ""
+
+
+def _release_branch_check() -> HealthCheck:
+    release_branch = configured_release_branch()
+    valid, error = validate_release_branch(release_branch)
+    if not valid:
+        return HealthCheck("Release branch", False, error)
+    target_ref = f"origin/{release_branch}"
+    if not _git_ref_exists(target_ref):
+        return HealthCheck("Release branch", False, f"{target_ref} is not available locally.")
+    return HealthCheck("Release branch", True, release_branch)
+
+
 def _restart_required_check() -> HealthCheck:
     required = application_setting_map().get("restart_required", "false").lower() == "true"
     if required:
@@ -449,6 +497,10 @@ def _run_git_checked(command: list[str]) -> None:
     completed = _run_git(command)
     if completed.returncode != 0:
         raise RuntimeError(completed.stderr or completed.stdout or "Git command failed.")
+
+
+def _git_ref_exists(ref: str) -> bool:
+    return _run_git(["rev-parse", "--verify", "--quiet", ref]).returncode == 0
 
 
 def _update_upgrade_job(job_id: str, **changes: str) -> None:

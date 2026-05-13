@@ -196,10 +196,12 @@ Use this path when you want to keep current data and move to a newer version of
 Carta Arcanum.
 
 The in-app upgrade button on `Settings -> Application Status` is the preferred
-path for superusers once the server is configured. It expects the install to
-track the `stable` branch, treats Git as the source of truth for application
-code, resets changed tracked files before upgrading, runs migrations and
-`collectstatic`, and runs the configured restart command when one is set.
+path for superusers once the server is configured. It defaults to the `stable`
+release branch, but test installs can set the release branch to `main`, which
+is the development branch, from the same admin page. The upgrade treats Git as
+the source of truth for application code, resets changed tracked files before
+upgrading, runs migrations and `collectstatic`, and runs the configured restart
+command when one is set.
 
 Use the manual steps below when the web app is unavailable or when you want to
 perform the upgrade from a shell.
@@ -224,7 +226,7 @@ Fetch and switch to the release branch or tag you want to run:
 
 ```bash
 git fetch origin
-git checkout stable
+git checkout stable  # or main for a non-production test install
 git pull --ff-only origin stable
 ```
 
@@ -371,6 +373,10 @@ are:
   reruns.
 - `CARTA_SLOW_QUERY_MS`: optional slow-query logging threshold in milliseconds.
   Set to `0` or leave unset to disable it.
+
+The release branch used by the in-app upgrade workflow is database-backed and
+editable from `Settings -> Application Status`. New installs default to
+`stable`.
 
 Superusers can also edit database-backed application settings from
 `Settings -> Application Status`. These are intended for non-secret operational
