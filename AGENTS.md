@@ -93,8 +93,15 @@ When rules change:
 - Add tests near the behavior being changed once the Django skeleton exists.
 - Prefer larger pull requests when the work belongs to one coherent feature or
   branch goal, but keep them scoped and reviewable.
+- Keep branches focused on one task, improvement, or bug fix. A branch may be
+  large when the work is one coherent feature area, but avoid mixing unrelated
+  admin, gameplay, documentation, or infrastructure changes.
+- Use branch names that describe the branch goal clearly. Prefer names like
+  `codex/admin-settings-workflows` over stale or unrelated names.
 - Commit and push useful increments often within a branch instead of saving one
   large commit for the end.
+- Make small commits at meaningful boundaries and push to Git frequently so the
+  remote branch stays current and the eventual pull request is easy to review.
 - Keep commit boundaries meaningful, such as model/migration, web workflow,
   tests, or documentation updates.
 - Run the relevant local quality checks before each commit, and run the full
