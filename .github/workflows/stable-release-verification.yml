@@ -1,0 +1,227 @@
+name: Stable Release Verification
+
+on:
+  pull_request:
+    branches:
+      - stable
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - ready_for_review
+
+permissions:
+  contents: read
+
+env:
+  DJANGO_SECRET_KEY: ci-only-secret-key
+  DJANGO_DEBUG: "false"
+  DJANGO_ALLOWED_HOSTS: 127.0.0.1,localhost
+  MYSQL_HOST: 127.0.0.1
+  MYSQL_PORT: "3306"
+  MYSQL_DATABASE: carta_arcanum
+  MYSQL_TEST_DATABASE: test_carta_arcanum
+  MYSQL_USER: carta
+  MYSQL_PASSWORD: carta
+  CARTA_INSTALLER_ENV_FILE: /tmp/carta-stable-ci/.env.local
+  CARTA_INSTALLER_LOCK_FILE: /tmp/carta-stable-ci/installer.lock
+
+jobs:
+  stable-release-quality:
+    name: Stable release quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Import Django settings
+        run: python -m pytest tests/test_settings.py --durations=10
+
+  stable-release-full-suite:
+    name: Stable full suite - MySQL ${{ matrix.mysql }} / Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+          - "3.11"
+          - "3.12"
+        mysql:
+          - "8.0"
+          - "8.4"
+
+    services:
+      mysql:
+        image: mysql:${{ matrix.mysql }}
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: carta_arcanum
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install system MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
+
+      - name: Create Carta MySQL user and databases
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot <<'SQL'
+          CREATE DATABASE IF NOT EXISTS carta_arcanum CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+          CREATE DATABASE IF NOT EXISTS test_carta_arcanum CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+          CREATE USER IF NOT EXISTS 'carta'@'%' IDENTIFIED BY 'carta';
+          ALTER USER 'carta'@'%' IDENTIFIED BY 'carta';
+          GRANT ALL PRIVILEGES ON carta_arcanum.* TO 'carta'@'%';
+          GRANT ALL PRIVILEGES ON test_carta_arcanum.* TO 'carta'@'%';
+          GRANT CREATE, DROP ON *.* TO 'carta'@'%';
+          FLUSH PRIVILEGES;
+          SQL
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Django system check
+        run: python manage.py check
+
+      - name: Migration files are current
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Apply migrations from scratch
+        run: python manage.py migrate --noinput
+
+      - name: Re-apply migrations to prove idempotency
+        run: python manage.py migrate --noinput
+
+      - name: Import current rules repeatedly
+        run: |
+          for run in 1 2 3; do
+            echo "::group::rules import pass $run"
+            python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
+            echo "::endgroup::"
+          done
+
+      - name: Verify imported database content
+        run: |
+          python manage.py shell -c "from rulesets.models import Ruleset, ItemReference; from resources.models import Resource; from buildings.models import BuildingDefinition; assert Ruleset.objects.filter(rules_version='2.1.4').count() == 1; assert Resource.objects.exists(); assert BuildingDefinition.objects.exists(); assert ItemReference.objects.exists()"
+
+      - name: Run full MySQL-backed test suite
+        run: python -m pytest --durations=30
+
+  stable-release-repeated-suites:
+    name: Stable repeated suite - ${{ matrix.suite.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: carta_arcanum
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - name: admin and web workflows
+            paths: accounts/tests dashboard/tests buildings/tests holdings/tests
+          - name: installer and rules import
+            paths: installer/tests rulesets/tests
+          - name: ownership and production services
+            paths: ownership/tests production/tests
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install system MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
+
+      - name: Create Carta MySQL user and databases
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot <<'SQL'
+          CREATE DATABASE IF NOT EXISTS carta_arcanum CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+          CREATE DATABASE IF NOT EXISTS test_carta_arcanum CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+          CREATE USER IF NOT EXISTS 'carta'@'%' IDENTIFIED BY 'carta';
+          ALTER USER 'carta'@'%' IDENTIFIED BY 'carta';
+          GRANT ALL PRIVILEGES ON carta_arcanum.* TO 'carta'@'%';
+          GRANT ALL PRIVILEGES ON test_carta_arcanum.* TO 'carta'@'%';
+          GRANT CREATE, DROP ON *.* TO 'carta'@'%';
+          FLUSH PRIVILEGES;
+          SQL
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Prepare database
+        run: |
+          python manage.py check
+          python manage.py makemigrations --check --dry-run
+          python manage.py migrate --noinput
+          python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
+
+      - name: Run ${{ matrix.suite.name }} tests repeatedly
+        run: |
+          for run in 1 2 3; do
+            echo "::group::${{ matrix.suite.name }} pass $run"
+            python -m pytest ${{ matrix.suite.paths }} --durations=25
+            echo "::endgroup::"
+          done
