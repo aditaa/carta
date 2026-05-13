@@ -7,6 +7,7 @@
     <p class="eyebrow">User Management</p>
     <h1>Invite User</h1>
     <p class="muted">Invite an existing user to join a house or kingdom. They will accept inside the app.</p>
+    {% include "accounts/_admin_nav.html" %}
 
     <form class="settings-form" method="post">
       {% csrf_token %}

@@ -228,6 +228,29 @@ p {
   text-decoration: none;
 }
 
+.subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 24px;
+}
+
+.subnav a {
+  padding: 8px 10px;
+  border: 1px solid #c8bea9;
+  border-radius: 6px;
+  background: #fffdf8;
+  color: #17201c;
+  font-size: 0.92rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.subnav a:hover {
+  border-color: #aab5a8;
+  background: #e6eadf;
+}
+
 .danger-link {
   border-color: #d9aaa3;
   background: #fff1ee;
@@ -325,6 +348,28 @@ p {
   color: #4d5a51;
   font-size: 0.8rem;
   text-transform: uppercase;
+}
+
+.data-table a {
+  color: #17201c;
+  font-weight: 800;
+}
+
+.data-table form {
+  margin: 0;
+}
+
+.data-table button,
+.inline-actions button {
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid #aab5a8;
+  border-radius: 6px;
+  background: #e6eadf;
+  color: #17201c;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .balance-pill {
@@ -570,7 +615,7 @@ p {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   align-items: end;
   gap: 12px;
-  margin: 0 0 16px;
+  margin: 0 0 20px;
   padding: 14px;
   border: 1px solid #ddd3bd;
   border-radius: 8px;
@@ -595,6 +640,17 @@ p {
   font: inherit;
 }
 
+.filter-form input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #c8bea9;
+  border-radius: 6px;
+  background: #fffdf8;
+  color: #17201c;
+  font: inherit;
+}
+
 .filter-actions {
   display: flex;
   align-items: center;
@@ -604,8 +660,9 @@ p {
 .inline-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  margin: 0;
+  margin: 0 0 8px;
 }
 
 .pagination {

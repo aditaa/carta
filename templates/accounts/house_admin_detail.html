@@ -6,6 +6,7 @@
   <section class="page-shell wide">
     <p class="eyebrow">House Admin</p>
     <h1>{{ house.name }}</h1>
+    {% include "accounts/_admin_nav.html" %}
     <div class="summary-row">
       <span>{{ members|length }} memberships</span>
       <span>{{ pending_invitations|length }} pending invites</span>
