@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Upgrade Status - {{ application_site_name }}{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">Upgrade</p>
+    <h1>Upgrade Status</h1>
+    <div
+      hx-get="{% url 'accounts:upgrade_status' job_id %}"
+      hx-trigger="every 2s"
+      hx-swap="innerHTML"
+    >
+      {% include "accounts/_upgrade_status_panel.html" %}
+    </div>
+    <p><a class="button-link" href="{% url 'accounts:application_status' %}">Back to status</a></p>
+  </section>
+{% endblock %}

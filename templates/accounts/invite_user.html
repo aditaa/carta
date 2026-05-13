@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Invite User - {{ application_site_name }}{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">User Management</p>
+    <h1>Invite User</h1>
+    <p class="muted">Invite an existing user to join a house or kingdom. They will accept inside the app.</p>
+    {% include "accounts/_admin_nav.html" %}
+
+    <form class="settings-form" method="post">
+      {% csrf_token %}
+      <section class="settings-section">
+        <h2>Invitation</h2>
+        {{ form.non_field_errors }}
+        <div class="form-grid">
+          {% for field in form %}
+            <label>
+              {{ field.label }}
+              {{ field }}
+              {{ field.errors }}
+            </label>
+          {% endfor %}
+        </div>
+      </section>
+      <div class="form-actions">
+        <a class="button-link" href="{% url 'accounts:user_access_list' %}">Back</a>
+        <button type="submit">Create invitation</button>
+      </div>
+    </form>
+
+    <section class="settings-section">
+      <h2>Pending Invitations</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Target</th>
+              <th>Role</th>
+              <th>Created</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for invitation in pending_invitations %}
+              <tr>
+                <td>{{ invitation.invitee }}</td>
+                <td>{{ invitation.target_label }}</td>
+                <td>{{ invitation.get_role_display }}</td>
+                <td>{{ invitation.created_at }}</td>
+                <td>
+                  <form method="post" action="{% url 'accounts:cancel_invitation' invitation.id %}">
+                    {% csrf_token %}
+                    <button type="submit">Cancel</button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5">No pending invitations.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+{% endblock %}

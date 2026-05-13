@@ -107,6 +107,9 @@ class OwnedBuilding(models.Model):
         indexes = [
             models.Index(fields=["owner_scope", "status"]),
             models.Index(fields=["ruleset", "definition"]),
+            models.Index(fields=["user", "status"], name="bld_owned_user_status_idx"),
+            models.Index(fields=["house", "status"], name="bld_owned_house_status_idx"),
+            models.Index(fields=["kingdom", "status"], name="bld_owned_kingdom_status_idx"),
         ]
 
     def clean(self):

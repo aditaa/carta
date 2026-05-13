@@ -1,0 +1,29 @@
+<nav class="subnav" aria-label="Administration sections">
+  {% if request.user.is_superuser %}
+    <details class="subnav-group" open>
+      <summary>Application</summary>
+      <a href="{% url 'accounts:settings_home' %}">Settings</a>
+      <a href="{% url 'accounts:application_status' %}">Status</a>
+      <a href="{% url 'accounts:audit_log' %}">Audit</a>
+    </details>
+    <details class="subnav-group" open>
+      <summary>Access</summary>
+      <a href="{% url 'accounts:user_access_list' %}">Users</a>
+      <a href="{% url 'accounts:invite_user' %}">Invites</a>
+    </details>
+  {% endif %}
+  {% if show_house_admin_nav or show_kingdom_admin_nav %}
+    <details class="subnav-group" open>
+      <summary>Organizations</summary>
+      {% if show_house_admin_nav %}
+        <a href="{% url 'accounts:house_admin_list' %}">House Admin</a>
+      {% endif %}
+      {% if show_kingdom_admin_nav %}
+        <a href="{% url 'accounts:kingdom_admin_list' %}">Kingdom Admin</a>
+      {% endif %}
+      {% if not request.user.is_superuser %}
+        <a href="{% url 'accounts:invite_user' %}">Invites</a>
+      {% endif %}
+    </details>
+  {% endif %}
+</nav>

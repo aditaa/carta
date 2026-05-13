@@ -80,8 +80,12 @@
                 <td>{{ building.get_status_display }}</td>
                 <td>{{ building.location|default:"-" }}</td>
                 <td>
-                  <button class="btn-link" hx-get="{% url 'buildings:edit' building.id %}" hx-target="#building-modal-container" hx-swap="innerHTML">Edit</button>
-                  <a href="{% url 'buildings:delete' building.id %}">Delete</a>
+                  {% if building.id in editable_building_ids %}
+                    <button class="btn-link" hx-get="{% url 'buildings:edit' building.id %}" hx-target="#building-modal-container" hx-swap="innerHTML">Edit</button>
+                    <a href="{% url 'buildings:delete' building.id %}">Delete</a>
+                  {% else %}
+                    <span class="muted">Read only</span>
+                  {% endif %}
                 </td>
               </tr>
             {% endfor %}

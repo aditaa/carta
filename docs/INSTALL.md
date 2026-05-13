@@ -78,6 +78,11 @@ MySQL settings to `.env.local`, creates the first superuser, runs migrations,
 imports the current rules file, and writes `installer.lock` when setup is
 complete.
 
+After the first superuser signs in, open `Settings -> Application Status` to
+review health checks, editable app settings, email configuration, Git file
+status, and upgrade readiness. The broader admin workflow is documented in
+[`docs/ADMIN.md`](ADMIN.md).
+
 If you prefer to run setup from the command line instead of the installer:
 
 ```bash
@@ -189,6 +194,15 @@ sudo systemctl start carta
 
 Use this path when you want to keep current data and move to a newer version of
 Carta Arcanum.
+
+The in-app upgrade button on `Settings -> Application Status` is the preferred
+path for superusers once the server is configured. It expects the install to
+track the `stable` branch, treats Git as the source of truth for application
+code, resets changed tracked files before upgrading, runs migrations and
+`collectstatic`, and runs the configured restart command when one is set.
+
+Use the manual steps below when the web app is unavailable or when you want to
+perform the upgrade from a shell.
 
 Stop the app:
 
@@ -355,6 +369,29 @@ are:
 - `CARTA_INSTALLER_ENV_FILE`: local env file written by the installer.
 - `CARTA_INSTALLER_LOCK_FILE`: lock file that prevents accidental installer
   reruns.
+- `CARTA_SLOW_QUERY_MS`: optional slow-query logging threshold in milliseconds.
+  Set to `0` or leave unset to disable it.
+
+Superusers can also edit database-backed application settings from
+`Settings -> Application Status`. These are intended for non-secret operational
+values such as the displayed site name, maintenance notice, restart command,
+restart-needed flag, and email backend settings.
+
+Email sending can use Django's console backend for development, a local SMTP
+relay, a provider SMTP service, or another Django email backend. Linux server
+mail often needs extra system configuration, so use the status page's email
+test button after changing email settings.
+
+## Future Performance Notes
+
+The admin/settings branch adds indexes for user status filters, audit log
+lookups, invitation status filters, and active house/kingdom ACL membership
+queries, owned buildings by owner/status, holding accounts by
+owner/scope/activity, holding balances by account/item, and holding ledger
+lookups. As the app grows, likely future index candidates include deeper
+production/rules references, planned event queues, map coordinates, and solver
+snapshots. Use slow-query logs and database `EXPLAIN` output before adding those
+indexes so the schema follows real usage instead of guesswork.
 
 ## Checks
 

@@ -12,7 +12,16 @@ from holdings.services import editable_holding_accounts, visible_holding_account
 @login_required
 def index(request):
     accounts = visible_holding_accounts(request.user).prefetch_related("balances")
-    return render(request, "holdings/index.html", {"accounts": accounts})
+    editable_account_ids = set(
+        editable_holding_accounts(request.user)
+        .filter(id__in=accounts.values("id"))
+        .values_list("id", flat=True)
+    )
+    return render(
+        request,
+        "holdings/index.html",
+        {"accounts": accounts, "editable_account_ids": editable_account_ids},
+    )
 
 
 @login_required

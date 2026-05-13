@@ -1,11 +1,14 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 
 from ownership.models import House, HouseMembership, Kingdom, KingdomMembership, Role
 from ownership.services import (
     can_view_house,
     can_view_kingdom,
     can_view_user,
+    editable_house_ids,
+    editable_kingdom_ids,
     has_house_role,
     visible_house_ids,
     visible_kingdom_ids,
@@ -123,3 +126,39 @@ def test_visible_kingdom_ids_include_user_kingdom_memberships():
     KingdomMembership.objects.create(user=viewer, kingdom=kingdom, role=Role.MEMBER)
 
     assert visible_kingdom_ids(viewer) == {kingdom.id}
+
+
+@pytest.mark.django_db
+def test_editable_ids_exclude_read_only_memberships():
+    viewer = create_user("viewer@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    HouseMembership.objects.create(user=viewer, house=house, role=Role.READ_ONLY)
+    KingdomMembership.objects.create(user=viewer, kingdom=kingdom, role=Role.READ_ONLY)
+
+    assert visible_house_ids(viewer) == {house.id}
+    assert visible_kingdom_ids(viewer) == {kingdom.id}
+    assert editable_house_ids(viewer) == set()
+    assert editable_kingdom_ids(viewer) == set()
+
+
+@pytest.mark.django_db
+def test_user_cannot_have_two_active_house_memberships():
+    user = create_user("viewer@example.test", "Viewer")
+    first_house = House.objects.create(key="bramble", name="House Bramble")
+    second_house = House.objects.create(key="ember", name="House Ember")
+    HouseMembership.objects.create(user=user, house=first_house, role=Role.MEMBER)
+
+    with pytest.raises(ValidationError):
+        HouseMembership.objects.create(user=user, house=second_house, role=Role.MEMBER)
+
+
+@pytest.mark.django_db
+def test_user_cannot_have_two_active_kingdom_memberships():
+    user = create_user("viewer@example.test", "Viewer")
+    first_kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    second_kingdom = Kingdom.objects.create(key="solmere", name="Solmere")
+    KingdomMembership.objects.create(user=user, kingdom=first_kingdom, role=Role.MEMBER)
+
+    with pytest.raises(ValidationError):
+        KingdomMembership.objects.create(user=user, kingdom=second_kingdom, role=Role.MEMBER)

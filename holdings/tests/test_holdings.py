@@ -578,6 +578,22 @@ def test_read_only_house_member_cannot_adjust_house_holding_account(client):
     assert not HoldingBalance.objects.filter(account=account).exists()
 
 
+def test_holdings_page_hides_actions_for_read_only_accounts(client):
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    account = HoldingAccount.objects.create(scope=HoldingAccount.Scope.HOUSE, house=house)
+    HouseMembership.objects.create(user=user, house=house, role=Role.READ_ONLY)
+    client.force_login(user)
+
+    response = client.get(reverse("holdings:index"))
+
+    assert response.status_code == 200
+    assert str(account).encode() in response.content
+    assert b"Read only" in response.content
+    assert reverse("holdings:transfer", args=[account.id]).encode() not in response.content
+    assert b"showAdjustModal" in response.content
+
+
 def test_holding_adjustment_reports_insufficient_holdings(client):
     ruleset = create_ruleset()
     user = create_user()

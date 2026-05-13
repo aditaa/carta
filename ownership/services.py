@@ -101,6 +101,36 @@ def visible_kingdom_ids(viewer) -> set[int]:
     )
 
 
+def editable_house_ids(viewer, minimum_role: Role = Role.MEMBER) -> set[int]:
+    if not _is_active_user(viewer):
+        return set()
+    if viewer.is_superuser:
+        return set(House.objects.values_list("id", flat=True))
+    allowed_roles = _roles_at_or_above(minimum_role)
+    return set(
+        HouseMembership.objects.filter(
+            user=viewer,
+            active=True,
+            role__in=allowed_roles,
+        ).values_list("house_id", flat=True)
+    )
+
+
+def editable_kingdom_ids(viewer, minimum_role: Role = Role.MEMBER) -> set[int]:
+    if not _is_active_user(viewer):
+        return set()
+    if viewer.is_superuser:
+        return set(Kingdom.objects.values_list("id", flat=True))
+    allowed_roles = _roles_at_or_above(minimum_role)
+    return set(
+        KingdomMembership.objects.filter(
+            user=viewer,
+            active=True,
+            role__in=allowed_roles,
+        ).values_list("kingdom_id", flat=True)
+    )
+
+
 def visible_user_ids(viewer) -> set[int]:
     if not _is_active_user(viewer):
         return set()
@@ -139,6 +169,10 @@ def _membership_meets_role(membership, minimum_role: Role) -> bool:
     if membership is None:
         return False
     return ROLE_RANK[membership.role] >= ROLE_RANK[minimum_role]
+
+
+def _roles_at_or_above(minimum_role: Role) -> list[Role]:
+    return [role for role, rank in ROLE_RANK.items() if rank >= ROLE_RANK[minimum_role]]
 
 
 def _is_active_user(user) -> bool:
