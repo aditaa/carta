@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Invitations - {{ application_site_name }}{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">Account</p>
+    <h1>Invitations</h1>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Invitation</th>
+            <th>Role</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for invitation in invitations %}
+            <tr>
+              <td>{{ invitation.target_label }}</td>
+              <td>{{ invitation.get_role_display }}</td>
+              <td>
+                <form class="inline-actions" method="post" action="{% url 'accounts:respond_to_invitation' invitation.id %}">
+                  {% csrf_token %}
+                  <button type="submit" name="response" value="accept">Accept</button>
+                  <button type="submit" name="response" value="decline">Decline</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3">No pending invitations.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

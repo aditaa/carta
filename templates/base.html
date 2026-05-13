@@ -4,18 +4,29 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Carta Arcanum{% endblock %}</title>
+    <title>{% block title %}{{ application_site_name }}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/site.css' %}">
     <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
     {% block head %}{% endblock %}
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="{% url 'dashboard:home' %}">Carta Arcanum</a>
+      <a class="brand" href="{% url 'dashboard:home' %}">{{ application_site_name }}</a>
       <nav class="site-nav" aria-label="Account">
         {% if request.user.is_authenticated %}
           <a href="{% url 'buildings:index' %}">Buildings</a>
           <a href="{% url 'holdings:index' %}">Holdings</a>
+          {% if show_house_admin_nav %}
+            <a href="{% url 'accounts:house_admin_list' %}">House Admin</a>
+          {% endif %}
+          {% if show_kingdom_admin_nav %}
+            <a href="{% url 'accounts:kingdom_admin_list' %}">Kingdom Admin</a>
+          {% endif %}
+          {% if request.user.is_superuser %}
+            <a href="{% url 'accounts:settings_home' %}">Settings</a>
+          {% endif %}
+          <a href="{% url 'accounts:my_invitations' %}">Invitations</a>
+          <a href="{% url 'accounts:password_change' %}">Password</a>
           <span>{{ request.user.display_name }}</span>
           <form method="post" action="{% url 'accounts:logout' %}">
             {% csrf_token %}
@@ -27,6 +38,18 @@
       </nav>
     </header>
     <main class="site-main">
+      {% if application_maintenance_notice %}
+        <section class="maintenance-notice" aria-label="Maintenance notice">
+          {{ application_maintenance_notice }}
+        </section>
+      {% endif %}
+      {% if messages %}
+        <section class="messages" aria-label="Messages">
+          {% for message in messages %}
+            <p class="message {{ message.tags }}">{{ message }}</p>
+          {% endfor %}
+        </section>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </body>

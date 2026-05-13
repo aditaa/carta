@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}{{ target_user.display_name }} Access - Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">User Access</p>
+    <h1>{{ target_user.display_name }}</h1>
+    <p class="muted">{{ target_user.email }}</p>
+
+    <form class="settings-form" method="post">
+      {% csrf_token %}
+
+      <section class="settings-section">
+        <h2>Account ACL</h2>
+        {{ access_form.non_field_errors }}
+        <div class="form-grid">
+          {% for field in access_form %}
+            <label{% if field.field.widget.input_type == "checkbox" %} class="checkbox-row"{% endif %}>
+              {{ field.label }}
+              {{ field }}
+              {{ field.errors }}
+              {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            </label>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2>Denizen Status</h2>
+        {{ profile_form.non_field_errors }}
+        <div class="form-grid">
+          {% for field in profile_form %}
+            <label{% if field.field.widget.input_type == "checkbox" %} class="checkbox-row"{% endif %}>
+              {{ field.label }}
+              {{ field }}
+              {{ field.errors }}
+              {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            </label>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2>House ACL</h2>
+        {{ house_formset.management_form }}
+        {{ house_formset.non_form_errors }}
+        <div class="form-table">
+          {% for form in house_formset %}
+            <div class="form-table-row">
+              {{ form.id }}
+              {% for field in form.visible_fields %}
+                <label{% if field.field.widget.input_type == "checkbox" %} class="checkbox-row"{% endif %}>
+                  {{ field.label }}
+                  {{ field }}
+                  {{ field.errors }}
+                </label>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2>Kingdom ACL</h2>
+        {{ kingdom_formset.management_form }}
+        {{ kingdom_formset.non_form_errors }}
+        <div class="form-table">
+          {% for form in kingdom_formset %}
+            <div class="form-table-row">
+              {{ form.id }}
+              {% for field in form.visible_fields %}
+                <label{% if field.field.widget.input_type == "checkbox" %} class="checkbox-row"{% endif %}>
+                  {{ field.label }}
+                  {{ field }}
+                  {{ field.errors }}
+                </label>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2>Effective Permissions</h2>
+        {% for permission in effective_permissions %}
+          <span class="balance-pill">{{ permission }}</span>
+        {% empty %}
+          <p class="muted">No explicit Django permissions.</p>
+        {% endfor %}
+      </section>
+
+      <div class="form-actions">
+        <a class="button-link" href="{% url 'accounts:user_access_list' %}">Back</a>
+        <a class="button-link" href="{% url 'accounts:admin_change_password' target_user.id %}">Change password</a>
+        {% if target_user.is_active %}
+          <a class="button-link danger-link" href="{% url 'accounts:user_delete' target_user.id %}">Disable user</a>
+        {% else %}
+          <form method="post" action="{% url 'accounts:user_enable' target_user.id %}">
+            {% csrf_token %}
+            <button type="submit">Enable user</button>
+          </form>
+        {% endif %}
+        <button type="submit">Save access</button>
+      </div>
+    </form>
+
+    <section class="settings-section">
+      <h2>Membership Actions</h2>
+      {% for membership in target_user.house_memberships.all %}
+        {% if membership.active %}
+          <form class="inline-actions" method="post" action="{% url 'accounts:remove_house_membership' membership.id %}">
+            {% csrf_token %}
+            <span>{{ membership.house }} · {{ membership.get_role_display }}</span>
+            <button type="submit">Remove from house</button>
+          </form>
+        {% endif %}
+      {% endfor %}
+      {% for membership in target_user.kingdom_memberships.all %}
+        {% if membership.active %}
+          <form class="inline-actions" method="post" action="{% url 'accounts:remove_kingdom_membership' membership.id %}">
+            {% csrf_token %}
+            <span>{{ membership.kingdom }} · {{ membership.get_role_display }}</span>
+            <button type="submit">Remove from kingdom</button>
+          </form>
+        {% endif %}
+      {% endfor %}
+    </section>
+  </section>
+{% endblock %}

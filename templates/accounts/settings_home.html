@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">Administration</p>
+    <h1>Settings</h1>
+    <p class="muted">Operational status and access control for Carta Arcanum.</p>
+
+    <div class="settings-grid">
+      <article class="settings-card">
+        <h2>Users</h2>
+        <p class="metric">{{ user_count }}</p>
+        <p class="muted">{{ active_user_count }} active, {{ staff_user_count }} staff, {{ superuser_count }} superusers</p>
+        <a class="button-link" href="{% url 'accounts:user_access_list' %}">Manage user access</a>
+      </article>
+      <article class="settings-card">
+        <h2>Audit Log</h2>
+        <p class="metric">{{ audit_entry_count }}</p>
+        <p class="muted">Recent administrative actions and security-sensitive changes.</p>
+        <a class="button-link" href="{% url 'accounts:audit_log' %}">View audit log</a>
+      </article>
+      <article class="settings-card">
+        <h2>House ACL</h2>
+        <p class="metric">{{ active_house_membership_count }}</p>
+        <p class="muted">Active memberships across {{ house_count }} houses.</p>
+      </article>
+      <article class="settings-card">
+        <h2>Kingdom ACL</h2>
+        <p class="metric">{{ active_kingdom_membership_count }}</p>
+        <p class="muted">Active memberships across {{ kingdom_count }} kingdoms.</p>
+      </article>
+      <article class="settings-card">
+        <h2>Application</h2>
+        {% if all_health_checks_ok %}
+          <p class="status-pill is-ok">Healthy</p>
+        {% else %}
+          <p class="status-pill is-error">Needs attention</p>
+        {% endif %}
+        <p class="muted">{{ health_checks|length }} checks include runtime, database, rules, installer, and Git status.</p>
+        <a class="button-link" href="{% url 'accounts:application_status' %}">View status</a>
+      </article>
+    </div>
+  </section>
+{% endblock %}

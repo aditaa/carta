@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Kingdom Admin - {{ application_site_name }}{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">Kingdom Admin</p>
+    <h1>Kingdoms</h1>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Kingdom</th><th>Houses</th><th></th></tr></thead>
+        <tbody>
+          {% for kingdom in page %}
+            <tr>
+              <td>{{ kingdom.name }}</td>
+              <td>{{ kingdom.houses.count }}</td>
+              <td><a href="{% url 'accounts:kingdom_admin_detail' kingdom.id %}">Manage</a></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3">No kingdoms to manage.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "accounts/_pagination.html" with page=page %}
+  </section>
+{% endblock %}

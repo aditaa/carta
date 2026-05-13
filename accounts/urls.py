@@ -1,7 +1,43 @@
-from django.contrib.auth.views import LogoutView
+from django.contrib.auth.views import (
+    LogoutView,
+    PasswordResetCompleteView,
+    PasswordResetConfirmView,
+    PasswordResetDoneView,
+)
 from django.urls import path
 
-from accounts.views import CartaLoginView, first_admin_setup
+from accounts.views import (
+    CartaLoginView,
+    CartaPasswordResetView,
+    admin_change_password,
+    application_status,
+    audit_log,
+    audit_log_detail,
+    cancel_invitation,
+    change_own_password,
+    first_admin_setup,
+    fix_git_file,
+    house_admin_detail,
+    house_admin_list,
+    invite_user,
+    kingdom_admin_detail,
+    kingdom_admin_list,
+    my_invitations,
+    remove_house_membership,
+    remove_kingdom_membership,
+    reset_git_files,
+    respond_to_invitation,
+    send_test_email,
+    settings_home,
+    start_upgrade,
+    upgrade_status,
+    upgrade_status_json,
+    user_access_detail,
+    user_access_list,
+    user_create,
+    user_delete,
+    user_enable,
+)
 
 app_name = "accounts"
 
@@ -9,4 +45,78 @@ urlpatterns = [
     path("setup/", first_admin_setup, name="setup"),
     path("login/", CartaLoginView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
+    path("invitations/", my_invitations, name="my_invitations"),
+    path(
+        "invitations/<int:invitation_id>/respond/",
+        respond_to_invitation,
+        name="respond_to_invitation",
+    ),
+    path("password/change/", change_own_password, name="password_change"),
+    path(
+        "password/reset/",
+        CartaPasswordResetView.as_view(),
+        name="password_reset",
+    ),
+    path(
+        "password/reset/done/",
+        PasswordResetDoneView.as_view(template_name="accounts/password_reset_done.html"),
+        name="password_reset_done",
+    ),
+    path(
+        "password/reset/<uidb64>/<token>/",
+        PasswordResetConfirmView.as_view(
+            template_name="accounts/password_reset_confirm.html",
+            success_url="/accounts/password/reset/complete/",
+        ),
+        name="password_reset_confirm",
+    ),
+    path(
+        "password/reset/complete/",
+        PasswordResetCompleteView.as_view(template_name="accounts/password_reset_complete.html"),
+        name="password_reset_complete",
+    ),
+    path("settings/", settings_home, name="settings_home"),
+    path("settings/audit/", audit_log, name="audit_log"),
+    path("settings/audit/<int:entry_id>/", audit_log_detail, name="audit_log_detail"),
+    path("settings/status/", application_status, name="application_status"),
+    path("settings/status/email/test/", send_test_email, name="send_test_email"),
+    path("settings/status/git/restore/", fix_git_file, name="fix_git_file"),
+    path("settings/status/git/reset/", reset_git_files, name="reset_git_files"),
+    path("settings/status/upgrade/", start_upgrade, name="start_upgrade"),
+    path("settings/status/upgrade/<str:job_id>/", upgrade_status, name="upgrade_status"),
+    path(
+        "settings/status/upgrade/<str:job_id>/json/",
+        upgrade_status_json,
+        name="upgrade_status_json",
+    ),
+    path("settings/users/", user_access_list, name="user_access_list"),
+    path("settings/users/invite/", invite_user, name="invite_user"),
+    path(
+        "settings/users/invite/<int:invitation_id>/cancel/",
+        cancel_invitation,
+        name="cancel_invitation",
+    ),
+    path("settings/users/new/", user_create, name="user_create"),
+    path("settings/users/<int:user_id>/", user_access_detail, name="user_access_detail"),
+    path(
+        "settings/users/<int:user_id>/password/",
+        admin_change_password,
+        name="admin_change_password",
+    ),
+    path("settings/users/<int:user_id>/disable/", user_delete, name="user_delete"),
+    path("settings/users/<int:user_id>/enable/", user_enable, name="user_enable"),
+    path("houses/", house_admin_list, name="house_admin_list"),
+    path("houses/<int:house_id>/", house_admin_detail, name="house_admin_detail"),
+    path("kingdoms/", kingdom_admin_list, name="kingdom_admin_list"),
+    path("kingdoms/<int:kingdom_id>/", kingdom_admin_detail, name="kingdom_admin_detail"),
+    path(
+        "settings/house-memberships/<int:membership_id>/remove/",
+        remove_house_membership,
+        name="remove_house_membership",
+    ),
+    path(
+        "settings/kingdom-memberships/<int:membership_id>/remove/",
+        remove_kingdom_membership,
+        name="remove_kingdom_membership",
+    ),
 ]

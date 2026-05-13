@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Disable {{ target_user.display_name }} - Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="page-shell">
+    <p class="eyebrow">User Management</p>
+    <h1>Disable {{ target_user.display_name }}?</h1>
+    <p class="muted">{{ target_user.email }}</p>
+
+    <section class="settings-section">
+      <h2>Records kept in place</h2>
+      <p class="muted">Users are never deleted. Disabling a user blocks sign-in and preserves their history.</p>
+      <div class="summary-row">
+        <span>{{ related_counts.house_memberships }} house ACL</span>
+        <span>{{ related_counts.kingdom_memberships }} kingdom ACL</span>
+        <span>{{ related_counts.owned_buildings }} owned buildings</span>
+        <span>{{ related_counts.holding_accounts }} holding accounts</span>
+      </div>
+    </section>
+
+    <form class="settings-form" method="post">
+      {% csrf_token %}
+      <div class="form-actions">
+        <a class="button-link" href="{% url 'accounts:user_access_detail' target_user.id %}">Cancel</a>
+        <button class="danger-button" type="submit">Disable user</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

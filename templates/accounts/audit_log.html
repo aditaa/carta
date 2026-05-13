@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log - {{ application_site_name }}{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">Settings</p>
+    <h1>Audit Log</h1>
+    <p class="muted">Recent administrative and security-sensitive activity.</p>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Actor</th>
+            <th>Action</th>
+            <th>Target</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in page %}
+            <tr>
+              <td>{{ entry.created_at }}</td>
+              <td>{% if entry.actor %}{{ entry.actor }}{% else %}System{% endif %}</td>
+              <td>{{ entry.action }}</td>
+              <td>{{ entry.target_type }}: {{ entry.target_label }}</td>
+              <td><a href="{% url 'accounts:audit_log_detail' entry.id %}">View detail</a></td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5">No audit entries yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "accounts/_pagination.html" with page=page %}
+  </section>
+{% endblock %}
