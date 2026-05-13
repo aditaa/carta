@@ -25,11 +25,17 @@ jobs:
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
           IS_DRAFT: ${{ github.event.pull_request.draft }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.repository }}
         run: |
-          echo "base=$BASE_REF head=$HEAD_REF draft=$IS_DRAFT"
+          echo "base=$BASE_REF head=$HEAD_REPO:$HEAD_REF draft=$IS_DRAFT"
           if [ "$BASE_REF" != "stable" ]; then
             echo "This gate only applies to stable."
             exit 0
+          fi
+          if [ "$HEAD_REPO" != "$BASE_REPO" ]; then
+            echo "Stable release PRs must come from branches in $BASE_REPO, not $HEAD_REPO."
+            exit 1
           fi
           if [ "$IS_DRAFT" = "true" ]; then
             echo "Stable release PRs must be marked ready for review before merging."

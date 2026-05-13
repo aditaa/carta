@@ -164,6 +164,9 @@ def test_validate_release_branch_rejects_unsafe_names():
     assert not validate_release_branch("-main")[0]
     assert not validate_release_branch("feature//bad")[0]
     assert not validate_release_branch("feature bad")[0]
+    assert not validate_release_branch("HEAD")[0]
+    assert not validate_release_branch("refs/heads/main.lock")[0]
+    assert not validate_release_branch("release/@{bad}")[0]
 
 
 @pytest.mark.django_db

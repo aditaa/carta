@@ -29,6 +29,13 @@ from rulesets.models import Ruleset
 
 RELEASE_BRANCH_DEFAULT = "stable"
 RELEASE_BRANCH_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
+RESERVED_RELEASE_BRANCH_NAMES = {
+    "HEAD",
+    "FETCH_HEAD",
+    "ORIG_HEAD",
+    "MERGE_HEAD",
+    "CHERRY_PICK_HEAD",
+}
 
 DEFAULT_APPLICATION_SETTINGS = [
     {
@@ -435,9 +442,19 @@ def validate_release_branch(branch: str) -> tuple[bool, str]:
     branch = branch.strip()
     if not branch:
         return False, "Release branch is required."
+    if branch.upper() in RESERVED_RELEASE_BRANCH_NAMES:
+        return False, "Release branch must be a named branch, not a symbolic Git ref."
     if branch.startswith("-"):
         return False, "Release branch cannot start with a dash."
-    if branch.endswith("/") or "//" in branch or ".." in branch:
+    if (
+        branch.endswith("/")
+        or branch.endswith(".")
+        or branch.endswith(".lock")
+        or branch.startswith("/")
+        or "//" in branch
+        or ".." in branch
+        or "@{" in branch
+    ):
         return False, "Release branch must be a normal Git branch name."
     if not RELEASE_BRANCH_PATTERN.fullmatch(branch):
         return (
