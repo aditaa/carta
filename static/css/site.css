@@ -57,6 +57,58 @@ body {
   margin: 0;
 }
 
+.nav-menu {
+  position: relative;
+}
+
+.nav-menu summary {
+  cursor: pointer;
+  font-weight: 800;
+  list-style: none;
+}
+
+.nav-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.nav-menu summary::after {
+  content: " v";
+  color: #6f786f;
+  font-size: 0.82rem;
+}
+
+.nav-menu-panel {
+  position: absolute;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  min-width: 180px;
+  max-height: min(70vh, 420px);
+  overflow: auto;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 8px;
+  border: 1px solid #c8bea9;
+  border-radius: 8px;
+  background: #fffdf8;
+  box-shadow: 0 10px 24px rgba(23, 32, 28, 0.12);
+}
+
+.nav-menu-panel a,
+.nav-menu-panel button {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+}
+
+.nav-menu-panel a:hover,
+.nav-menu-panel button:hover {
+  background: #e6eadf;
+}
+
 .site-nav button,
 .auth-form button {
   border: 1px solid #aab5a8;
@@ -231,8 +283,33 @@ p {
 .subnav {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
   margin: 18px 0 24px;
+}
+
+.subnav-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #ddd3bd;
+  border-radius: 8px;
+  background: #f7f4ed;
+}
+
+.subnav-group summary {
+  width: 100%;
+  color: #4d5a51;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 900;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+.subnav-group summary::-webkit-details-marker {
+  display: none;
 }
 
 .subnav a {
@@ -525,6 +602,11 @@ p {
   margin-top: 20px;
 }
 
+.settings-section {
+  max-height: min(80vh, 720px);
+  overflow: auto;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -770,6 +852,22 @@ p {
 }
 
 @media (max-width: 760px) {
+  .site-header {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 14px 16px;
+  }
+
+  .site-nav {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .nav-menu-panel {
+    left: 0;
+    right: auto;
+  }
+
   .form-table-row {
     grid-template-columns: 1fr;
   }
