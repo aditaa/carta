@@ -104,6 +104,10 @@ When rules change:
   remote branch stays current and the eventual pull request is easy to review.
 - Keep commit boundaries meaningful, such as model/migration, web workflow,
   tests, or documentation updates.
+- After a pull request is closed and the branch is no longer active, remove the
+  old local and remote branches to keep the repository tidy. Do not delete a
+  branch if there is still follow-up work, an open PR, or uncertainty about
+  whether the branch is still needed.
 - Run the relevant local quality checks before each commit, and run the full
   CI-style test set before opening or updating a pull request for review.
 
