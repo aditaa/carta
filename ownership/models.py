@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from rulesets.models import Ruleset
@@ -70,6 +71,19 @@ class HouseMembership(models.Model):
     def __str__(self) -> str:
         return f"{self.user} in {self.house}"
 
+    def clean(self):
+        super().clean()
+        if self.active and self.user_id:
+            existing = HouseMembership.objects.filter(user_id=self.user_id, active=True)
+            if self.pk:
+                existing = existing.exclude(pk=self.pk)
+            if existing.exists():
+                raise ValidationError("A user can only have one active house membership.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
 
 class KingdomMembership(models.Model):
     user = models.ForeignKey(
@@ -94,6 +108,19 @@ class KingdomMembership(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} in {self.kingdom}"
+
+    def clean(self):
+        super().clean()
+        if self.active and self.user_id:
+            existing = KingdomMembership.objects.filter(user_id=self.user_id, active=True)
+            if self.pk:
+                existing = existing.exclude(pk=self.pk)
+            if existing.exists():
+                raise ValidationError("A user can only have one active kingdom membership.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
 
 class OwnershipRule(models.Model):
