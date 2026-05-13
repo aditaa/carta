@@ -162,6 +162,50 @@ def test_restore_git_file_logs_audit_entry(client, monkeypatch):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("route_name", "method", "args", "data"),
+    [
+        ("accounts:settings_home", "get", (), {}),
+        ("accounts:application_status", "get", (), {}),
+        ("accounts:application_status", "post", (), {}),
+        ("accounts:send_test_email", "post", (), {"recipient": "denizen@example.test"}),
+        ("accounts:fix_git_file", "post", (), {"path": "accounts/models.py"}),
+        ("accounts:reset_git_files", "post", (), {}),
+        ("accounts:start_upgrade", "post", (), {}),
+        ("accounts:upgrade_status", "get", ("job-123",), {}),
+        ("accounts:upgrade_status_json", "get", ("job-123",), {}),
+        ("accounts:audit_log", "get", (), {}),
+    ],
+)
+def test_superuser_status_routes_reject_standard_users(client, route_name, method, args, data):
+    user = create_user("denizen@example.test")
+    client.force_login(user)
+
+    response = getattr(client, method)(reverse(route_name, args=args), data)
+
+    assert response.status_code == 302
+    assert reverse("accounts:login") in response.url
+
+
+@pytest.mark.django_db
+def test_audit_detail_rejects_standard_users(client):
+    user = create_user("denizen@example.test")
+    entry = AuditLogEntry.objects.create(
+        actor=user,
+        action="test_action",
+        target_type="User",
+        target_id=str(user.id),
+        target_label=str(user),
+    )
+    client.force_login(user)
+
+    response = client.get(reverse("accounts:audit_log_detail", args=[entry.id]))
+
+    assert response.status_code == 302
+    assert reverse("accounts:login") in response.url
+
+
+@pytest.mark.django_db
 def test_user_access_list_shows_acl_summary(client):
     staff = create_user("admin@example.test", staff=True, superuser=True)
     target = create_user("denizen@example.test")
@@ -205,6 +249,32 @@ def test_house_admin_only_sees_house_users(client):
     assert response.status_code == 200
     assert b"housemate@example.test" in response.content
     assert b"outsider@example.test" not in response.content
+
+
+@pytest.mark.django_db
+def test_house_admin_cannot_create_user_with_platform_permissions(client):
+    house_admin = create_user("house-admin@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=house_admin, house=house, role=Role.ADMIN)
+    permission = Permission.objects.get(codename="add_group")
+    client.force_login(house_admin)
+
+    response = client.post(
+        reverse("accounts:user_create"),
+        {
+            "email": "new@example.test",
+            "display_name": "New Denizen",
+            "password1": "swordfish-12345",
+            "password2": "swordfish-12345",
+            "is_active": "on",
+            "is_staff": "on",
+            "user_permissions": [str(permission.id)],
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"Only superusers can grant platform permissions" in response.content
+    assert not get_user_model().objects.filter(email="new@example.test").exists()
 
 
 @pytest.mark.django_db
@@ -311,6 +381,50 @@ def test_staff_cannot_remove_own_staff_access_from_settings(client):
 
 
 @pytest.mark.django_db
+def test_house_admin_cannot_grant_platform_permissions_on_user_update(client):
+    house_admin = create_user("house-admin@example.test")
+    target = create_user("denizen@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    membership = HouseMembership.objects.create(user=target, house=house, role=Role.MEMBER)
+    HouseMembership.objects.create(user=house_admin, house=house, role=Role.ADMIN)
+    permission = Permission.objects.get(codename="add_group")
+    client.force_login(house_admin)
+
+    response = client.post(
+        reverse("accounts:user_access_detail", args=[target.id]),
+        {
+            "email": "denizen@example.test",
+            "display_name": "Denizen",
+            "is_active": "on",
+            "is_staff": "on",
+            "is_superuser": "on",
+            "user_permissions": [str(permission.id)],
+            "character_name": "",
+            "status": DenizenProfile.Status.ACTIVE,
+            "houses-TOTAL_FORMS": "1",
+            "houses-INITIAL_FORMS": "1",
+            "houses-MIN_NUM_FORMS": "0",
+            "houses-MAX_NUM_FORMS": "1000",
+            "houses-0-id": str(membership.id),
+            "houses-0-house": str(house.id),
+            "houses-0-role": Role.MEMBER,
+            "houses-0-active": "on",
+            "kingdoms-TOTAL_FORMS": "0",
+            "kingdoms-INITIAL_FORMS": "0",
+            "kingdoms-MIN_NUM_FORMS": "0",
+            "kingdoms-MAX_NUM_FORMS": "1000",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"Only superusers can grant platform permissions" in response.content
+    target.refresh_from_db()
+    assert not target.is_staff
+    assert not target.is_superuser
+    assert not target.has_perm("auth.add_group")
+
+
+@pytest.mark.django_db
 def test_staff_can_disable_user(client):
     staff = create_user("admin@example.test", staff=True, superuser=True)
     target = create_user("denizen@example.test")
@@ -364,6 +478,48 @@ def test_house_admin_can_remove_house_membership(client):
 
 
 @pytest.mark.django_db
+def test_house_admin_cannot_remove_membership_from_other_house(client):
+    house_admin = create_user("house-admin@example.test")
+    target = create_user("denizen@example.test")
+    managed_house = House.objects.create(key="bramble", name="House Bramble")
+    other_house = House.objects.create(key="ember", name="House Ember")
+    HouseMembership.objects.create(user=house_admin, house=managed_house, role=Role.ADMIN)
+    membership = HouseMembership.objects.create(user=target, house=other_house, role=Role.MEMBER)
+    client.force_login(house_admin)
+
+    response = client.post(reverse("accounts:remove_house_membership", args=[membership.id]))
+
+    assert response.status_code == 302
+    assert response.url == reverse("accounts:user_access_list")
+    membership.refresh_from_db()
+    assert membership.active
+    assert not AuditLogEntry.objects.filter(action="house_membership_removed").exists()
+
+
+@pytest.mark.django_db
+def test_kingdom_admin_cannot_remove_membership_from_other_kingdom(client):
+    kingdom_admin = create_user("kingdom-admin@example.test")
+    target = create_user("denizen@example.test")
+    managed_kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    other_kingdom = Kingdom.objects.create(key="morrow", name="Morrow")
+    KingdomMembership.objects.create(user=kingdom_admin, kingdom=managed_kingdom, role=Role.ADMIN)
+    membership = KingdomMembership.objects.create(
+        user=target,
+        kingdom=other_kingdom,
+        role=Role.MEMBER,
+    )
+    client.force_login(kingdom_admin)
+
+    response = client.post(reverse("accounts:remove_kingdom_membership", args=[membership.id]))
+
+    assert response.status_code == 302
+    assert response.url == reverse("accounts:user_access_list")
+    membership.refresh_from_db()
+    assert membership.active
+    assert not AuditLogEntry.objects.filter(action="kingdom_membership_removed").exists()
+
+
+@pytest.mark.django_db
 def test_house_admin_can_invite_user_and_user_accepts_in_app(client):
     house_admin = create_user("house-admin@example.test")
     target = create_user("denizen@example.test")
@@ -398,6 +554,76 @@ def test_house_admin_can_invite_user_and_user_accepts_in_app(client):
 
 
 @pytest.mark.django_db
+def test_user_cannot_respond_to_another_users_invitation(client):
+    inviter = create_user("admin@example.test", staff=True, superuser=True)
+    invitee = create_user("invitee@example.test")
+    other_user = create_user("other@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    invitation = MembershipInvitation.objects.create(inviter=inviter, invitee=invitee, house=house)
+    client.force_login(other_user)
+
+    response = client.post(
+        reverse("accounts:respond_to_invitation", args=[invitation.id]),
+        {"response": "accept"},
+    )
+
+    assert response.status_code == 404
+    invitation.refresh_from_db()
+    assert invitation.status == MembershipInvitation.Status.PENDING
+    assert not HouseMembership.objects.filter(user=other_user, house=house).exists()
+
+
+@pytest.mark.django_db
+def test_user_cannot_accept_stale_house_invite_after_joining_another_house(client):
+    inviter = create_user("admin@example.test", staff=True, superuser=True)
+    target = create_user("denizen@example.test")
+    invited_house = House.objects.create(key="bramble", name="House Bramble")
+    other_house = House.objects.create(key="ember", name="House Ember")
+    invitation = MembershipInvitation.objects.create(
+        inviter=inviter,
+        invitee=target,
+        house=invited_house,
+    )
+    HouseMembership.objects.create(user=target, house=other_house, role=Role.MEMBER)
+    client.force_login(target)
+
+    response = client.post(
+        reverse("accounts:respond_to_invitation", args=[invitation.id]),
+        {"response": "accept"},
+    )
+
+    assert response.status_code == 302
+    invitation.refresh_from_db()
+    assert invitation.status == MembershipInvitation.Status.PENDING
+    assert not HouseMembership.objects.filter(user=target, house=invited_house).exists()
+
+
+@pytest.mark.django_db
+def test_user_cannot_accept_stale_kingdom_invite_after_joining_another_kingdom(client):
+    inviter = create_user("admin@example.test", staff=True, superuser=True)
+    target = create_user("denizen@example.test")
+    invited_kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    other_kingdom = Kingdom.objects.create(key="morrow", name="Morrow")
+    invitation = MembershipInvitation.objects.create(
+        inviter=inviter,
+        invitee=target,
+        kingdom=invited_kingdom,
+    )
+    KingdomMembership.objects.create(user=target, kingdom=other_kingdom, role=Role.MEMBER)
+    client.force_login(target)
+
+    response = client.post(
+        reverse("accounts:respond_to_invitation", args=[invitation.id]),
+        {"response": "accept"},
+    )
+
+    assert response.status_code == 302
+    invitation.refresh_from_db()
+    assert invitation.status == MembershipInvitation.Status.PENDING
+    assert not KingdomMembership.objects.filter(user=target, kingdom=invited_kingdom).exists()
+
+
+@pytest.mark.django_db
 def test_house_admin_pages_are_scoped_to_admin_houses(client):
     house_admin = create_user("house-admin@example.test")
     house = House.objects.create(key="bramble", name="House Bramble")
@@ -416,6 +642,24 @@ def test_house_admin_pages_are_scoped_to_admin_houses(client):
 
 
 @pytest.mark.django_db
+def test_house_admin_cannot_post_to_unmanaged_house(client):
+    house_admin = create_user("house-admin@example.test")
+    house = House.objects.create(key="bramble", name="House Bramble")
+    hidden_house = House.objects.create(key="ember", name="House Ember")
+    HouseMembership.objects.create(user=house_admin, house=house, role=Role.ADMIN)
+    client.force_login(house_admin)
+
+    response = client.post(
+        reverse("accounts:house_admin_detail", args=[hidden_house.id]),
+        {"key": "ember", "name": "Compromised", "description": ""},
+    )
+
+    assert response.status_code == 404
+    hidden_house.refresh_from_db()
+    assert hidden_house.name == "House Ember"
+
+
+@pytest.mark.django_db
 def test_kingdom_admin_can_update_kingdom(client):
     kingdom_admin = create_user("kingdom-admin@example.test")
     kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
@@ -431,6 +675,29 @@ def test_kingdom_admin_can_update_kingdom(client):
     kingdom.refresh_from_db()
     assert kingdom.name == "ValRann Updated"
     assert AuditLogEntry.objects.filter(action="kingdom_updated").exists()
+
+
+@pytest.mark.django_db
+def test_kingdom_admin_pages_are_scoped_to_admin_kingdoms(client):
+    kingdom_admin = create_user("kingdom-admin@example.test")
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    hidden_kingdom = Kingdom.objects.create(key="morrow", name="Morrow")
+    KingdomMembership.objects.create(user=kingdom_admin, kingdom=kingdom, role=Role.ADMIN)
+    client.force_login(kingdom_admin)
+
+    response = client.get(reverse("accounts:kingdom_admin_list"))
+
+    assert response.status_code == 200
+    assert b"ValRann" in response.content
+    assert b"Morrow" not in response.content
+
+    response = client.post(
+        reverse("accounts:kingdom_admin_detail", args=[hidden_kingdom.id]),
+        {"key": "morrow", "name": "Compromised", "description": ""},
+    )
+    assert response.status_code == 404
+    hidden_kingdom.refresh_from_db()
+    assert hidden_kingdom.name == "Morrow"
 
 
 @pytest.mark.django_db
@@ -479,6 +746,30 @@ def test_house_invite_is_rejected_when_user_already_has_house(client):
 
     assert response.status_code == 200
     assert b"already belongs to a house" in response.content
+
+
+@pytest.mark.django_db
+def test_house_admin_cannot_invite_user_to_unmanaged_house(client):
+    house_admin = create_user("house-admin@example.test")
+    target = create_user("denizen@example.test")
+    managed_house = House.objects.create(key="bramble", name="House Bramble")
+    hidden_house = House.objects.create(key="ember", name="House Ember")
+    HouseMembership.objects.create(user=house_admin, house=managed_house, role=Role.ADMIN)
+    client.force_login(house_admin)
+
+    response = client.post(
+        reverse("accounts:invite_user"),
+        {
+            "invitee": str(target.id),
+            "target_type": "house",
+            "house": str(hidden_house.id),
+            "role": Role.MEMBER,
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"Select a valid choice" in response.content
+    assert not MembershipInvitation.objects.filter(invitee=target, house=hidden_house).exists()
 
 
 @pytest.mark.django_db
