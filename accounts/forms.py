@@ -195,6 +195,29 @@ class ApplicationSettingForm(forms.ModelForm):
             self.fields["value"].widget = forms.Select(choices=self.BOOLEAN_CHOICES)
 
 
+class BugReportForm(forms.Form):
+    title = forms.CharField(max_length=160)
+    what_happened = forms.CharField(
+        label="What happened",
+        widget=forms.Textarea(attrs={"rows": 5}),
+    )
+    expected = forms.CharField(
+        label="What did you expect?",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+    steps = forms.CharField(
+        label="Steps to reproduce",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 4}),
+    )
+    include_diagnostics = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Include anonymous app diagnostics",
+    )
+
+
 class HouseForm(forms.ModelForm):
     class Meta:
         model = House

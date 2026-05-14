@@ -175,6 +175,12 @@ DEFAULT_APPLICATION_SETTINGS = [
         "value": "community-install",
         "description": "Environment label used for Sentry events from this installation.",
     },
+    {
+        "key": "bug_report_repository",
+        "label": "Bug report GitHub repository",
+        "value": "aditaa/carta",
+        "description": "GitHub owner/repository used for prefilled in-app bug reports.",
+    },
 ]
 
 UPGRADE_JOBS: dict[str, dict[str, str]] = {}

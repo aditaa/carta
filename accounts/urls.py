@@ -25,6 +25,7 @@ from accounts.views import (
     my_invitations,
     remove_house_membership,
     remove_kingdom_membership,
+    report_bug,
     reset_git_files,
     respond_to_invitation,
     send_test_email,
@@ -45,6 +46,7 @@ urlpatterns = [
     path("setup/", first_admin_setup, name="setup"),
     path("login/", CartaLoginView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
+    path("report-bug/", report_bug, name="report_bug"),
     path("invitations/", my_invitations, name="my_invitations"),
     path(
         "invitations/<int:invitation_id>/respond/",

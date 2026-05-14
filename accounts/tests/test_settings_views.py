@@ -1,3 +1,5 @@
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -271,6 +273,66 @@ def test_upgrade_status_renders_expandable_output(client, monkeypatch):
     assert b"<details" in response.content
     assert b"Upgrade details" in response.content
     assert b"Applying accounts.0001_initial" in response.content
+
+
+def test_report_bug_requires_login(client):
+    response = client.get(reverse("accounts:report_bug"))
+
+    assert response.status_code == 302
+    assert reverse("accounts:login") in response.url
+
+
+@pytest.mark.django_db
+def test_report_bug_page_shows_anonymous_diagnostics(client, monkeypatch):
+    user = create_user("denizen@example.test")
+    client.force_login(user)
+    monkeypatch.setattr(
+        "accounts.views.bug_report_diagnostics",
+        lambda: {
+            "Release channel": "stable",
+            "Git commit": "abc123",
+            "Django": "5.2.14",
+        },
+    )
+
+    response = client.get(reverse("accounts:report_bug"))
+
+    assert response.status_code == 200
+    assert b"Report a Bug" in response.content
+    assert b"Git commit" in response.content
+    assert b"abc123" in response.content
+    assert b"Report a bug" in response.content
+
+
+@pytest.mark.django_db
+def test_report_bug_redirects_to_prefilled_github_issue(client, monkeypatch):
+    user = create_user("denizen@example.test")
+    client.force_login(user)
+    monkeypatch.setattr("accounts.bug_reports._git_value", lambda command: "abc123")
+
+    response = client.post(
+        reverse("accounts:report_bug"),
+        {
+            "title": "Holdings page crashes",
+            "what_happened": "The holdings page returned an error.",
+            "expected": "The page should load.",
+            "steps": "Open Holdings.",
+            "include_diagnostics": "on",
+        },
+    )
+
+    assert response.status_code == 302
+    issue_url = urlparse(response.url)
+    query = parse_qs(issue_url.query)
+    assert issue_url.scheme == "https"
+    assert issue_url.netloc == "github.com"
+    assert issue_url.path == "/aditaa/carta/issues/new"
+    assert query["title"] == ["Holdings page crashes"]
+    body = query["body"][0]
+    assert "The holdings page returned an error." in body
+    assert "## Anonymous diagnostics" in body
+    assert "Git commit: abc123" in body
+    assert "email" not in body.lower()
 
 
 @pytest.mark.django_db

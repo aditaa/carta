@@ -12,9 +12,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.bug_reports import bug_report_diagnostics, bug_report_issue_url
 from accounts.forms import (
     AdminPasswordChangeForm,
     ApplicationSettingForm,
+    BugReportForm,
     DenizenProfileStatusForm,
     EmailAuthenticationForm,
     FirstAdminCreationForm,
@@ -134,6 +136,32 @@ class CartaPasswordResetView(PasswordResetView):
             connection=connection,
         )
         return HttpResponseRedirect(self.get_success_url())
+
+
+@login_required
+def report_bug(request):
+    diagnostics = bug_report_diagnostics()
+    if request.method == "POST":
+        form = BugReportForm(request.POST)
+        if form.is_valid():
+            return redirect(
+                bug_report_issue_url(
+                    form.cleaned_data,
+                    include_diagnostics=form.cleaned_data["include_diagnostics"],
+                )
+            )
+    else:
+        form = BugReportForm(
+            initial={
+                "title": "Bug report",
+                "include_diagnostics": True,
+            }
+        )
+    return render(
+        request,
+        "accounts/report_bug.html",
+        {"form": form, "diagnostics": diagnostics},
+    )
 
 
 def _email_connection_from_settings(email_settings):

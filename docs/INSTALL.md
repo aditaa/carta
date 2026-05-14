@@ -384,6 +384,10 @@ values such as the displayed site name, maintenance notice, restart command,
 restart-needed flag, anonymous performance telemetry, and email backend
 settings.
 
+The `Bug report GitHub repository` setting controls where the in-app bug report
+form opens prefilled GitHub issues. It defaults to the Carta Arcanum repository
+and can be changed to another `owner/repository` value by superusers.
+
 Anonymous telemetry is opt-in by destination. The telemetry toggles default to
 enabled, but no off-server telemetry is sent until a superuser configures either
 a generic telemetry endpoint or a Sentry DSN. To share anonymous install health

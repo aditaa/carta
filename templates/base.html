@@ -40,6 +40,7 @@
           <details class="nav-menu">
             <summary>{{ request.user.display_name }}</summary>
             <div class="nav-menu-panel">
+              <a href="{% url 'accounts:report_bug' %}">Report a bug</a>
               <a href="{% url 'accounts:my_invitations' %}">Invitations</a>
               <a href="{% url 'accounts:password_change' %}">Password</a>
               <form method="post" action="{% url 'accounts:logout' %}">

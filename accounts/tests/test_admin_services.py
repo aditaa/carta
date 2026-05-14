@@ -155,6 +155,7 @@ def test_default_settings_include_anonymous_telemetry_toggle():
         "@o4511390011949056.ingest.us.sentry.io/4511390014177280"
     )
     assert ApplicationSetting.objects.get(key="sentry_traces_sample_rate").value == "0.05"
+    assert ApplicationSetting.objects.get(key="bug_report_repository").value == "aditaa/carta"
 
 
 @pytest.mark.django_db

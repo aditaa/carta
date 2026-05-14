@@ -139,6 +139,18 @@ settings changes, user creation, disabling or enabling users, password resets,
 membership changes, invitation changes, Git restore actions, and upgrades.
 Audit detail pages are superuser-only.
 
+## Bug Reports
+
+Authenticated users can open `Report a bug` from the account menu. The form
+opens a prefilled GitHub issue in the configured `Bug report GitHub repository`
+setting, which defaults to `aditaa/carta`. The app does not need a GitHub token
+because the user reviews and submits the issue in GitHub.
+
+Reports include anonymous diagnostics by default: release channel, configured
+release branch, Git branch and commit, Python and Django versions, database
+engine, debug mode, and rules file name. Users can uncheck diagnostics before
+opening the GitHub issue.
+
 ## Query Monitoring
 
 Set `CARTA_SLOW_QUERY_MS` to log database queries that exceed that threshold
