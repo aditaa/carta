@@ -24,17 +24,19 @@ def index(request):
         .filter(id__in=buildings.values("id"))
         .values_list("id", flat=True)
     )
-    return render(
-        request,
-        "buildings/index.html",
-        {
-            "buildings": buildings,
-            "editable_building_ids": editable_ids,
-            "filters": filters,
-            "filter_options": _registry_filter_options(request.user, base_buildings),
-            "summary": registry_summary(buildings),
-        },
+    context = {
+        "buildings": buildings,
+        "editable_building_ids": editable_ids,
+        "filters": filters,
+        "filter_options": _registry_filter_options(request.user, base_buildings),
+        "summary": registry_summary(buildings),
+    }
+    template = (
+        "buildings/_registry_results.html"
+        if request.headers.get("HX-Request")
+        else "buildings/index.html"
     )
+    return render(request, template, context)
 
 
 @login_required

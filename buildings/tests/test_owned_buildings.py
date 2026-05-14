@@ -369,6 +369,59 @@ def test_building_registry_page_filters_visible_buildings(client):
     assert response.context["summary"]["total"] == 1
 
 
+def test_htmx_building_registry_filter_returns_results_partial(client):
+    ruleset = create_ruleset()
+    orchard = create_definition(ruleset)
+    keep = BuildingDefinition.objects.create(
+        ruleset=ruleset,
+        key="keep",
+        name="Keep",
+        category="defensive",
+    )
+    viewer = create_user()
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=viewer,
+        nickname="Visible Orchard",
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=keep,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=viewer,
+        nickname="Visible Keep",
+        status=OwnedBuilding.Status.DAMAGED,
+    )
+    client.force_login(viewer)
+
+    response = client.get(
+        reverse("buildings:index"),
+        {"status": OwnedBuilding.Status.DAMAGED},
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert b"Visible Keep" in response.content
+    assert b"Visible Orchard" not in response.content
+    assert b"<h1>Buildings</h1>" not in response.content
+    assert b"Total: 1" in response.content
+    assert response.context["summary"]["total"] == 1
+
+
+def test_building_registry_filter_form_targets_results_with_htmx(client):
+    user = create_user()
+    client.force_login(user)
+
+    response = client.get(reverse("buildings:index"))
+
+    assert response.status_code == 200
+    assert b'hx-target="#building-registry-results"' in response.content
+    assert b'id="building-registry-results"' in response.content
+
+
 def test_building_registry_page_filters_by_owner(client):
     ruleset = create_ruleset()
     orchard = create_definition(ruleset)

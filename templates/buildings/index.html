@@ -7,7 +7,14 @@
     <p class="eyebrow">Registry</p>
     <h1>Buildings</h1>
     <p><button class="btn-link" hx-get="{% url 'buildings:create' %}" hx-target="#building-modal-container" hx-swap="innerHTML">Add building</button></p>
-    <form class="filter-form" method="get">
+    <form
+      class="filter-form"
+      method="get"
+      hx-get="{% url 'buildings:index' %}"
+      hx-target="#building-registry-results"
+      hx-trigger="change delay:150ms, submit"
+      hx-push-url="true"
+    >
       <label>
         Status
         <select name="status">
@@ -49,52 +56,9 @@
         <a href="{% url 'buildings:index' %}">Clear</a>
       </div>
     </form>
-    <div class="summary-row">
-      <span>Total: {{ summary.total }}</span>
-      {% for status in summary.by_status %}
-        <span>{{ status.status }}: {{ status.count }}</span>
-      {% endfor %}
+    <div id="building-registry-results">
+      {% include "buildings/_registry_results.html" %}
     </div>
-    {% if buildings %}
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Building</th>
-              <th>Category</th>
-              <th>Owner</th>
-              <th>Status</th>
-              <th>Location</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for building in buildings %}
-              <tr>
-                <td>
-                  {{ building }}
-                  <span class="muted">{{ building.definition.name }}</span>
-                </td>
-                <td>{{ building.definition.category }}</td>
-                <td>{{ building.owner_label }}</td>
-                <td>{{ building.get_status_display }}</td>
-                <td>{{ building.location|default:"-" }}</td>
-                <td>
-                  {% if building.id in editable_building_ids %}
-                    <button class="btn-link" hx-get="{% url 'buildings:edit' building.id %}" hx-target="#building-modal-container" hx-swap="innerHTML">Edit</button>
-                    <a href="{% url 'buildings:delete' building.id %}">Delete</a>
-                  {% else %}
-                    <span class="muted">Read only</span>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <p>No visible buildings.</p>
-    {% endif %}
   </section>
 
   <div id="building-modal-container"></div>
