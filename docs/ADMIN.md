@@ -117,15 +117,16 @@ the configured release branch, fast-forwards from origin, installs dependencies,
 runs migrations, collects static files, and runs the configured restart command
 when present.
 
-Pull requests targeting `stable` are guarded by the Stable Release Gate workflow
-and the Stable Release Verification workflow. Stable release PRs must be ready
-for review and must come from `main`, `release/*`, or `hotfix/*`. The
-verification workflow runs the quality checks, full MySQL-backed test suite
-across supported Python and MySQL versions, repeated focused suites, repeated
-rules imports, and migration idempotency checks. Make those stable workflows
-required branch protection checks on GitHub before relying on them as release
-enforcement. Follow the stable release checklist in `docs/RELEASE.md` before
-promoting `main` to `stable`.
+Normal pull request CI runs quality checks and one representative MySQL-backed
+full suite. Pull requests targeting `stable` are guarded by the Stable Release
+Gate workflow and the Stable Release Verification workflow. Stable release PRs
+must be ready for review and must come from `main`, `release/*`, or `hotfix/*`.
+The verification workflow runs the deeper checks: quality checks, full
+MySQL-backed test suite across supported Python and MySQL versions, repeated
+focused suites, repeated rules imports, and migration idempotency checks. Make
+those stable workflows required branch protection checks on GitHub before
+relying on them as release enforcement. Follow the stable release checklist in
+`docs/RELEASE.md` before promoting `main` to `stable`.
 
 Before upgrading a live install, keep a normal database and environment backup.
 The upgrade workflow does not remove `.env`, `.env.local`, `installer.lock`, or
