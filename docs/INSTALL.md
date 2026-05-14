@@ -381,7 +381,8 @@ editable from `Settings -> Application Status`. New installs default to
 Superusers can also edit database-backed application settings from
 `Settings -> Application Status`. These are intended for non-secret operational
 values such as the displayed site name, maintenance notice, restart command,
-restart-needed flag, and email backend settings.
+restart-needed flag, anonymous performance telemetry, and email backend
+settings.
 
 Email sending can use Django's console backend for development, a local SMTP
 relay, a provider SMTP service, or another Django email backend. Linux server

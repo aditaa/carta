@@ -148,3 +148,20 @@ to disable slow-query logging.
 This is meant to catch heavy queries that only appear after real player usage
 creates larger datasets. Treat slow-query logs as leads for future service-level
 profiling, indexes, pagination, or query shape changes.
+
+## Anonymous Performance Telemetry
+
+New installs include an `Anonymous performance telemetry` setting that defaults
+to enabled. Telemetry is only sent when a superuser also configures a telemetry
+endpoint in `Settings -> Application Status`; leaving the endpoint blank keeps
+all telemetry local to the install.
+
+Performance payloads include route name, HTTP method, status code, elapsed
+milliseconds, database query count, Django version, Python version, debug mode,
+and database engine. They intentionally do not include raw paths, query strings,
+request bodies, SQL, IP addresses, email addresses, usernames, owner names, or
+other player/game data.
+
+Use a collector endpoint you control for incoming telemetry. Sending directly to
+GitHub is possible only through an authenticated proxy or automation because the
+app should not ship with a GitHub token embedded in settings.

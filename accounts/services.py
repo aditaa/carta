@@ -121,6 +121,24 @@ DEFAULT_APPLICATION_SETTINGS = [
         "value": "false",
         "description": "Set by upgrades when the app process still needs a restart.",
     },
+    {
+        "key": "telemetry_enabled",
+        "label": "Anonymous performance telemetry",
+        "value": "true",
+        "description": (
+            "Allow Carta Arcanum to send anonymous route timing, status, and query-count "
+            "metrics when a telemetry endpoint is configured."
+        ),
+    },
+    {
+        "key": "telemetry_endpoint",
+        "label": "Telemetry endpoint",
+        "value": "",
+        "description": (
+            "Optional HTTPS URL that receives anonymous performance telemetry. "
+            "Leave blank to avoid sending data off this install."
+        ),
+    },
 ]
 
 UPGRADE_JOBS: dict[str, dict[str, str]] = {}
