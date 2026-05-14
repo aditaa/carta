@@ -8,6 +8,7 @@ from typing import Any
 
 from django import get_version
 from django.conf import settings
+from django.db import DatabaseError, ProgrammingError
 
 from accounts.services import application_setting_map
 
@@ -29,7 +30,10 @@ def send_performance_telemetry(request, response, *, elapsed_ms: float, query_co
 
 
 def _telemetry_settings() -> dict[str, str | bool]:
-    settings_map = application_setting_map()
+    try:
+        settings_map = application_setting_map()
+    except (DatabaseError, ProgrammingError, RuntimeError):
+        return {"enabled": False, "endpoint": ""}
     endpoint = settings_map.get("telemetry_endpoint", "").strip()
     if endpoint and not endpoint.startswith(("https://", "http://")):
         endpoint = ""
