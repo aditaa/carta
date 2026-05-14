@@ -58,6 +58,7 @@ from accounts.services import (
     upgrade_job_status,
     validate_email_settings,
     validate_release_branch,
+    validate_support_settings,
 )
 from buildings.models import OwnedBuilding
 from holdings.models import HoldingAccount
@@ -247,6 +248,7 @@ def application_status(request):
             validation_errors = list(email_validation.errors)
             if not release_branch_valid:
                 validation_errors.append(release_branch_error)
+            validation_errors.extend(validate_support_settings(submitted_settings))
             if validation_errors:
                 for error in validation_errors:
                     formset._non_form_errors.append(error)

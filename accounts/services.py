@@ -545,6 +545,29 @@ def validate_release_branch(branch: str) -> tuple[bool, str]:
     return True, ""
 
 
+def validate_support_settings(settings_map: dict[str, str]) -> tuple[str, ...]:
+    errors = []
+    dsn = settings_map.get("sentry_dsn", "").strip()
+    if dsn and not dsn.startswith("https://"):
+        errors.append("Sentry DSN must be an HTTPS URL.")
+    for key, label in (
+        ("sentry_traces_sample_rate", "Sentry traces sample rate"),
+        ("sentry_profiles_sample_rate", "Sentry profiles sample rate"),
+    ):
+        value = settings_map.get(key, "").strip()
+        try:
+            sample_rate = float(value)
+        except ValueError:
+            errors.append(f"{label} must be a number from 0.0 to 1.0.")
+            continue
+        if not 0.0 <= sample_rate <= 1.0:
+            errors.append(f"{label} must be a number from 0.0 to 1.0.")
+    repository = settings_map.get("bug_report_repository", "").strip()
+    if repository.count("/") != 1 or " " in repository:
+        errors.append("Bug report GitHub repository must use owner/repository format.")
+    return tuple(errors)
+
+
 def _release_branch_check() -> HealthCheck:
     release_branch = configured_release_branch()
     valid, error = validate_release_branch(release_branch)

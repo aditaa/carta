@@ -198,6 +198,43 @@ def test_application_status_rejects_invalid_release_branch(client):
 
 
 @pytest.mark.django_db
+def test_application_status_rejects_invalid_support_settings(client):
+    staff = create_user("admin@example.test", staff=True, superuser=True)
+    client.force_login(staff)
+    client.get(reverse("accounts:application_status"))
+    settings_rows = list(ApplicationSetting.objects.order_by("id"))
+
+    post_data = {
+        "form-TOTAL_FORMS": str(len(settings_rows)),
+        "form-INITIAL_FORMS": str(len(settings_rows)),
+        "form-MIN_NUM_FORMS": "0",
+        "form-MAX_NUM_FORMS": "1000",
+    }
+    for index, setting in enumerate(settings_rows):
+        post_data[f"form-{index}-id"] = str(setting.id)
+        if setting.key == "sentry_dsn":
+            value = "http://example.test/1"
+        elif setting.key == "sentry_traces_sample_rate":
+            value = "2"
+        elif setting.key == "sentry_profiles_sample_rate":
+            value = "not-a-number"
+        elif setting.key == "bug_report_repository":
+            value = "bad repo"
+        else:
+            value = setting.value
+        post_data[f"form-{index}-value"] = value
+
+    response = client.post(reverse("accounts:application_status"), post_data)
+
+    assert response.status_code == 200
+    assert b"Sentry DSN must be an HTTPS URL." in response.content
+    assert b"Sentry traces sample rate must be a number from 0.0 to 1.0." in response.content
+    assert b"Sentry profiles sample rate must be a number from 0.0 to 1.0." in response.content
+    assert b"Bug report GitHub repository must use owner/repository format." in response.content
+    assert ApplicationSetting.objects.get(key="bug_report_repository").value == "aditaa/carta"
+
+
+@pytest.mark.django_db
 def test_application_status_can_select_testing_release_branch(client):
     staff = create_user("admin@example.test", staff=True, superuser=True)
     client.force_login(staff)
