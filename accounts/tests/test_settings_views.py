@@ -209,7 +209,9 @@ def test_application_status_can_select_testing_release_branch(client):
     }
     for index, setting in enumerate(settings_rows):
         post_data[f"form-{index}-id"] = str(setting.id)
-        post_data[f"form-{index}-value"] = "main" if setting.key == "release_branch" else setting.value
+        post_data[f"form-{index}-value"] = (
+            "main" if setting.key == "release_branch" else setting.value
+        )
 
     response = client.post(reverse("accounts:application_status"), post_data)
 
