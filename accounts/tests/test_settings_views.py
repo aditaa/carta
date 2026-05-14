@@ -1,8 +1,11 @@
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.urls import reverse
 
+from accounts.bug_reports import CRASH_REPORT_SESSION_KEY
 from accounts.models import ApplicationSetting, AuditLogEntry, DenizenProfile, MembershipInvitation
 from ownership.models import House, HouseMembership, Kingdom, KingdomMembership, Role
 
@@ -68,6 +71,20 @@ def test_application_status_shows_health_checks_and_settings(client):
     assert b"Maintenance notice" in response.content
     assert b"Email backend" in response.content
     assert b"Upgrade" in response.content
+
+
+@pytest.mark.django_db
+def test_application_status_uses_release_branch_dropdown(client):
+    staff = create_user("admin@example.test", staff=True, superuser=True)
+    client.force_login(staff)
+
+    response = client.get(reverse("accounts:application_status"))
+
+    assert response.status_code == 200
+    assert b"<select" in response.content
+    assert b'<option value="stable" selected>Stable</option>' in response.content
+    assert b'<option value="main">Testing</option>' in response.content
+    assert b"Stable tracks the stable branch. Testing tracks main." in response.content
 
 
 @pytest.mark.django_db
@@ -181,6 +198,68 @@ def test_application_status_rejects_invalid_release_branch(client):
 
 
 @pytest.mark.django_db
+def test_application_status_rejects_invalid_support_settings(client):
+    staff = create_user("admin@example.test", staff=True, superuser=True)
+    client.force_login(staff)
+    client.get(reverse("accounts:application_status"))
+    settings_rows = list(ApplicationSetting.objects.order_by("id"))
+
+    post_data = {
+        "form-TOTAL_FORMS": str(len(settings_rows)),
+        "form-INITIAL_FORMS": str(len(settings_rows)),
+        "form-MIN_NUM_FORMS": "0",
+        "form-MAX_NUM_FORMS": "1000",
+    }
+    for index, setting in enumerate(settings_rows):
+        post_data[f"form-{index}-id"] = str(setting.id)
+        if setting.key == "sentry_dsn":
+            value = "http://example.test/1"
+        elif setting.key == "sentry_traces_sample_rate":
+            value = "2"
+        elif setting.key == "sentry_profiles_sample_rate":
+            value = "not-a-number"
+        elif setting.key == "bug_report_repository":
+            value = "bad repo"
+        else:
+            value = setting.value
+        post_data[f"form-{index}-value"] = value
+
+    response = client.post(reverse("accounts:application_status"), post_data)
+
+    assert response.status_code == 200
+    assert b"Sentry DSN must be an HTTPS URL." in response.content
+    assert b"Sentry traces sample rate must be a number from 0.0 to 1.0." in response.content
+    assert b"Sentry profiles sample rate must be a number from 0.0 to 1.0." in response.content
+    assert b"Bug report GitHub repository must use owner/repository format." in response.content
+    assert ApplicationSetting.objects.get(key="bug_report_repository").value == "aditaa/carta"
+
+
+@pytest.mark.django_db
+def test_application_status_can_select_testing_release_branch(client):
+    staff = create_user("admin@example.test", staff=True, superuser=True)
+    client.force_login(staff)
+    client.get(reverse("accounts:application_status"))
+    settings_rows = list(ApplicationSetting.objects.order_by("id"))
+
+    post_data = {
+        "form-TOTAL_FORMS": str(len(settings_rows)),
+        "form-INITIAL_FORMS": str(len(settings_rows)),
+        "form-MIN_NUM_FORMS": "0",
+        "form-MAX_NUM_FORMS": "1000",
+    }
+    for index, setting in enumerate(settings_rows):
+        post_data[f"form-{index}-id"] = str(setting.id)
+        post_data[f"form-{index}-value"] = (
+            "main" if setting.key == "release_branch" else setting.value
+        )
+
+    response = client.post(reverse("accounts:application_status"), post_data)
+
+    assert response.status_code == 302
+    assert ApplicationSetting.objects.get(key="release_branch").value == "main"
+
+
+@pytest.mark.django_db
 def test_start_upgrade_redirects_to_status_page(client, monkeypatch):
     staff = create_user("admin@example.test", staff=True, superuser=True)
     client.force_login(staff)
@@ -210,6 +289,151 @@ def test_upgrade_status_json_reports_job(client, monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["message"] == "job-123 done"
+
+
+@pytest.mark.django_db
+def test_upgrade_status_renders_expandable_output(client, monkeypatch):
+    staff = create_user("admin@example.test", staff=True, superuser=True)
+    client.force_login(staff)
+    monkeypatch.setattr(
+        "accounts.views.upgrade_job_status",
+        lambda job_id: {
+            "status": "running",
+            "message": "Running database migrations",
+            "output": "$ python manage.py migrate --noinput\nApplying accounts.0001_initial...",
+            "error": "",
+        },
+    )
+
+    response = client.get(reverse("accounts:upgrade_status", args=["job-123"]))
+
+    assert response.status_code == 200
+    assert b"<details" in response.content
+    assert b"Upgrade details" in response.content
+    assert b"Applying accounts.0001_initial" in response.content
+
+
+def test_report_bug_requires_login(client):
+    response = client.get(reverse("accounts:report_bug"))
+
+    assert response.status_code == 302
+    assert reverse("accounts:login") in response.url
+
+
+@pytest.mark.django_db
+def test_report_bug_page_shows_anonymous_diagnostics(client, monkeypatch):
+    user = create_user("denizen@example.test")
+    client.force_login(user)
+    monkeypatch.setattr(
+        "accounts.views.bug_report_diagnostics",
+        lambda: {
+            "Release channel": "stable",
+            "Git commit": "abc123",
+            "Django": "5.2.14",
+        },
+    )
+
+    response = client.get(reverse("accounts:report_bug"))
+
+    assert response.status_code == 200
+    assert b"Report a Bug" in response.content
+    assert b"Git commit" in response.content
+    assert b"abc123" in response.content
+    assert b"Report a bug" in response.content
+
+
+@pytest.mark.django_db
+def test_report_bug_redirects_to_prefilled_github_issue(client, monkeypatch):
+    user = create_user("denizen@example.test")
+    client.force_login(user)
+    monkeypatch.setattr("accounts.bug_reports._git_value", lambda command: "abc123")
+
+    response = client.post(
+        reverse("accounts:report_bug"),
+        {
+            "title": "Holdings page crashes",
+            "what_happened": "The holdings page returned an error.",
+            "expected": "The page should load.",
+            "steps": "Open Holdings.",
+            "include_diagnostics": "on",
+        },
+    )
+
+    assert response.status_code == 302
+    issue_url = urlparse(response.url)
+    query = parse_qs(issue_url.query)
+    assert issue_url.scheme == "https"
+    assert issue_url.netloc == "github.com"
+    assert issue_url.path == "/aditaa/carta/issues/new"
+    assert query["title"] == ["Holdings page crashes"]
+    body = query["body"][0]
+    assert "The holdings page returned an error." in body
+    assert "## Anonymous diagnostics" in body
+    assert "Git commit: abc123" in body
+    assert "email" not in body.lower()
+
+
+@pytest.mark.django_db
+def test_recent_crash_notification_prefills_bug_report(client, monkeypatch):
+    user = create_user("denizen@example.test")
+    client.force_login(user)
+    session = client.session
+    session[CRASH_REPORT_SESSION_KEY] = {
+        "when": "2026-05-14T20:20:00+00:00",
+        "exception_type": "ValueError",
+        "route": "accounts:user_access_detail",
+        "method": "GET",
+        "query_count": "2",
+    }
+    session.save()
+    monkeypatch.setattr(
+        "accounts.views.bug_report_diagnostics",
+        lambda: {
+            "Release channel": "stable",
+            "Git commit": "abc123",
+        },
+    )
+
+    response = client.get(reverse("accounts:report_bug"))
+
+    assert response.status_code == 200
+    assert b"Recent crash detected" in response.content
+    assert b"Crash report: accounts:user_access_detail" in response.content
+    assert b"ValueError on accounts:user_access_detail" in response.content
+
+
+@pytest.mark.django_db
+def test_crash_context_is_added_to_prefilled_issue_and_cleared(client, monkeypatch):
+    user = create_user("denizen@example.test")
+    client.force_login(user)
+    session = client.session
+    session[CRASH_REPORT_SESSION_KEY] = {
+        "when": "2026-05-14T20:20:00+00:00",
+        "exception_type": "ValueError",
+        "route": "accounts:user_access_detail",
+        "method": "GET",
+        "query_count": "2",
+    }
+    session.save()
+    monkeypatch.setattr("accounts.bug_reports._git_value", lambda command: "abc123")
+
+    response = client.post(
+        reverse("accounts:report_bug"),
+        {
+            "title": "Crash report",
+            "what_happened": "A crash happened.",
+            "expected": "No crash.",
+            "steps": "Open the page.",
+            "include_diagnostics": "on",
+        },
+    )
+
+    assert response.status_code == 302
+    body = parse_qs(urlparse(response.url).query)["body"][0]
+    assert "## Detected crash" in body
+    assert "exception_type: ValueError" in body
+    assert "route: accounts:user_access_detail" in body
+    assert CRASH_REPORT_SESSION_KEY not in client.session
 
 
 @pytest.mark.django_db

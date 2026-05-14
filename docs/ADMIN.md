@@ -117,15 +117,16 @@ the configured release branch, fast-forwards from origin, installs dependencies,
 runs migrations, collects static files, and runs the configured restart command
 when present.
 
-Pull requests targeting `stable` are guarded by the Stable Release Gate workflow
-and the Stable Release Verification workflow. Stable release PRs must be ready
-for review and must come from `main`, `release/*`, or `hotfix/*`. The
-verification workflow runs the quality checks, full MySQL-backed test suite
-across supported Python and MySQL versions, repeated focused suites, repeated
-rules imports, and migration idempotency checks. Make those stable workflows
-required branch protection checks on GitHub before relying on them as release
-enforcement. Follow the stable release checklist in `docs/RELEASE.md` before
-promoting `main` to `stable`.
+Normal pull request CI runs quality checks and one representative MySQL-backed
+full suite. Pull requests targeting `stable` are guarded by the Stable Release
+Gate workflow and the Stable Release Verification workflow. Stable release PRs
+must be ready for review and must come from `main`, `release/*`, or `hotfix/*`.
+The verification workflow runs the deeper checks: quality checks, full
+MySQL-backed test suite across supported Python and MySQL versions, repeated
+focused suites, repeated rules imports, and migration idempotency checks. Make
+those stable workflows required branch protection checks on GitHub before
+relying on them as release enforcement. Follow the stable release checklist in
+`docs/RELEASE.md` before promoting `main` to `stable`.
 
 Before upgrading a live install, keep a normal database and environment backup.
 The upgrade workflow does not remove `.env`, `.env.local`, `installer.lock`, or
@@ -138,6 +139,24 @@ settings changes, user creation, disabling or enabling users, password resets,
 membership changes, invitation changes, Git restore actions, and upgrades.
 Audit detail pages are superuser-only.
 
+## Bug Reports
+
+Authenticated users can open `Report a bug` from the account menu. The form
+opens a prefilled GitHub issue in the configured `Bug report GitHub repository`
+setting, which defaults to `aditaa/carta`. The app does not need a GitHub token
+because the user reviews and submits the issue in GitHub.
+
+Reports include anonymous diagnostics by default: release channel, configured
+release branch, Git branch and commit, Python and Django versions, database
+engine, debug mode, and rules file name. Users can uncheck diagnostics before
+opening the GitHub issue.
+
+When Carta Arcanum detects an unhandled server exception during a request, it
+saves a small crash context in that user's session and shows a `Recent crash
+detected` notification on the next page. The crash context includes exception
+type, route name, HTTP method, query count, and timestamp. It does not store raw
+URLs, query strings, request bodies, SQL, or user identifiers.
+
 ## Query Monitoring
 
 Set `CARTA_SLOW_QUERY_MS` to log database queries that exceed that threshold
@@ -148,3 +167,37 @@ to disable slow-query logging.
 This is meant to catch heavy queries that only appear after real player usage
 creates larger datasets. Treat slow-query logs as leads for future service-level
 profiling, indexes, pagination, or query shape changes.
+
+## Anonymous Telemetry
+
+New installs include an `Anonymous performance telemetry` setting that defaults
+to enabled. Telemetry is only sent when a superuser also configures a telemetry
+endpoint in `Settings -> Application Status`; leaving the endpoint blank keeps
+all telemetry local to the install.
+
+Performance payloads include route name, HTTP method, status code, elapsed
+milliseconds, database query count, Django version, Python version, debug mode,
+and database engine. They intentionally do not include raw paths, query strings,
+request bodies, SQL, IP addresses, email addresses, usernames, owner names, or
+other player/game data.
+
+Use a collector endpoint you control for incoming telemetry. Sending directly to
+GitHub is possible only through an authenticated proxy or automation because the
+app should not ship with a GitHub token embedded in settings.
+
+Carta Arcanum can also send anonymous error and performance reports to Sentry.
+Set `Sentry telemetry` to enabled, paste a Sentry project DSN into `Sentry DSN`,
+and choose a `Sentry traces sample rate`. The default sample rate is `0.05`,
+which sends about five percent of request performance traces. The Sentry DSN can
+point to a maintainer-owned project for community install feedback, or to an
+admin's own project for private monitoring.
+
+Sentry reports are filtered before sending. The app sets `send_default_pii` to
+false and strips Sentry event user data, raw request URLs, query strings,
+headers, request bodies, breadcrumbs, and extra data. It keeps route names,
+methods, status codes, elapsed time, and query counts so the maintainer can see
+where installs are slow or failing without receiving player data. Sentry release
+tracking uses the current Git tag when the checkout is exactly on a tag, and
+falls back to the short Git commit otherwise. The app also adds low-rate
+profiling and safe `db.query` spans without SQL text so slow request traces can
+show whether time is going into database work.

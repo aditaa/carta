@@ -20,7 +20,9 @@ at the exact commit deployed by production installs.
 - Confirm the work on `main` is intended for the next stable release.
 - Confirm local development-only changes are not part of the release.
 - Confirm no generated, secret, or environment files are being committed.
-- Confirm the normal CI workflow is green on `main`.
+- Confirm the normal CI workflow is green on `main`. Normal CI is intentionally
+  lighter than stable verification: quality checks plus one representative
+  MySQL-backed full suite.
 - Confirm the release notes or PR description list user-visible changes,
   upgrade notes, and any known risks.
 - Confirm the database and `.env` backup plan for the target deployment.
@@ -37,7 +39,9 @@ at the exact commit deployed by production installs.
 - Confirm the PR has no unexpected file changes.
 
 The Stable Release Verification workflow can also be run manually from GitHub
-Actions when a release candidate needs another heavy verification pass.
+Actions when a release candidate needs another heavy verification pass. It is
+the home for the slower checks: supported Python/MySQL matrix runs, repeated
+focused suites, repeated rules imports, and migration idempotency checks.
 
 ## After Merge
 

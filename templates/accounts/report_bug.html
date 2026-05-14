@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Report a Bug - {{ application_site_name }}{% endblock %}
+
+{% block content %}
+  <section class="page-shell">
+    <p class="eyebrow">Support</p>
+    <h1>Report a Bug</h1>
+    <p class="muted">Create a prefilled GitHub issue with anonymous app diagnostics.</p>
+
+    {% if crash_context %}
+      <section class="maintenance-notice" aria-label="Detected crash">
+        A recent crash was detected. This report has been prefilled with safe crash details.
+      </section>
+    {% endif %}
+
+    <form class="auth-form" method="post">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <label>
+        {{ form.title.label }}
+        {{ form.title }}
+        {{ form.title.errors }}
+      </label>
+      <label>
+        {{ form.what_happened.label }}
+        {{ form.what_happened }}
+        {{ form.what_happened.errors }}
+      </label>
+      <label>
+        {{ form.expected.label }}
+        {{ form.expected }}
+        {{ form.expected.errors }}
+      </label>
+      <label>
+        {{ form.steps.label }}
+        {{ form.steps }}
+        {{ form.steps.errors }}
+      </label>
+      <label class="checkbox-row">
+        {{ form.include_diagnostics }}
+        {{ form.include_diagnostics.label }}
+      </label>
+      <div class="form-actions">
+        <button type="submit">Open GitHub issue</button>
+      </div>
+    </form>
+
+    <details class="upgrade-details" open>
+      <summary>Anonymous diagnostics included by default</summary>
+      {% if crash_context %}
+        <div class="crash-summary">
+          <strong>Detected crash</strong>
+          <p>{{ crash_context.exception_type }} on {{ crash_context.route }}</p>
+        </div>
+      {% endif %}
+      <dl class="diagnostics-list">
+        {% for label, value in diagnostics.items %}
+          <div>
+            <dt>{{ label }}</dt>
+            <dd>{{ value }}</dd>
+          </div>
+        {% endfor %}
+      </dl>
+    </details>
+  </section>
+{% endblock %}

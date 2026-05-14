@@ -188,6 +188,43 @@ p {
   font-weight: 700;
 }
 
+.notification-stack {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+}
+
+.notification-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid #c8bea9;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.notification-card strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.notification-card p {
+  margin: 0;
+  color: #4d5a51;
+}
+
+.notification-card.is-warning {
+  border-color: #bfa05a;
+  background: #fff7d7;
+}
+
+.notification-card.is-info {
+  border-color: #aab5a8;
+  background: #e6eadf;
+}
+
 .error-message,
 .errorlist {
   color: #9d2f2f;
@@ -594,6 +631,10 @@ p {
   margin-top: 20px;
 }
 
+.priority-section {
+  margin: 20px 0;
+}
+
 .settings-card,
 .settings-section {
   padding: 16px;
@@ -717,8 +758,64 @@ p {
   margin: 4px 0 0;
 }
 
+.field-help {
+  color: #6f786f;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .upgrade-section form {
   margin-top: 12px;
+}
+
+.upgrade-details {
+  margin-top: 12px;
+}
+
+.upgrade-details summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.upgrade-details .installer-output {
+  margin-top: 10px;
+}
+
+.diagnostics-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.crash-summary {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #d9aaa3;
+  border-radius: 8px;
+  background: #fff1ee;
+}
+
+.crash-summary p {
+  margin: 4px 0 0;
+}
+
+.diagnostics-list div {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) 1fr;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd3bd;
+}
+
+.diagnostics-list dt {
+  color: #4d5a51;
+  font-weight: 800;
+}
+
+.diagnostics-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .danger-button {
@@ -907,6 +1004,11 @@ p {
   .nav-menu-panel {
     left: 0;
     right: auto;
+  }
+
+  .notification-card {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .form-table-row {

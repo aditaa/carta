@@ -1,11 +1,15 @@
 import logging
 import subprocess
+from types import SimpleNamespace
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 
 import accounts.services as account_services
+import carta.telemetry as telemetry
+from accounts.bug_reports import CRASH_REPORT_SESSION_KEY
 from accounts.models import ApplicationSetting, AuditLogEntry
 from accounts.permissions import AuditAction, RolePresetKey
 from accounts.services import (
@@ -140,6 +144,23 @@ def test_default_settings_include_slow_query_health_support(settings):
 
 
 @pytest.mark.django_db
+def test_default_settings_include_anonymous_telemetry_toggle():
+    ensure_default_application_settings()
+
+    assert ApplicationSetting.objects.get(key="telemetry_enabled").value == "true"
+    assert ApplicationSetting.objects.get(key="telemetry_endpoint").value == ""
+    assert ApplicationSetting.objects.get(key="sentry_enabled").value == "true"
+    assert (
+        ApplicationSetting.objects.get(key="sentry_dsn").value
+        == "https://538e7483cd26762751c6535ff2428f5c"
+        "@o4511390011949056.ingest.us.sentry.io/4511390014177280"
+    )
+    assert ApplicationSetting.objects.get(key="sentry_traces_sample_rate").value == "0.05"
+    assert ApplicationSetting.objects.get(key="sentry_profiles_sample_rate").value == "0.01"
+    assert ApplicationSetting.objects.get(key="bug_report_repository").value == "aditaa/carta"
+
+
+@pytest.mark.django_db
 def test_default_settings_include_stable_release_branch():
     ensure_default_application_settings()
 
@@ -242,6 +263,37 @@ def test_upgrade_job_checks_out_configured_release_branch(monkeypatch):
 
 
 @pytest.mark.django_db
+def test_upgrade_job_publishes_management_command_output(monkeypatch):
+    ensure_default_application_settings()
+    account_services.UPGRADE_JOBS["job-output"] = {
+        "status": "running",
+        "message": "Starting upgrade",
+        "output": "",
+        "error": "",
+    }
+
+    def fake_completed_command(output, command):
+        output.write(f"$ {' '.join(command)}\n")
+
+    def fake_call_command(command_name, *, stdout, **kwargs):
+        stdout.write(f"{command_name} started\n")
+        assert f"{command_name} started" in upgrade_job_status("job-output")["output"]
+
+    monkeypatch.setattr("accounts.services._append_completed_command", fake_completed_command)
+    monkeypatch.setattr("accounts.services.call_command", fake_call_command)
+    monkeypatch.setattr("accounts.services.close_old_connections", lambda: None)
+
+    account_services._run_upgrade_job("job-output")
+
+    job = upgrade_job_status("job-output")
+    assert "$ python manage.py migrate --noinput" in job["output"]
+    assert "migrate started" in job["output"]
+    assert "$ python manage.py collectstatic --noinput" in job["output"]
+    assert "collectstatic started" in job["output"]
+    account_services.UPGRADE_JOBS.pop("job-output", None)
+
+
+@pytest.mark.django_db
 @override_settings(CARTA_SLOW_QUERY_MS=0)
 def test_slow_query_middleware_can_be_disabled():
     request = RequestFactory().get("/")
@@ -296,3 +348,183 @@ def test_slow_query_middleware_logs_queries_over_threshold(caplog):
         assert middleware(request) == "ok"
 
     assert any("Slow query" in record.message for record in caplog.records)
+
+
+@pytest.mark.django_db
+@override_settings(CARTA_SLOW_QUERY_MS=0)
+def test_middleware_sends_anonymous_performance_telemetry(monkeypatch):
+    ensure_default_application_settings()
+    ApplicationSetting.objects.filter(key="telemetry_endpoint").update(
+        value="https://telemetry.example.test/carta"
+    )
+    ApplicationSetting.objects.filter(key="sentry_enabled").update(value="false")
+    sent_payloads = []
+
+    class FakeThread:
+        def __init__(self, *, target, args, daemon):
+            self.target = target
+            self.args = args
+            self.daemon = daemon
+
+        def start(self):
+            sent_payloads.append(self.args)
+
+    request = RequestFactory().get("/accounts/users/123/?email=secret@example.test")
+    request.resolver_match = SimpleNamespace(view_name="accounts:user_access_detail")
+    middleware = SlowQueryLoggingMiddleware(lambda request: HttpResponse("ok", status=202))
+
+    monkeypatch.setattr("carta.telemetry.threading.Thread", FakeThread)
+
+    response = middleware(request)
+
+    assert response.status_code == 202
+    assert len(sent_payloads) == 1
+    endpoint, payload = sent_payloads[0]
+    assert endpoint == "https://telemetry.example.test/carta"
+    assert payload["schema"] == "carta.performance.v1"
+    assert payload["request"]["route"] == "accounts:user_access_detail"
+    assert payload["request"]["method"] == "GET"
+    assert payload["request"]["status_code"] == 202
+    assert "path" not in payload["request"]
+    assert "user" not in payload
+
+
+@pytest.mark.django_db
+@override_settings(CARTA_SLOW_QUERY_MS=0)
+def test_middleware_skips_telemetry_without_endpoint(monkeypatch):
+    ensure_default_application_settings()
+    ApplicationSetting.objects.filter(key="sentry_enabled").update(value="false")
+    started_threads = []
+
+    class FakeThread:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        def start(self):
+            started_threads.append(self.kwargs)
+
+    request = RequestFactory().get("/")
+    middleware = SlowQueryLoggingMiddleware(lambda request: HttpResponse("ok"))
+
+    monkeypatch.setattr("carta.telemetry.threading.Thread", FakeThread)
+
+    middleware(request)
+
+    assert started_threads == []
+
+
+@pytest.mark.django_db
+@override_settings(CARTA_SLOW_QUERY_MS=0)
+def test_middleware_records_crash_for_bug_report(monkeypatch):
+    request = RequestFactory().get("/accounts/users/123/?email=secret@example.test")
+    request.resolver_match = SimpleNamespace(view_name="accounts:user_access_detail")
+    request.session = {}
+    middleware = SlowQueryLoggingMiddleware(
+        lambda request: (_ for _ in ()).throw(ValueError("secret email"))
+    )
+    monkeypatch.setattr("carta.middleware.capture_sentry_exception", lambda *args, **kwargs: None)
+
+    with pytest.raises(ValueError):
+        middleware(request)
+
+    crash_report = request.session[CRASH_REPORT_SESSION_KEY]
+    assert crash_report["exception_type"] == "ValueError"
+    assert crash_report["route"] == "accounts:user_access_detail"
+    assert crash_report["method"] == "GET"
+    assert "path" not in crash_report
+    assert "secret" not in str(crash_report).lower()
+
+
+@pytest.mark.django_db
+def test_sentry_configures_without_default_pii(monkeypatch):
+    ensure_default_application_settings()
+    ApplicationSetting.objects.filter(key="sentry_dsn").update(
+        value="https://public@example.ingest.sentry.io/1"
+    )
+    init_calls = []
+    tags = {}
+
+    class FakeSentry:
+        def init(self, **kwargs):
+            init_calls.append(kwargs)
+
+        def set_tag(self, key, value):
+            tags[key] = value
+
+    monkeypatch.setattr("carta.telemetry.sentry_sdk", FakeSentry())
+    monkeypatch.setattr("carta.telemetry._SENTRY_CONFIGURED_KEY", None)
+    monkeypatch.setattr("carta.telemetry._git_value", lambda command: "abc123")
+
+    config = telemetry.configure_sentry()
+
+    assert config.dsn == "https://public@example.ingest.sentry.io/1"
+    assert config.traces_sample_rate == 0.05
+    assert config.profiles_sample_rate == 0.01
+    assert config.release == "carta-arcanum@abc123"
+    assert init_calls[0]["send_default_pii"] is False
+    assert init_calls[0]["release"] == "carta-arcanum@abc123"
+    assert init_calls[0]["profiles_sample_rate"] == 0.01
+    assert init_calls[0]["before_send"] is telemetry._scrub_sentry_event
+    assert init_calls[0]["before_send_transaction"] is telemetry._scrub_sentry_event
+    assert tags["git_commit"] == "abc123"
+
+
+@pytest.mark.django_db
+def test_sentry_does_not_configure_without_dsn(monkeypatch):
+    ensure_default_application_settings()
+    ApplicationSetting.objects.filter(key="sentry_dsn").update(value="")
+    init_calls = []
+
+    class FakeSentry:
+        def init(self, **kwargs):
+            init_calls.append(kwargs)
+
+    monkeypatch.setattr("carta.telemetry.sentry_sdk", FakeSentry())
+    monkeypatch.setattr("carta.telemetry._SENTRY_CONFIGURED_KEY", None)
+
+    assert telemetry.configure_sentry() is None
+    assert init_calls == []
+
+
+def test_sentry_scrubber_removes_pii_shaped_event_data():
+    event = {
+        "user": {"email": "denizen@example.test"},
+        "request": {
+            "url": "https://example.test/accounts/users/123/?email=denizen@example.test",
+            "query_string": "email=denizen@example.test",
+            "data": {"password": "secret"},
+            "headers": {"cookie": "sessionid=secret"},
+            "method": "POST",
+        },
+        "breadcrumbs": {"values": [{"message": "secret"}]},
+        "extra": {"sql": "SELECT * FROM accounts_user"},
+    }
+
+    scrubbed = telemetry._scrub_sentry_event(event, {})
+
+    assert "user" not in scrubbed
+    assert scrubbed["request"] == {"method": "POST"}
+    assert "breadcrumbs" not in scrubbed
+    assert "extra" not in scrubbed
+
+
+def test_sentry_release_prefers_exact_tag(monkeypatch):
+    def fake_git_value(command):
+        if command == ["describe", "--tags", "--exact-match"]:
+            return "v0.1.0"
+        return "abc123"
+
+    monkeypatch.setattr("carta.telemetry._git_value", fake_git_value)
+
+    assert telemetry._sentry_release() == "carta-arcanum@v0.1.0"
+
+
+def test_sentry_release_falls_back_to_commit(monkeypatch):
+    def fake_git_value(command):
+        if command == ["describe", "--tags", "--exact-match"]:
+            return "unknown"
+        return "abc123"
+
+    monkeypatch.setattr("carta.telemetry._git_value", fake_git_value)
+
+    assert telemetry._sentry_release() == "carta-arcanum@abc123"

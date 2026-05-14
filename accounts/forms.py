@@ -171,10 +171,51 @@ class KingdomMembershipAccessForm(forms.ModelForm):
 
 
 class ApplicationSettingForm(forms.ModelForm):
+    RELEASE_BRANCH_CHOICES = (
+        ("stable", "Stable"),
+        ("main", "Testing"),
+    )
+    BOOLEAN_SETTING_KEYS = {"telemetry_enabled", "sentry_enabled"}
+    BOOLEAN_CHOICES = (
+        ("true", "Enabled"),
+        ("false", "Disabled"),
+    )
+
     class Meta:
         model = ApplicationSetting
         fields = ("value",)
         widgets = {"value": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.key == "release_branch":
+            self.fields["value"].widget = forms.Select(choices=self.RELEASE_BRANCH_CHOICES)
+            self.fields["value"].help_text = "Stable tracks the stable branch. Testing tracks main."
+        if self.instance and self.instance.key in self.BOOLEAN_SETTING_KEYS:
+            self.fields["value"].widget = forms.Select(choices=self.BOOLEAN_CHOICES)
+
+
+class BugReportForm(forms.Form):
+    title = forms.CharField(max_length=160)
+    what_happened = forms.CharField(
+        label="What happened",
+        widget=forms.Textarea(attrs={"rows": 5}),
+    )
+    expected = forms.CharField(
+        label="What did you expect?",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+    steps = forms.CharField(
+        label="Steps to reproduce",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 4}),
+    )
+    include_diagnostics = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Include anonymous app diagnostics",
+    )
 
 
 class HouseForm(forms.ModelForm):

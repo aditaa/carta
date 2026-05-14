@@ -12,9 +12,16 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.bug_reports import (
+    CRASH_REPORT_SESSION_KEY,
+    bug_report_diagnostics,
+    bug_report_issue_url,
+    crash_report_initial,
+)
 from accounts.forms import (
     AdminPasswordChangeForm,
     ApplicationSettingForm,
+    BugReportForm,
     DenizenProfileStatusForm,
     EmailAuthenticationForm,
     FirstAdminCreationForm,
@@ -51,6 +58,7 @@ from accounts.services import (
     upgrade_job_status,
     validate_email_settings,
     validate_release_branch,
+    validate_support_settings,
 )
 from buildings.models import OwnedBuilding
 from holdings.models import HoldingAccount
@@ -136,6 +144,32 @@ class CartaPasswordResetView(PasswordResetView):
         return HttpResponseRedirect(self.get_success_url())
 
 
+@login_required
+def report_bug(request):
+    diagnostics = bug_report_diagnostics()
+    crash_context = request.session.get(CRASH_REPORT_SESSION_KEY)
+    if request.method == "POST":
+        form = BugReportForm(request.POST)
+        if form.is_valid():
+            report = dict(form.cleaned_data)
+            if crash_context:
+                report["crash_context"] = crash_context
+                request.session.pop(CRASH_REPORT_SESSION_KEY, None)
+            return redirect(
+                bug_report_issue_url(
+                    report,
+                    include_diagnostics=report["include_diagnostics"],
+                )
+            )
+    else:
+        form = BugReportForm(initial=crash_report_initial(crash_context))
+    return render(
+        request,
+        "accounts/report_bug.html",
+        {"form": form, "diagnostics": diagnostics, "crash_context": crash_context},
+    )
+
+
 def _email_connection_from_settings(email_settings):
     port = email_settings.get("email_port", "25")
     return get_connection(
@@ -184,6 +218,7 @@ def settings_home(request):
         "audit_entry_count": AuditLogEntry.objects.count(),
         "health_checks": checks,
         "all_health_checks_ok": all(check.ok for check in checks),
+        "upgrade_available": upgrade_available(),
     }
     return render(request, "accounts/settings_home.html", context)
 
@@ -213,6 +248,7 @@ def application_status(request):
             validation_errors = list(email_validation.errors)
             if not release_branch_valid:
                 validation_errors.append(release_branch_error)
+            validation_errors.extend(validate_support_settings(submitted_settings))
             if validation_errors:
                 for error in validation_errors:
                     formset._non_form_errors.append(error)

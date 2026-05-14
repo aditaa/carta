@@ -121,6 +121,75 @@ DEFAULT_APPLICATION_SETTINGS = [
         "value": "false",
         "description": "Set by upgrades when the app process still needs a restart.",
     },
+    {
+        "key": "telemetry_enabled",
+        "label": "Anonymous performance telemetry",
+        "value": "true",
+        "description": (
+            "Allow Carta Arcanum to send anonymous route timing, status, and query-count "
+            "metrics when a telemetry endpoint is configured."
+        ),
+    },
+    {
+        "key": "telemetry_endpoint",
+        "label": "Telemetry endpoint",
+        "value": "",
+        "description": (
+            "Optional HTTPS URL that receives anonymous performance telemetry. "
+            "Leave blank to avoid sending data off this install."
+        ),
+    },
+    {
+        "key": "sentry_enabled",
+        "label": "Sentry telemetry",
+        "value": "true",
+        "description": (
+            "Allow anonymous error and performance reports to be sent to Sentry when a "
+            "Sentry DSN is configured."
+        ),
+    },
+    {
+        "key": "sentry_dsn",
+        "label": "Sentry DSN",
+        "value": (
+            "https://538e7483cd26762751c6535ff2428f5c"
+            "@o4511390011949056.ingest.us.sentry.io/4511390014177280"
+        ),
+        "description": (
+            "Optional Sentry project DSN. Use the maintainer-provided DSN to share "
+            "anonymous install telemetry, or use your own Sentry project."
+        ),
+    },
+    {
+        "key": "sentry_traces_sample_rate",
+        "label": "Sentry traces sample rate",
+        "value": "0.05",
+        "description": (
+            "Fraction of request performance traces sent to Sentry, from 0.0 to 1.0. "
+            "The default samples about five percent of requests."
+        ),
+    },
+    {
+        "key": "sentry_profiles_sample_rate",
+        "label": "Sentry profiles sample rate",
+        "value": "0.01",
+        "description": (
+            "Fraction of sampled Sentry transactions that include code profiling data, "
+            "from 0.0 to 1.0. The default profiles about one percent."
+        ),
+    },
+    {
+        "key": "sentry_environment",
+        "label": "Sentry environment",
+        "value": "community-install",
+        "description": "Environment label used for Sentry events from this installation.",
+    },
+    {
+        "key": "bug_report_repository",
+        "label": "Bug report GitHub repository",
+        "value": "aditaa/carta",
+        "description": "GitHub owner/repository used for prefilled in-app bug reports.",
+    },
 ]
 
 UPGRADE_JOBS: dict[str, dict[str, str]] = {}
@@ -294,7 +363,7 @@ def upgrade_job_status(job_id: str) -> dict[str, str]:
 
 
 def _run_upgrade_job(job_id: str) -> None:
-    output = io.StringIO()
+    output = _UpgradeOutputLog(job_id)
     close_old_connections()
     try:
         release_branch = configured_release_branch()
@@ -311,10 +380,12 @@ def _run_upgrade_job(job_id: str) -> None:
         _append_completed_command(output, ["git", "pull", "--ff-only", "origin", release_branch])
 
         _update_upgrade_job(job_id, message="Running database migrations")
+        output.write("\n$ python manage.py migrate --noinput\n")
         call_command("migrate", stdout=output, no_input=True)
 
         _update_upgrade_job(job_id, message="Collecting static files")
-        call_command("collectstatic", stdout=output, no_input=True, verbosity=0)
+        output.write("\n$ python manage.py collectstatic --noinput\n")
+        call_command("collectstatic", stdout=output, no_input=True, verbosity=1)
 
         restart_command = application_setting_map().get("restart_command", "").strip()
         if restart_command:
@@ -342,7 +413,19 @@ def _run_upgrade_job(job_id: str) -> None:
         close_old_connections()
 
 
+class _UpgradeOutputLog(io.StringIO):
+    def __init__(self, job_id: str) -> None:
+        super().__init__()
+        self.job_id = job_id
+
+    def write(self, value: str) -> int:
+        written = super().write(value)
+        _update_upgrade_job(self.job_id, output=self.getvalue())
+        return written
+
+
 def _append_completed_command(output: io.StringIO, command: list[str]) -> None:
+    output.write(f"$ {' '.join(command)}\n")
     completed = subprocess.run(
         command,
         cwd=settings.BASE_DIR,
@@ -351,7 +434,6 @@ def _append_completed_command(output: io.StringIO, command: list[str]) -> None:
         check=False,
         timeout=120,
     )
-    output.write(f"$ {' '.join(command)}\n")
     output.write(completed.stdout)
     output.write(completed.stderr)
     if completed.returncode != 0:
@@ -461,6 +543,29 @@ def validate_release_branch(branch: str) -> tuple[bool, str]:
             "underscores, and slashes.",
         )
     return True, ""
+
+
+def validate_support_settings(settings_map: dict[str, str]) -> tuple[str, ...]:
+    errors = []
+    dsn = settings_map.get("sentry_dsn", "").strip()
+    if dsn and not dsn.startswith("https://"):
+        errors.append("Sentry DSN must be an HTTPS URL.")
+    for key, label in (
+        ("sentry_traces_sample_rate", "Sentry traces sample rate"),
+        ("sentry_profiles_sample_rate", "Sentry profiles sample rate"),
+    ):
+        value = settings_map.get(key, "").strip()
+        try:
+            sample_rate = float(value)
+        except ValueError:
+            errors.append(f"{label} must be a number from 0.0 to 1.0.")
+            continue
+        if not 0.0 <= sample_rate <= 1.0:
+            errors.append(f"{label} must be a number from 0.0 to 1.0.")
+    repository = settings_map.get("bug_report_repository", "").strip()
+    if repository.count("/") != 1 or " " in repository:
+        errors.append("Bug report GitHub repository must use owner/repository format.")
+    return tuple(errors)
 
 
 def _release_branch_check() -> HealthCheck:
