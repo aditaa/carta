@@ -197,6 +197,20 @@ def test_upgrade_available_uses_configured_release_branch(monkeypatch):
     assert commands == [["rev-list", "--left-right", "--count", "HEAD...origin/main"]]
 
 
+def test_reset_git_checkout_preserves_untracked_runtime_files(monkeypatch):
+    commands = []
+
+    def fake_run_git_checked(command):
+        commands.append(command)
+
+    monkeypatch.setattr("accounts.services._run_git_checked", fake_run_git_checked)
+
+    account_services.reset_git_checkout()
+
+    assert commands == [["reset", "--hard", "HEAD"]]
+    assert ["clean", "-fd"] not in commands
+
+
 @pytest.mark.django_db
 def test_upgrade_job_checks_out_configured_release_branch(monkeypatch):
     ensure_default_application_settings()
@@ -219,6 +233,8 @@ def test_upgrade_job_checks_out_configured_release_branch(monkeypatch):
 
     account_services._run_upgrade_job("job-123")
 
+    assert ["git", "reset", "--hard", "HEAD"] in commands
+    assert ["git", "clean", "-fd"] not in commands
     assert ["git", "checkout", "main"] in commands
     assert ["git", "pull", "--ff-only", "origin", "main"] in commands
     assert upgrade_job_status("job-123")["status"] == "complete"
