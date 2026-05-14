@@ -37,6 +37,9 @@ class Command(BaseCommand):
                 f"{result.buildings} buildings, "
                 f"{result.production_recipes} production recipes, "
                 f"{result.ownership_rules} ownership rules, "
-                f"{result.transports} transports."
+                f"{result.transports} transports, "
+                f"{result.titles} titles, "
+                f"{result.phases} phases, "
+                f"{result.phase_unlocks} phase unlocks."
             )
         )

@@ -13,6 +13,7 @@ from jsonschema.exceptions import ValidationError
 from buildings.models import BuildingDefinition, SettlementTier
 from ownership.models import OwnershipRule
 from production.models import ProductionRecipe
+from progression.models import PhaseDefinition, PhaseUnlock, TitleDefinition
 from resources.models import Currency, Resource, ResourceCategory, Unit
 from rulesets.models import ItemReference, Ruleset, RulesetImportLog
 from transports.models import TransportDefinition
@@ -33,6 +34,9 @@ class RulesetImportResult:
     production_recipes: int
     ownership_rules: int
     transports: int
+    titles: int
+    phases: int
+    phase_unlocks: int
 
 
 def load_rules_data(rules_path: Path) -> dict[str, Any]:
@@ -86,6 +90,8 @@ def import_rules_file(rules_path: Path, schema_path: Path | None = None) -> Rule
             _sync_production_recipes(ruleset, data.get("production_recipes", []), buildings)
             _sync_ownership_rules(ruleset, data.get("ownership_rules", []))
             _sync_transports(ruleset, data.get("transports", []))
+            _sync_titles(ruleset, data.get("titles", []))
+            _sync_phases(ruleset, data.get("phases", []))
             RulesetImportLog.objects.create(
                 ruleset=ruleset,
                 source_path=str(rules_path),
@@ -110,6 +116,9 @@ def import_rules_file(rules_path: Path, schema_path: Path | None = None) -> Rule
         production_recipes=ruleset.recipes.count(),
         ownership_rules=ruleset.ownership_rules.count(),
         transports=ruleset.transports.count(),
+        titles=ruleset.titles.count(),
+        phases=ruleset.phases.count(),
+        phase_unlocks=PhaseUnlock.objects.filter(phase__ruleset=ruleset).count(),
     )
 
 
@@ -388,6 +397,61 @@ def _sync_transports(
         kept_keys=keys,
     )
     TransportDefinition.objects.filter(ruleset=ruleset).exclude(key__in=keys).delete()
+
+
+def _sync_titles(ruleset: Ruleset, titles: list[dict[str, Any]]) -> None:
+    keys = []
+    for title_data in titles:
+        keys.append(title_data["key"])
+        TitleDefinition.objects.update_or_create(
+            ruleset=ruleset,
+            key=title_data["key"],
+            defaults={
+                "name": title_data["name"],
+                "category": title_data.get("category", ""),
+                "requirements": title_data.get("requirements", []),
+                "effects": title_data.get("effects", []),
+                "raw_data": title_data,
+            },
+        )
+    TitleDefinition.objects.filter(ruleset=ruleset).exclude(key__in=keys).delete()
+
+
+def _sync_phases(ruleset: Ruleset, phases: list[dict[str, Any]]) -> None:
+    keys = []
+    for index, phase_data in enumerate(phases):
+        keys.append(phase_data["key"])
+        phase, _created = PhaseDefinition.objects.update_or_create(
+            ruleset=ruleset,
+            key=phase_data["key"],
+            defaults={
+                "name": phase_data["name"],
+                "description": phase_data.get("description", ""),
+                "sort_order": phase_data.get("sort_order", index),
+                "requirements": phase_data.get("requirements", []),
+                "raw_data": phase_data,
+            },
+        )
+        _sync_phase_unlocks(phase, phase_data.get("unlocks", []))
+    PhaseDefinition.objects.filter(ruleset=ruleset).exclude(key__in=keys).delete()
+
+
+def _sync_phase_unlocks(phase: PhaseDefinition, unlocks: list[dict[str, Any]]) -> None:
+    keys = []
+    for index, unlock_data in enumerate(unlocks):
+        keys.append(unlock_data["key"])
+        PhaseUnlock.objects.update_or_create(
+            phase=phase,
+            key=unlock_data["key"],
+            defaults={
+                "name": unlock_data["name"],
+                "unlock_type": unlock_data.get("unlock_type", ""),
+                "description": unlock_data.get("description", ""),
+                "data": unlock_data,
+                "sort_order": unlock_data.get("sort_order", index),
+            },
+        )
+    phase.unlocks.exclude(key__in=keys).delete()
 
 
 def _sync_item_refs(
