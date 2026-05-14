@@ -269,7 +269,6 @@ def restore_git_file(path: str) -> None:
 
 def reset_git_checkout() -> None:
     _run_git_checked(["reset", "--hard", "HEAD"])
-    _run_git_checked(["clean", "-fd"])
 
 
 def start_upgrade_job() -> str:
@@ -299,9 +298,8 @@ def _run_upgrade_job(job_id: str) -> None:
     close_old_connections()
     try:
         release_branch = configured_release_branch()
-        _update_upgrade_job(job_id, message="Resetting checkout to Git")
+        _update_upgrade_job(job_id, message="Resetting tracked files to Git")
         _append_completed_command(output, ["git", "reset", "--hard", "HEAD"])
-        _append_completed_command(output, ["git", "clean", "-fd"])
 
         _update_upgrade_job(job_id, message="Fetching latest code")
         _append_completed_command(output, ["git", "fetch", "--all", "--prune"])
