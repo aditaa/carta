@@ -1,0 +1,16 @@
+<div class="adjust-modal" role="dialog" aria-modal="true">
+  <div class="modal-content">
+    <section class="auth-shell">
+      <p class="eyebrow">Registry</p>
+      <h1>Delete building</h1>
+      <p>Delete {{ building }} from the registry?</p>
+      <form class="auth-form" method="post" hx-post="{{ request.path }}" hx-target="#building-modal-container" hx-swap="innerHTML">
+        {% csrf_token %}
+        <div class="form-actions">
+          <button type="submit" class="danger-button">Delete building</button>
+          <button type="button" onclick="document.getElementById('building-modal-container').innerHTML=''">Cancel</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>

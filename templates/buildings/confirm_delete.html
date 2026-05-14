@@ -6,12 +6,10 @@
   <section class="auth-shell">
     <p class="eyebrow">Registry</p>
     <h1>Delete building</h1>
-    <p>
-      Delete {{ building }} from the registry?
-    </p>
+    <p>Delete {{ building }} from the registry?</p>
     <form class="auth-form" method="post">
       {% csrf_token %}
-      <button type="submit">Delete building</button>
+      <button type="submit" class="danger-button">Delete building</button>
     </form>
     <p><a href="{% url 'buildings:index' %}">Cancel</a></p>
   </section>

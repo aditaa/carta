@@ -108,8 +108,17 @@ def delete(request, building_id):
             building_label=label,
             changes=changes,
         )
+        if request.headers.get("HX-Request"):
+            response = HttpResponse()
+            response["HX-Redirect"] = reverse("buildings:index")
+            return response
         return redirect("buildings:index")
-    return render(request, "buildings/confirm_delete.html", {"building": building})
+    template = (
+        "buildings/_confirm_delete.html"
+        if request.headers.get("HX-Request")
+        else "buildings/confirm_delete.html"
+    )
+    return render(request, template, {"building": building})
 
 
 def get_visible_building_or_404(user, building_id) -> OwnedBuilding:

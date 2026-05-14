@@ -897,6 +897,55 @@ def test_user_can_delete_visible_building(client):
     assert entry.building_label == "Old Orchard"
 
 
+def test_htmx_delete_request_returns_confirmation_modal(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        nickname="Old Orchard",
+    )
+    client.force_login(user)
+
+    response = client.get(
+        reverse("buildings:delete", args=[building.id]),
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert b"Delete building" in response.content
+    assert b"Old Orchard" in response.content
+    assert b"hx-post" in response.content
+    assert b"building-modal-container" in response.content
+    assert b"<!doctype html>" not in response.content
+
+
+def test_htmx_delete_post_redirects_to_registry(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        nickname="Old Orchard",
+    )
+    client.force_login(user)
+
+    response = client.post(
+        reverse("buildings:delete", args=[building.id]),
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert response["HX-Redirect"] == reverse("buildings:index")
+    assert not OwnedBuilding.objects.filter(id=building.id).exists()
+
+
 def test_user_cannot_delete_hidden_building(client):
     ruleset = create_ruleset()
     definition = create_definition(ruleset)
