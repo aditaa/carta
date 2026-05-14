@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Solver - Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">Planning</p>
+    <h1>Solver</h1>
+
+    {% if ruleset %}
+      <p class="muted">{{ ruleset.game }} {{ ruleset.rules_version }}</p>
+      <form class="filter-form" method="get">
+        <label>
+          {{ form.target.label }}
+          {{ form.target }}
+        </label>
+        <label>
+          {{ form.quantity.label }}
+          {{ form.quantity }}
+        </label>
+        <div class="filter-actions">
+          <button type="submit">Solve</button>
+        </div>
+      </form>
+
+      {% if result %}
+        <section class="dashboard-panel">
+          <h2>Required Buildings</h2>
+          {% for building in result.required_buildings %}
+            <span class="balance-pill">{{ building.quantity }} {{ building.building_name }}</span>
+          {% empty %}
+            <p class="muted">No producer found.</p>
+          {% endfor %}
+        </section>
+
+        <section class="dashboard-panel">
+          <h2>Dependency Chain</h2>
+          {% if result.dependency_chain %}
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Recipe</th>
+                    <th>Building</th>
+                    <th>Output</th>
+                    <th>Runs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for step in result.dependency_chain %}
+                    <tr>
+                      <td>{{ step.recipe_key }}</td>
+                      <td>{{ step.building_key }}</td>
+                      <td>{{ step.output_quantity }} {{ step.output_item_type }}:{{ step.output_item_key }}</td>
+                      <td>{{ step.runs }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="muted">No dependency chain.</p>
+          {% endif %}
+        </section>
+
+        <section class="dashboard-panel">
+          <h2>Required Inputs</h2>
+          {% for item in result.required_inputs %}
+            <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+          {% empty %}
+            <p class="muted">No inputs required.</p>
+          {% endfor %}
+        </section>
+
+        <section class="dashboard-panel">
+          <h2>Blockers</h2>
+          {% if result.missing_inputs %}
+            <h3>Missing Inputs</h3>
+            {% for item in result.missing_inputs %}
+              <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+            {% endfor %}
+          {% endif %}
+          {% if result.circular_dependencies %}
+            <h3>Circular Dependencies</h3>
+            <ul class="alerts-list">
+              {% for cycle in result.circular_dependencies %}
+                <li>{{ cycle|join:" -> " }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if not result.has_blockers %}
+            <p class="muted">No blockers detected.</p>
+          {% endif %}
+        </section>
+      {% endif %}
+    {% else %}
+      <p class="muted">No ruleset has been imported yet.</p>
+    {% endif %}
+  </section>
+{% endblock %}
