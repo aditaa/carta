@@ -542,6 +542,47 @@ p {
   text-transform: uppercase;
 }
 
+.progression-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.progression-grid.compact {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.progression-grid article {
+  padding: 14px;
+  border: 1px solid #ddd3bd;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.progression-grid h3 {
+  margin: 0 0 8px;
+  color: #17201c;
+  font-size: 1.05rem;
+}
+
+.progression-grid h4 {
+  margin: 14px 0 6px;
+  color: #4d5a51;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+.compact-list {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.55;
+}
+
+.compact-list li {
+  margin-bottom: 6px;
+}
+
 .muted {
   color: #6f786f;
 }

@@ -34,6 +34,10 @@ class PhaseSummary:
     unlocks: list[PhaseUnlockSummary]
 
 
+def latest_ruleset() -> Ruleset | None:
+    return Ruleset.objects.order_by("-imported_at", "-id").first()
+
+
 def title_catalog(ruleset: Ruleset) -> list[TitleSummary]:
     return [
         TitleSummary(

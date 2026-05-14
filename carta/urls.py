@@ -7,5 +7,6 @@ urlpatterns = [
     path("buildings/", include("buildings.urls")),
     path("holdings/", include("holdings.urls")),
     path("install/", include("installer.urls")),
+    path("progression/", include("progression.urls")),
     path("", include("dashboard.urls")),
 ]
