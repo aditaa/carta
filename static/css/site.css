@@ -758,6 +758,13 @@ p {
   margin: 4px 0 0;
 }
 
+.field-help {
+  color: #6f786f;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .upgrade-section form {
   margin-top: 12px;
 }

@@ -171,10 +171,21 @@ class KingdomMembershipAccessForm(forms.ModelForm):
 
 
 class ApplicationSettingForm(forms.ModelForm):
+    RELEASE_BRANCH_CHOICES = (
+        ("stable", "Stable"),
+        ("main", "Testing"),
+    )
+
     class Meta:
         model = ApplicationSetting
         fields = ("value",)
         widgets = {"value": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.key == "release_branch":
+            self.fields["value"].widget = forms.Select(choices=self.RELEASE_BRANCH_CHOICES)
+            self.fields["value"].help_text = "Stable tracks the stable branch. Testing tracks main."
 
 
 class HouseForm(forms.ModelForm):
