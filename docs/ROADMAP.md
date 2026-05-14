@@ -89,12 +89,12 @@ Use [TRANSITION_TODO.md](TRANSITION_TODO.md) for the detailed task checklist.
 
 ## Phase 8: Dependency Solver
 
-- [ ] Let denizens select a desired output.
-- [ ] Calculate required buildings and inputs.
-- [ ] Generate the full dependency chain.
+- [x] Let denizens select a desired output.
+- [x] Calculate required buildings and inputs.
+- [x] Generate the full dependency chain.
 - [ ] Add minimal stable loop generation.
 - [ ] Add resource balancing suggestions.
-- [ ] Add solver result tests for known scenarios.
+- [x] Add solver result tests for known scenarios.
 
 ## Later Ideas
 

@@ -203,17 +203,17 @@ FastAPI/React split app to a Django monolith.
 
 ## 12. Dependency Solver
 
-- [ ] Define solver input shape.
-- [ ] Define solver result shape.
-- [ ] Build dependency chain traversal.
-- [ ] Calculate required buildings for a desired output.
-- [ ] Calculate required inputs.
-- [ ] Calculate resulting deficits and surpluses.
-- [ ] Detect circular dependencies.
+- [x] Define solver input shape.
+- [x] Define solver result shape.
+- [x] Build dependency chain traversal.
+- [x] Calculate required buildings for a desired output.
+- [x] Calculate required inputs.
+- [x] Calculate resulting deficits and surpluses.
+- [x] Detect circular dependencies.
 - [ ] Generate minimal stable production loops.
-- [ ] Add solver page with target selection.
-- [ ] Add tests for known simple scenarios.
-- [ ] Add tests for circular and missing-input scenarios.
+- [x] Add solver page with target selection.
+- [x] Add tests for known simple scenarios.
+- [x] Add tests for circular and missing-input scenarios.
 
 ## 13. Django Admin And Operations
 

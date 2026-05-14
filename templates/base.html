@@ -17,6 +17,7 @@
           <a href="{% url 'buildings:index' %}">Buildings</a>
           <a href="{% url 'holdings:index' %}">Holdings</a>
           <a href="{% url 'progression:index' %}">Progression</a>
+          <a href="{% url 'solver:index' %}">Solver</a>
           {% if request.user.is_superuser or show_house_admin_nav or show_kingdom_admin_nav %}
             <details class="nav-menu">
               <summary>Admin</summary>
