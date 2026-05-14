@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}{{ house.name }} - {{ application_site_name }}{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">House Admin</p>
+    <h1>{{ house.name }}</h1>
+    {% include "accounts/_admin_nav.html" %}
+    <div class="summary-row">
+      <span>{{ members|length }} memberships</span>
+      <span>{{ pending_invitations|length }} pending invites</span>
+      <span>{{ building_count }} buildings</span>
+      <span>{{ holding_count }} holding accounts</span>
+    </div>
+
+    <form class="settings-form" method="post">
+      {% csrf_token %}
+      <section class="settings-section">
+        <h2>House Settings</h2>
+        <div class="form-grid">{{ form.as_div }}</div>
+      </section>
+      <div class="form-actions">
+        <a class="button-link" href="{% url 'accounts:house_admin_list' %}">Back</a>
+        <a class="button-link" href="{% url 'accounts:invite_user' %}">Invite user</a>
+        <button type="submit">Save house</button>
+      </div>
+    </form>
+
+    <section class="settings-section">
+      <h2>Members</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>User</th><th>Role</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for membership in members %}
+              <tr>
+                <td>{{ membership.user }}</td>
+                <td>{{ membership.get_role_display }}</td>
+                <td>{% if membership.active %}Active{% else %}Inactive{% endif %}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3">No members.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+{% endblock %}

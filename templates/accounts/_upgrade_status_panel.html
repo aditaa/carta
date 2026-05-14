@@ -1,0 +1,15 @@
+{% if job %}
+  <section class="installer-progress">
+    <div class="progress-heading">
+      {% if job.status == "running" %}<div class="progress-spinner" aria-hidden="true"></div>{% endif %}
+      <h2>{{ job.message }}</h2>
+    </div>
+    <p class="status-pill {% if job.status == "complete" %}is-ok{% elif job.status == "error" %}is-error{% endif %}">
+      {{ job.status|title }}
+    </p>
+    {% if job.output %}<pre class="installer-output compact">{{ job.output }}</pre>{% endif %}
+    {% if job.error %}<p class="error-message">{{ job.error }}</p>{% endif %}
+  </section>
+{% else %}
+  <p class="error-message">Upgrade job was not found.</p>
+{% endif %}

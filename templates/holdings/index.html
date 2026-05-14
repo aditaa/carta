@@ -32,8 +32,12 @@
                   {% endfor %}
                 </td>
                 <td>
-                  <button class="btn-link" onclick="showAdjustModal({{ account.id }})">Adjust</button>
-                  <a href="{% url 'holdings:transfer' account.id %}">Transfer</a>
+                  {% if account.id in editable_account_ids %}
+                    <button class="btn-link" onclick="showAdjustModal({{ account.id }})">Adjust</button>
+                    <a href="{% url 'holdings:transfer' account.id %}">Transfer</a>
+                  {% else %}
+                    <span class="muted">Read only</span>
+                  {% endif %}
                 </td>
               </tr>
             {% endfor %}

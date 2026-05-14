@@ -1,0 +1,52 @@
+name: Stable Release Gate
+
+on:
+  pull_request:
+    branches:
+      - stable
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - ready_for_review
+
+permissions:
+  contents: read
+
+jobs:
+  release-gate:
+    name: Stable release gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Allow only intentional stable releases
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          IS_DRAFT: ${{ github.event.pull_request.draft }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.repository }}
+        run: |
+          echo "base=$BASE_REF head=$HEAD_REPO:$HEAD_REF draft=$IS_DRAFT"
+          if [ "$BASE_REF" != "stable" ]; then
+            echo "This gate only applies to stable."
+            exit 0
+          fi
+          if [ "$HEAD_REPO" != "$BASE_REPO" ]; then
+            echo "Stable release PRs must come from branches in $BASE_REPO, not $HEAD_REPO."
+            exit 1
+          fi
+          if [ "$IS_DRAFT" = "true" ]; then
+            echo "Stable release PRs must be marked ready for review before merging."
+            exit 1
+          fi
+          case "$HEAD_REF" in
+            main|release/*|hotfix/*)
+              echo "Allowed stable release source: $HEAD_REF"
+              ;;
+            *)
+              echo "Stable can only be updated from main, release/*, or hotfix/* branches."
+              exit 1
+              ;;
+          esac

@@ -8,8 +8,13 @@ Arcanum is and how to run it.
 
 - [Install guide](INSTALL.md): Linux and WSL setup, MySQL configuration,
   installer recovery, fresh reinstall, upgrade, and optional service setup.
+- [Admin, settings, and status](ADMIN.md): user management, ACL scopes,
+  invitations, health checks, editable settings, upgrade behavior, and audit
+  logging.
 - [Architecture notes](ARCHITECTURE.md): Django app layout, boundaries, rules
   handling, and future map direction.
+- [Release checklist](RELEASE.md): stable promotion, required checks, release
+  tags, and rollback notes.
 - [Roadmap](ROADMAP.md): high-level milestone plan.
 - [Django transition checklist](TRANSITION_TODO.md): detailed rewrite task
   tracker.

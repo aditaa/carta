@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Application Status - {{ application_site_name }}{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">Settings</p>
+    <h1>Application Status</h1>
+    <p class="muted">Health checks, editable application settings, and upgrade controls.</p>
+    {% include "accounts/_admin_nav.html" %}
+
+    <section class="settings-section">
+      <h2>Health Checks</h2>
+      <div class="check-list">
+        {% for check in health_checks %}
+          <div class="check-row {% if check.ok %}is-ok{% else %}is-error{% endif %}">
+            <strong>{% if check.ok %}OK{% else %}Issue{% endif %}</strong>
+            <span>{{ check.label }}</span>
+            <small>{{ check.detail }}</small>
+          </div>
+        {% endfor %}
+      </div>
+      <p><a class="button-link" href="{% url 'dashboard:health' %}">Open health endpoint</a></p>
+    </section>
+
+    <section class="settings-section">
+      <h2>Git File Check</h2>
+      {% if changed_files %}
+        <p class="error-message">Tracked files differ from Git. Git is the source of truth for app code.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for path in changed_files %}
+                <tr>
+                  <td>{{ path }}</td>
+                  <td>
+                    <form method="post" action="{% url 'accounts:fix_git_file' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="path" value="{{ path }}">
+                      <button type="submit">Restore from Git</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <form method="post" action="{% url 'accounts:reset_git_files' %}">
+          {% csrf_token %}
+          <button class="danger-button" type="submit">Reset all changed files</button>
+        </form>
+      {% else %}
+        <p class="status-pill is-ok">Clean</p>
+        <p class="muted">No tracked files differ from Git.</p>
+      {% endif %}
+    </section>
+
+    <form class="settings-form" method="post">
+      {% csrf_token %}
+      <section class="settings-section">
+        <h2>Application Settings</h2>
+        {{ formset.management_form }}
+        {{ formset.non_form_errors }}
+        <div class="form-table app-settings-table">
+          {% for form in formset %}
+            <div class="form-table-row app-settings-row">
+              {{ form.id }}
+              <div>
+                <strong>{{ form.instance.label }}</strong>
+                <p class="muted">{{ form.instance.description }}</p>
+              </div>
+              {% for field in form.visible_fields %}
+                <label>
+                  {{ field.label }}
+                  {{ field }}
+                  {{ field.errors }}
+                </label>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+      <div class="form-actions">
+        <a class="button-link" href="{% url 'accounts:settings_home' %}">Back</a>
+        <button type="submit">Save settings</button>
+      </div>
+    </form>
+
+    <section class="settings-section upgrade-section">
+      <h2>Upgrade</h2>
+      <p class="muted">Reset the checkout to Git, switch to the stable branch, fetch latest code, fast-forward, run migrations, and collect static files.</p>
+      {% if upgrade_available %}
+        <form method="post" action="{% url 'accounts:start_upgrade' %}">
+          {% csrf_token %}
+          <button class="danger-button" type="submit">Upgrade to newest version</button>
+        </form>
+      {% else %}
+        <p class="status-pill is-ok">No upgrade available</p>
+      {% endif %}
+    </section>
+
+    <section class="settings-section">
+      <h2>Email Test</h2>
+      <form class="filter-form" method="post" action="{% url 'accounts:send_test_email' %}">
+        {% csrf_token %}
+        <label>
+          Recipient
+          <input type="email" name="recipient" value="{{ request.user.email }}">
+        </label>
+        <div class="filter-actions">
+          <button type="submit">Send test email</button>
+        </div>
+      </form>
+    </section>
+  </section>
+{% endblock %}

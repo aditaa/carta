@@ -4,29 +4,67 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Carta Arcanum{% endblock %}</title>
+    <title>{% block title %}{{ application_site_name }}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/site.css' %}">
     <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
     {% block head %}{% endblock %}
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="{% url 'dashboard:home' %}">Carta Arcanum</a>
+      <a class="brand" href="{% url 'dashboard:home' %}">{{ application_site_name }}</a>
       <nav class="site-nav" aria-label="Account">
         {% if request.user.is_authenticated %}
           <a href="{% url 'buildings:index' %}">Buildings</a>
           <a href="{% url 'holdings:index' %}">Holdings</a>
-          <span>{{ request.user.display_name }}</span>
-          <form method="post" action="{% url 'accounts:logout' %}">
-            {% csrf_token %}
-            <button type="submit">Sign out</button>
-          </form>
+          {% if request.user.is_superuser or show_house_admin_nav or show_kingdom_admin_nav %}
+            <details class="nav-menu">
+              <summary>Admin</summary>
+              <div class="nav-menu-panel">
+                {% if request.user.is_superuser %}
+                  <a href="{% url 'accounts:settings_home' %}">Settings</a>
+                  <a href="{% url 'accounts:application_status' %}">Status</a>
+                  <a href="{% url 'accounts:user_access_list' %}">Users</a>
+                  <a href="{% url 'accounts:audit_log' %}">Audit</a>
+                {% endif %}
+                {% if show_house_admin_nav %}
+                  <a href="{% url 'accounts:house_admin_list' %}">House Admin</a>
+                {% endif %}
+                {% if show_kingdom_admin_nav %}
+                  <a href="{% url 'accounts:kingdom_admin_list' %}">Kingdom Admin</a>
+                {% endif %}
+                <a href="{% url 'accounts:invite_user' %}">Invites</a>
+              </div>
+            </details>
+          {% endif %}
+          <details class="nav-menu">
+            <summary>{{ request.user.display_name }}</summary>
+            <div class="nav-menu-panel">
+              <a href="{% url 'accounts:my_invitations' %}">Invitations</a>
+              <a href="{% url 'accounts:password_change' %}">Password</a>
+              <form method="post" action="{% url 'accounts:logout' %}">
+                {% csrf_token %}
+                <button type="submit">Sign out</button>
+              </form>
+            </div>
+          </details>
         {% else %}
           <a href="{% url 'accounts:login' %}">Sign in</a>
         {% endif %}
       </nav>
     </header>
     <main class="site-main">
+      {% if application_maintenance_notice %}
+        <section class="maintenance-notice" aria-label="Maintenance notice">
+          {{ application_maintenance_notice }}
+        </section>
+      {% endif %}
+      {% if messages %}
+        <section class="messages" aria-label="Messages">
+          {% for message in messages %}
+            <p class="message {{ message.tags }}">{{ message }}</p>
+          {% endfor %}
+        </section>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </body>

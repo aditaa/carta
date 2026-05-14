@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}User Access - Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">Settings</p>
+    <h1>User Access</h1>
+    <p class="muted">Review account status, staff flags, Django permissions, and Carta house or kingdom ACL memberships.</p>
+    {% include "accounts/_admin_nav.html" %}
+    {% if can_add_users %}
+      <p><a class="button-link" href="{% url 'accounts:user_create' %}">Add user</a></p>
+    {% endif %}
+    <p><a class="button-link" href="{% url 'accounts:invite_user' %}">Invite user to house or kingdom</a></p>
+
+    <form class="filter-form" method="get">
+      <label>
+        Search users
+        <input type="search" name="q" value="{{ query }}" placeholder="Email, display name, or character">
+      </label>
+      <label>
+        Status
+        <select name="status">
+          <option value="active"{% if status_filter == "active" %} selected{% endif %}>Active</option>
+          <option value="inactive"{% if status_filter == "inactive" %} selected{% endif %}>Inactive</option>
+          <option value="all"{% if status_filter == "all" %} selected{% endif %}>All</option>
+        </select>
+      </label>
+      <label>
+        Platform role
+        <select name="staff">
+          <option value=""{% if not staff_filter %} selected{% endif %}>Any</option>
+          <option value="standard"{% if staff_filter == "standard" %} selected{% endif %}>Standard</option>
+          <option value="staff"{% if staff_filter == "staff" %} selected{% endif %}>Staff</option>
+        </select>
+      </label>
+      <div class="filter-actions">
+        <button type="submit">Search</button>
+        <a href="{% url 'accounts:user_access_list' %}">Reset</a>
+      </div>
+    </form>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Status</th>
+            <th>Platform ACL</th>
+            <th>Carta ACL</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in page %}
+            <tr>
+              <td>
+                <strong>{{ user.display_name }}</strong><br>
+                <span class="muted">{{ user.email }}</span>
+              </td>
+              <td>
+                {% if user.is_active %}
+                  <span class="status-pill is-ok">Active</span>
+                {% else %}
+                  <span class="status-pill is-error">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if user.is_superuser %}<span class="balance-pill">Superuser</span>{% endif %}
+                {% if user.is_staff %}<span class="balance-pill">Staff</span>{% endif %}
+                {% if not user.is_superuser and not user.is_staff %}<span class="muted">Standard user</span>{% endif %}
+              </td>
+              <td>
+                <span class="balance-pill">{{ user.house_acl_count }} house</span>
+                <span class="balance-pill">{{ user.kingdom_acl_count }} kingdom</span>
+              </td>
+              <td><a href="{% url 'accounts:user_access_detail' user.id %}">Edit</a></td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5">No users found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "accounts/_pagination.html" with page=page %}
+  </section>
+{% endblock %}

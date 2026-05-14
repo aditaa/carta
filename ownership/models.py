@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from rulesets.models import Ruleset
@@ -20,6 +21,9 @@ class Kingdom(models.Model):
 
     class Meta:
         ordering = ["name", "key"]
+        indexes = [
+            models.Index(fields=["name", "key"], name="own_kingdom_name_idx"),
+        ]
 
     def __str__(self) -> str:
         return self.name
@@ -41,6 +45,10 @@ class House(models.Model):
 
     class Meta:
         ordering = ["name", "key"]
+        indexes = [
+            models.Index(fields=["kingdom", "name"], name="own_house_kingdom_idx"),
+            models.Index(fields=["name", "key"], name="own_house_name_idx"),
+        ]
 
     def __str__(self) -> str:
         return self.name
@@ -60,6 +68,11 @@ class HouseMembership(models.Model):
 
     class Meta:
         ordering = ["house__name", "user__email"]
+        indexes = [
+            models.Index(fields=["user", "active", "role"], name="own_hm_user_active_idx"),
+            models.Index(fields=["house", "active", "role"], name="own_hm_house_active_idx"),
+            models.Index(fields=["active", "role"], name="own_hm_active_role_idx"),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["user", "house"],
@@ -69,6 +82,19 @@ class HouseMembership(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} in {self.house}"
+
+    def clean(self):
+        super().clean()
+        if self.active and self.user_id:
+            existing = HouseMembership.objects.filter(user_id=self.user_id, active=True)
+            if self.pk:
+                existing = existing.exclude(pk=self.pk)
+            if existing.exists():
+                raise ValidationError("A user can only have one active house membership.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
 
 class KingdomMembership(models.Model):
@@ -85,6 +111,11 @@ class KingdomMembership(models.Model):
 
     class Meta:
         ordering = ["kingdom__name", "user__email"]
+        indexes = [
+            models.Index(fields=["user", "active", "role"], name="own_km_user_active_idx"),
+            models.Index(fields=["kingdom", "active", "role"], name="own_km_kingdom_active_idx"),
+            models.Index(fields=["active", "role"], name="own_km_active_role_idx"),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["user", "kingdom"],
@@ -94,6 +125,19 @@ class KingdomMembership(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} in {self.kingdom}"
+
+    def clean(self):
+        super().clean()
+        if self.active and self.user_id:
+            existing = KingdomMembership.objects.filter(user_id=self.user_id, active=True)
+            if self.pk:
+                existing = existing.exclude(pk=self.pk)
+            if existing.exists():
+                raise ValidationError("A user can only have one active kingdom membership.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
 
 class OwnershipRule(models.Model):

@@ -5,8 +5,13 @@ from django.urls import reverse
 
 from buildings.forms import OwnedBuildingForm
 from buildings.models import BuildingDefinition, BuildingLedgerEntry, OwnedBuilding
-from buildings.services import log_building_event, registry_summary, visible_owned_buildings
-from ownership.models import House, HouseMembership, Kingdom, KingdomMembership
+from buildings.services import (
+    editable_owned_buildings,
+    log_building_event,
+    registry_summary,
+    visible_owned_buildings,
+)
+from ownership.models import House, HouseMembership, Kingdom, KingdomMembership, Role
 from rulesets.models import Ruleset
 
 pytestmark = pytest.mark.django_db
@@ -607,6 +612,28 @@ def test_non_member_cannot_create_house_building(client):
     assert not OwnedBuilding.objects.filter(nickname="Invalid Orchard").exists()
 
 
+def test_read_only_house_member_cannot_create_house_building(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=user, house=house, role=Role.READ_ONLY)
+    client.force_login(user)
+
+    response = client.post(
+        reverse("buildings:create"),
+        {
+            "definition": definition.id,
+            "owner": f"house:{house.id}",
+            "nickname": "Invalid Orchard",
+            "status": OwnedBuilding.Status.ACTIVE,
+        },
+    )
+
+    assert response.status_code == 200
+    assert not OwnedBuilding.objects.filter(nickname="Invalid Orchard").exists()
+
+
 def test_malformed_owner_choice_shows_form_error():
     ruleset = create_ruleset()
     definition = create_definition(ruleset)
@@ -647,6 +674,31 @@ def test_kingdom_member_can_create_kingdom_building(client):
 
     assert response.status_code == 302
     assert OwnedBuilding.objects.get(nickname="Kingdom Orchard").kingdom == kingdom
+
+
+def test_visible_buildings_can_be_read_without_edit_access(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=user, house=house, role=Role.READ_ONLY)
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.HOUSE,
+        house=house,
+        nickname="House Orchard",
+    )
+    client.force_login(user)
+
+    response = client.get(reverse("buildings:index"))
+
+    assert building.id in set(visible_owned_buildings(user).values_list("id", flat=True))
+    assert building.id not in set(editable_owned_buildings(user).values_list("id", flat=True))
+    assert response.status_code == 200
+    assert b"House Orchard" in response.content
+    assert b"Read only" in response.content
+    assert reverse("buildings:edit", args=[building.id]).encode() not in response.content
 
 
 def test_user_can_edit_visible_building(client):
@@ -739,6 +791,37 @@ def test_user_cannot_edit_hidden_building(client):
     assert response.status_code == 404
 
 
+def test_read_only_house_member_cannot_edit_visible_house_building(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    house = House.objects.create(key="bramble", name="House Bramble")
+    HouseMembership.objects.create(user=user, house=house, role=Role.READ_ONLY)
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.HOUSE,
+        house=house,
+        nickname="House Orchard",
+    )
+    client.force_login(user)
+
+    response = client.post(
+        reverse("buildings:edit", args=[building.id]),
+        {
+            "definition": definition.id,
+            "owner": f"house:{house.id}",
+            "nickname": "Compromised Orchard",
+            "status": OwnedBuilding.Status.DAMAGED,
+        },
+    )
+
+    assert response.status_code == 404
+    building.refresh_from_db()
+    assert building.nickname == "House Orchard"
+    assert building.status == OwnedBuilding.Status.ACTIVE
+
+
 def test_user_can_delete_visible_building(client):
     ruleset = create_ruleset()
     definition = create_definition(ruleset)
@@ -774,6 +857,27 @@ def test_user_cannot_delete_hidden_building(client):
         nickname="Hidden Orchard",
     )
     client.force_login(viewer)
+
+    response = client.post(reverse("buildings:delete", args=[building.id]))
+
+    assert response.status_code == 404
+    assert OwnedBuilding.objects.filter(id=building.id).exists()
+
+
+def test_read_only_kingdom_member_cannot_delete_visible_kingdom_building(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    kingdom = Kingdom.objects.create(key="valrann", name="ValRann")
+    KingdomMembership.objects.create(user=user, kingdom=kingdom, role=Role.READ_ONLY)
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.KINGDOM,
+        kingdom=kingdom,
+        nickname="Kingdom Orchard",
+    )
+    client.force_login(user)
 
     response = client.post(reverse("buildings:delete", args=[building.id]))
 

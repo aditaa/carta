@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}{{ kingdom.name }} - {{ application_site_name }}{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">Kingdom Admin</p>
+    <h1>{{ kingdom.name }}</h1>
+    {% include "accounts/_admin_nav.html" %}
+    <div class="summary-row">
+      <span>{{ members|length }} memberships</span>
+      <span>{{ houses|length }} houses</span>
+      <span>{{ pending_invitations|length }} pending invites</span>
+      <span>{{ building_count }} buildings</span>
+      <span>{{ holding_count }} holding accounts</span>
+    </div>
+
+    <form class="settings-form" method="post">
+      {% csrf_token %}
+      <section class="settings-section">
+        <h2>Kingdom Settings</h2>
+        <div class="form-grid">{{ form.as_div }}</div>
+      </section>
+      <div class="form-actions">
+        <a class="button-link" href="{% url 'accounts:kingdom_admin_list' %}">Back</a>
+        <a class="button-link" href="{% url 'accounts:invite_user' %}">Invite user</a>
+        <button type="submit">Save kingdom</button>
+      </div>
+    </form>
+
+    <section class="settings-section">
+      <h2>Houses</h2>
+      {% for house in houses %}
+        <span class="balance-pill">{{ house.name }}</span>
+      {% empty %}
+        <p class="muted">No houses linked.</p>
+      {% endfor %}
+    </section>
+  </section>
+{% endblock %}
