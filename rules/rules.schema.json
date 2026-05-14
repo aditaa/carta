@@ -55,7 +55,7 @@
     },
     "titles": {
       "type": "array",
-      "items": { "type": "object" }
+      "items": { "$ref": "#/$defs/title" }
     },
     "phases": {
       "type": "array",
@@ -236,15 +236,51 @@
       },
       "additionalProperties": false
     },
+    "title": {
+      "type": "object",
+      "required": ["key", "name"],
+      "properties": {
+        "key": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "requirements": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "effects": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "unlock": {
+      "type": "object",
+      "required": ["key", "name"],
+      "properties": {
+        "key": { "type": "string" },
+        "name": { "type": "string" },
+        "unlock_type": { "type": "string" },
+        "description": { "type": "string" },
+        "sort_order": { "type": "integer" }
+      },
+      "additionalProperties": true
+    },
     "phase": {
       "type": "object",
       "required": ["key", "name"],
       "properties": {
         "key": { "type": "string" },
         "name": { "type": "string" },
+        "description": { "type": "string" },
+        "sort_order": { "type": "integer" },
         "requirements": {
           "type": "array",
           "items": { "type": "object" }
+        },
+        "unlocks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/unlock" }
         }
       },
       "additionalProperties": true

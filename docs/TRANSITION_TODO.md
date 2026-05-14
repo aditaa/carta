@@ -91,9 +91,9 @@ FastAPI/React split app to a Django monolith.
 - [x] Create building definition models.
 - [x] Create production recipe models.
 - [x] Create upkeep requirement models.
-- [ ] Create phase and unlock models once rules data exists.
+- [x] Create phase and unlock models once rules data exists.
 - [x] Create transport and ownership-rule models used by the rules file.
-- [ ] Create title models once rules data exists.
+- [x] Create title models once rules data exists.
 - [x] Port rules JSON loading into a Django service.
 - [x] Add rules validation service.
 - [x] Add `manage.py import_rules`.
@@ -199,7 +199,7 @@ FastAPI/React split app to a Django monolith.
 - [ ] Show unlocks.
 - [ ] Show missing requirements for next phase.
 - [ ] Add admin tools for progression correction.
-- [ ] Add tests for phase requirement calculations.
+- [x] Add tests for phase requirement calculations.
 
 ## 12. Dependency Solver
 

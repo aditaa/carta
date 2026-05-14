@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Progression - Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="page-shell wide">
+    <p class="eyebrow">Rules catalogue</p>
+    <h1>Progression</h1>
+
+    {% if ruleset %}
+      <p class="muted">{{ ruleset.game }} {{ ruleset.rules_version }}</p>
+
+      <section class="dashboard-panel">
+        <h2>Phases</h2>
+        {% if phases %}
+          <div class="progression-grid">
+            {% for phase in phases %}
+              <article>
+                <h3>{{ phase.name }}</h3>
+                {% if phase.description %}
+                  <p>{{ phase.description }}</p>
+                {% endif %}
+
+                <h4>Requirements</h4>
+                {% if phase.requirements %}
+                  <ul class="compact-list">
+                    {% for requirement in phase.requirements %}
+                      <li>{{ requirement }}</li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="muted">No requirements recorded.</p>
+                {% endif %}
+
+                <h4>Unlocks</h4>
+                {% if phase.unlocks %}
+                  <ul class="compact-list">
+                    {% for unlock in phase.unlocks %}
+                      <li>
+                        <strong>{{ unlock.name }}</strong>
+                        {% if unlock.unlock_type %}
+                          <span class="muted">({{ unlock.unlock_type }})</span>
+                        {% endif %}
+                        {% if unlock.description %}
+                          <br>{{ unlock.description }}
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="muted">No unlocks recorded.</p>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No phases are defined in the current ruleset.</p>
+        {% endif %}
+      </section>
+
+      <section class="dashboard-panel">
+        <h2>Titles</h2>
+        {% if titles %}
+          <div class="progression-grid compact">
+            {% for title in titles %}
+              <article>
+                <h3>{{ title.name }}</h3>
+                {% if title.category %}
+                  <p class="muted">{{ title.category }}</p>
+                {% endif %}
+                {% if title.requirements %}
+                  <h4>Requirements</h4>
+                  <ul class="compact-list">
+                    {% for requirement in title.requirements %}
+                      <li>{{ requirement }}</li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+                {% if title.effects %}
+                  <h4>Effects</h4>
+                  <ul class="compact-list">
+                    {% for effect in title.effects %}
+                      <li>{{ effect }}</li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No titles are defined in the current ruleset.</p>
+        {% endif %}
+      </section>
+    {% else %}
+      <p class="muted">No ruleset has been imported yet.</p>
+    {% endif %}
+  </section>
+{% endblock %}

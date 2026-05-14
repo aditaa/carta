@@ -7,6 +7,7 @@ from django.core.management import call_command
 from buildings.models import BuildingDefinition, SettlementTier
 from ownership.models import OwnershipRule
 from production.models import ProductionRecipe
+from progression.models import PhaseDefinition, PhaseUnlock, TitleDefinition
 from resources.models import Currency, Resource, ResourceCategory, Unit
 from rulesets.models import ItemReference, Ruleset, RulesetImportLog
 from rulesets.services import (
@@ -48,6 +49,9 @@ def test_import_rules_file_creates_ruleset_and_resource_records():
     assert result.production_recipes == 47
     assert result.ownership_rules == 3
     assert result.transports == 4
+    assert result.titles == 0
+    assert result.phases == 0
+    assert result.phase_unlocks == 0
     assert Currency.objects.get(ruleset=result.ruleset, key="crown").copper_value == 324
     assert Resource.objects.get(ruleset=result.ruleset, key="wood").category.key == "basic"
     assert Unit.objects.get(ruleset=result.ruleset, key="knight").attack == 5
@@ -120,6 +124,9 @@ def test_import_rules_file_is_idempotent_by_game_and_version():
     assert ProductionRecipe.objects.count() == 47
     assert OwnershipRule.objects.count() == 3
     assert TransportDefinition.objects.count() == 4
+    assert TitleDefinition.objects.count() == 0
+    assert PhaseDefinition.objects.count() == 0
+    assert PhaseUnlock.objects.count() == 0
     assert RulesetImportLog.objects.filter(status=RulesetImportLog.Status.SUCCESS).count() == 2
 
 
@@ -207,6 +214,90 @@ def test_import_rules_file_removes_stale_ownership_and_transport_records(tmp_pat
 
 
 @pytest.mark.django_db
+def test_import_rules_file_creates_progression_records(tmp_path):
+    data = load_rules_data(RULES_FILE)
+    data["titles"] = [
+        {
+            "key": "baron",
+            "name": "Baron",
+            "category": "noble",
+            "requirements": [{"kind": "renown", "amount": 5}],
+            "effects": [{"kind": "visibility", "scope": "house"}],
+            "notes": ["Manually reviewed title seed."],
+        }
+    ]
+    data["phases"] = [
+        {
+            "key": "settlement",
+            "name": "Settlement",
+            "description": "Found and stabilize a settlement.",
+            "sort_order": 10,
+            "requirements": [{"kind": "building_count", "amount": 3}],
+            "unlocks": [
+                {
+                    "key": "advanced_buildings",
+                    "name": "Advanced Buildings",
+                    "unlock_type": "building_category",
+                    "description": "Advanced buildings may be constructed.",
+                    "building_category": "advanced",
+                }
+            ],
+        }
+    ]
+    changed_rules = tmp_path / "changed.rules.json"
+    changed_rules.write_text(json.dumps(data), encoding="utf-8")
+
+    result = import_rules_file(changed_rules)
+
+    assert result.titles == 1
+    assert result.phases == 1
+    assert result.phase_unlocks == 1
+    title = TitleDefinition.objects.get(ruleset=result.ruleset, key="baron")
+    phase = PhaseDefinition.objects.get(ruleset=result.ruleset, key="settlement")
+    unlock = PhaseUnlock.objects.get(phase=phase, key="advanced_buildings")
+    assert title.category == "noble"
+    assert title.requirements == [{"kind": "renown", "amount": 5}]
+    assert title.raw_data["notes"] == ["Manually reviewed title seed."]
+    assert phase.sort_order == 10
+    assert phase.requirements == [{"kind": "building_count", "amount": 3}]
+    assert unlock.unlock_type == "building_category"
+    assert unlock.data["building_category"] == "advanced"
+
+
+@pytest.mark.django_db
+def test_import_rules_file_removes_stale_progression_records(tmp_path):
+    data = load_rules_data(RULES_FILE)
+    data["titles"] = [{"key": "baron", "name": "Baron"}]
+    data["phases"] = [
+        {
+            "key": "settlement",
+            "name": "Settlement",
+            "unlocks": [{"key": "advanced_buildings", "name": "Advanced Buildings"}],
+        }
+    ]
+    changed_rules = tmp_path / "changed.rules.json"
+    changed_rules.write_text(json.dumps(data), encoding="utf-8")
+    import_rules_file(changed_rules)
+
+    data["titles"] = []
+    data["phases"] = [
+        {
+            "key": "settlement",
+            "name": "Settlement",
+            "unlocks": [],
+        }
+    ]
+    changed_rules.write_text(json.dumps(data), encoding="utf-8")
+    result = import_rules_file(changed_rules)
+
+    assert result.titles == 0
+    assert result.phases == 1
+    assert result.phase_unlocks == 0
+    assert not TitleDefinition.objects.filter(key="baron").exists()
+    assert not PhaseUnlock.objects.filter(key="advanced_buildings").exists()
+
+
+@pytest.mark.django_db
 def test_import_rules_file_logs_failed_validation(tmp_path):
     data = load_rules_data(RULES_FILE)
     data.pop("resources")
@@ -274,4 +365,7 @@ def test_import_rules_command_outputs_summary(capsys):
     assert "47 production recipes" in output
     assert "3 ownership rules" in output
     assert "4 transports" in output
+    assert "0 titles" in output
+    assert "0 phases" in output
+    assert "0 phase unlocks" in output
     assert Ruleset.objects.count() == 1
