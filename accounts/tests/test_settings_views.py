@@ -84,7 +84,38 @@ def test_application_status_uses_release_branch_dropdown(client):
     assert b"<select" in response.content
     assert b'<option value="stable" selected>Stable</option>' in response.content
     assert b'<option value="main">Testing</option>' in response.content
-    assert b"Stable tracks the stable branch. Testing tracks main." in response.content
+    assert b"Stable tracks the stable branch. Testing tracks main." not in response.content
+
+
+@pytest.mark.django_db
+def test_application_status_hides_internal_settings(client):
+    staff = create_user("admin@example.test", staff=True, superuser=True)
+    client.force_login(staff)
+    ApplicationSetting.objects.create(
+        key="telemetry_endpoint",
+        label="Telemetry endpoint",
+        value="https://example.test",
+        description="Old generic endpoint.",
+    )
+    ApplicationSetting.objects.create(
+        key="sentry_enabled",
+        label="Sentry telemetry",
+        value="true",
+        description="Old split Sentry toggle.",
+    )
+    ApplicationSetting.objects.create(
+        key="bug_report_repository",
+        label="Bug report GitHub repository",
+        value="other/repo",
+        description="Old configurable bug report destination.",
+    )
+
+    response = client.get(reverse("accounts:application_status"))
+
+    assert response.status_code == 200
+    assert b"Telemetry endpoint" not in response.content
+    assert b"Sentry telemetry" not in response.content
+    assert b"Bug report GitHub repository" not in response.content
 
 
 @pytest.mark.django_db
@@ -218,8 +249,6 @@ def test_application_status_rejects_invalid_support_settings(client):
             value = "2"
         elif setting.key == "sentry_profiles_sample_rate":
             value = "not-a-number"
-        elif setting.key == "bug_report_repository":
-            value = "bad repo"
         else:
             value = setting.value
         post_data[f"form-{index}-value"] = value
@@ -230,8 +259,6 @@ def test_application_status_rejects_invalid_support_settings(client):
     assert b"Sentry DSN must be an HTTPS URL." in response.content
     assert b"Sentry traces sample rate must be a number from 0.0 to 1.0." in response.content
     assert b"Sentry profiles sample rate must be a number from 0.0 to 1.0." in response.content
-    assert b"Bug report GitHub repository must use owner/repository format." in response.content
-    assert ApplicationSetting.objects.get(key="bug_report_repository").value == "aditaa/carta"
 
 
 @pytest.mark.django_db

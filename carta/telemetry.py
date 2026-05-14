@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import json
-import platform
 import subprocess
 import threading
-import urllib.request
 from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import Any
 
-from django import get_version
 from django.conf import settings
 from django.db import DatabaseError, ProgrammingError
 
@@ -22,6 +18,8 @@ except ImportError:  # pragma: no cover - optional dependency during partial ins
 
 _SENTRY_CONFIG_LOCK = threading.Lock()
 _SENTRY_CONFIGURED_KEY: tuple[str, float, float, str, str] | None = None
+_GIT_METADATA_LOCK = threading.Lock()
+_GIT_METADATA_CACHE: dict[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -31,22 +29,6 @@ class SentryTelemetryConfig:
     profiles_sample_rate: float
     environment: str
     release: str
-
-
-def send_performance_telemetry(request, response, *, elapsed_ms: float, query_count: int) -> None:
-    telemetry_settings = _telemetry_settings()
-    if not telemetry_settings["enabled"] or not telemetry_settings["endpoint"]:
-        return
-
-    payload = _performance_payload(
-        request, response, elapsed_ms=elapsed_ms, query_count=query_count
-    )
-    thread = threading.Thread(
-        target=_post_payload,
-        args=(telemetry_settings["endpoint"], payload),
-        daemon=True,
-    )
-    thread.start()
 
 
 def start_sentry_transaction():
@@ -114,8 +96,9 @@ def configure_sentry() -> SentryTelemetryConfig | None:
                 before_send=_scrub_sentry_event,
                 before_send_transaction=_scrub_sentry_event,
             )
-            sentry_sdk.set_tag("release_channel", _release_channel())
-            sentry_sdk.set_tag("git_commit", _git_value(["rev-parse", "--short", "HEAD"]))
+            git_metadata = _git_metadata()
+            sentry_sdk.set_tag("release_channel", git_metadata["release_channel"])
+            sentry_sdk.set_tag("git_commit", git_metadata["git_commit"])
             _SENTRY_CONFIGURED_KEY = config_key
     return config
 
@@ -126,9 +109,8 @@ def _sentry_config() -> SentryTelemetryConfig | None:
     except (DatabaseError, ProgrammingError, RuntimeError):
         return None
     telemetry_enabled = _setting_bool(settings_map.get("telemetry_enabled", "true"))
-    sentry_enabled = _setting_bool(settings_map.get("sentry_enabled", "true"))
     dsn = settings_map.get("sentry_dsn", "").strip()
-    if not telemetry_enabled or not sentry_enabled or not dsn:
+    if not telemetry_enabled or not dsn:
         return None
     sample_rate = _sample_rate(settings_map.get("sentry_traces_sample_rate", "0.05"))
     profiles_sample_rate = _sample_rate(
@@ -143,66 +125,6 @@ def _sentry_config() -> SentryTelemetryConfig | None:
         environment=environment or "community-install",
         release=_sentry_release(),
     )
-
-
-def _telemetry_settings() -> dict[str, str | bool]:
-    try:
-        settings_map = application_setting_map()
-    except (DatabaseError, ProgrammingError, RuntimeError):
-        return {"enabled": False, "endpoint": ""}
-    endpoint = settings_map.get("telemetry_endpoint", "").strip()
-    if endpoint and not endpoint.startswith(("https://", "http://")):
-        endpoint = ""
-    return {
-        "enabled": _setting_bool(settings_map.get("telemetry_enabled", "true")),
-        "endpoint": endpoint,
-    }
-
-
-def _performance_payload(
-    request,
-    response,
-    *,
-    elapsed_ms: float,
-    query_count: int,
-) -> dict[str, Any]:
-    route_name = _route_name(request)
-    return {
-        "schema": "carta.performance.v1",
-        "app": "carta-arcanum",
-        "version": {
-            "django": get_version(),
-            "python": platform.python_version(),
-        },
-        "request": {
-            "route": route_name,
-            "method": getattr(request, "method", ""),
-            "status_code": getattr(response, "status_code", 0),
-            "elapsed_ms": round(elapsed_ms, 1),
-            "query_count": query_count,
-        },
-        "deployment": {
-            "debug": bool(settings.DEBUG),
-            "database_engine": settings.DATABASES["default"]["ENGINE"],
-        },
-    }
-
-
-def _post_payload(endpoint: str, payload: dict[str, Any]) -> None:
-    data = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(
-        endpoint,
-        data=data,
-        headers={
-            "Content-Type": "application/json",
-            "User-Agent": "Carta-Arcanum-Telemetry",
-        },
-        method="POST",
-    )
-    try:
-        urllib.request.urlopen(request, timeout=2)
-    except OSError:
-        return
 
 
 def _route_name(request) -> str:
@@ -223,26 +145,42 @@ def _sample_rate(value: str, *, default: float = 0.05) -> float:
 
 
 def _sentry_release() -> str:
-    tag = _git_value(["describe", "--tags", "--exact-match"])
-    commit = _git_value(["rev-parse", "--short", "HEAD"])
-    version = tag if tag != "unknown" else commit
-    return f"carta-arcanum@{_sanitize_sentry_release(version)}"
+    return _git_metadata()["release"]
 
 
 def _release_channel() -> str:
-    branch = _git_value(["rev-parse", "--abbrev-ref", "HEAD"])
-    return "testing" if branch == "main" else "stable"
+    return _git_metadata()["release_channel"]
+
+
+def _git_metadata() -> dict[str, str]:
+    global _GIT_METADATA_CACHE
+    if _GIT_METADATA_CACHE is None:
+        with _GIT_METADATA_LOCK:
+            if _GIT_METADATA_CACHE is None:
+                tag = _git_value(["describe", "--tags", "--exact-match"])
+                commit = _git_value(["rev-parse", "--short", "HEAD"])
+                branch = _git_value(["rev-parse", "--abbrev-ref", "HEAD"])
+                version = tag if tag != "unknown" else commit
+                _GIT_METADATA_CACHE = {
+                    "git_commit": commit,
+                    "release": f"carta-arcanum@{_sanitize_sentry_release(version)}",
+                    "release_channel": "testing" if branch == "main" else "stable",
+                }
+    return _GIT_METADATA_CACHE
 
 
 def _git_value(command: list[str]) -> str:
-    completed = subprocess.run(
-        ["git", *command],
-        cwd=settings.BASE_DIR,
-        text=True,
-        capture_output=True,
-        check=False,
-        timeout=5,
-    )
+    try:
+        completed = subprocess.run(
+            ["git", *command],
+            cwd=settings.BASE_DIR,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=5,
+        )
+    except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+        return "unknown"
     if completed.returncode != 0:
         return "unknown"
     return completed.stdout.strip() or "unknown"

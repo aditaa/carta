@@ -381,19 +381,17 @@ editable from `Settings -> Application Status`. New installs default to
 Superusers can also edit database-backed application settings from
 `Settings -> Application Status`. These are intended for non-secret operational
 values such as the displayed site name, maintenance notice, restart command,
-restart-needed flag, anonymous performance telemetry, and email backend
-settings.
+anonymous performance telemetry, Sentry DSN, and email backend settings.
 
-The `Bug report GitHub repository` setting controls where the in-app bug report
-form opens prefilled GitHub issues. It defaults to the Carta Arcanum repository
-and can be changed to another `owner/repository` value by superusers.
+The in-app bug report form always opens prefilled GitHub issues in the Carta
+Arcanum repository. The app does not need a GitHub token because users review
+and submit the issue in GitHub.
 
-Anonymous telemetry is opt-in by destination. The telemetry toggles default to
-enabled, but no off-server telemetry is sent until a superuser configures either
-a generic telemetry endpoint or a Sentry DSN. To share anonymous install health
-and performance data with the Carta Arcanum maintainer, paste the
-maintainer-provided Sentry DSN into `Sentry DSN`. To keep all monitoring private,
-leave that blank or use a Sentry project owned by the install admin.
+Anonymous telemetry is sent through Sentry only. New installs default to the
+maintainer-provided Sentry DSN so community installs can share anonymous install
+health and performance data. To keep monitoring private, clear `Sentry DSN`,
+disable `Anonymous performance telemetry`, or use a Sentry project owned by the
+install admin.
 
 Email sending can use Django's console backend for development, a local SMTP
 relay, a provider SMTP service, or another Django email backend. Linux server
