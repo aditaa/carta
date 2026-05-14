@@ -75,6 +75,19 @@ class _SolverContext:
 
     def resolve(self, demand: SolverTarget) -> None:
         item_key = _item_key(demand.item_type, demand.item_key)
+        demand_key = (demand.item_type, demand.item_key)
+        available_surplus = self.surplus_outputs[demand_key]
+        if available_surplus:
+            consumed_quantity = min(available_surplus, demand.quantity)
+            self.surplus_outputs[demand_key] -= consumed_quantity
+            demand = SolverTarget(
+                item_type=demand.item_type,
+                item_key=demand.item_key,
+                quantity=demand.quantity - consumed_quantity,
+            )
+            if demand.quantity <= 0:
+                return
+
         if item_key in self.stack:
             cycle = self.stack[self.stack.index(item_key) :] + [item_key]
             self.circular_dependencies.append(cycle)
@@ -82,14 +95,14 @@ class _SolverContext:
 
         recipe, output_ref = _producer_for(self.ruleset, demand)
         if recipe is None or output_ref is None:
-            self.missing_inputs[(demand.item_type, demand.item_key)] += demand.quantity
+            self.missing_inputs[demand_key] += demand.quantity
             return
 
         runs = _required_runs(demand.quantity, output_ref.amount)
         output_quantity = output_ref.amount * runs
         surplus_quantity = output_quantity - demand.quantity
         if surplus_quantity > 0:
-            self.surplus_outputs[(demand.item_type, demand.item_key)] += surplus_quantity
+            self.surplus_outputs[demand_key] += surplus_quantity
         building_key = recipe.building.key
         self.required_buildings[building_key] += runs
         self.building_names[building_key] = recipe.building.name
