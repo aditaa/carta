@@ -8,6 +8,14 @@ from rulesets.models import Ruleset
 
 
 @dataclass(frozen=True)
+class ProgressionFact:
+    kind: str
+    key: str
+    amount: int | float | None = None
+    completed: bool = False
+
+
+@dataclass(frozen=True)
 class TitleSummary:
     key: str
     name: str
@@ -32,6 +40,19 @@ class PhaseSummary:
     description: str
     requirements: list[dict[str, Any]]
     unlocks: list[PhaseUnlockSummary]
+
+
+@dataclass(frozen=True)
+class RequirementStatus:
+    requirement: dict[str, Any]
+    status: str
+    current: int | float | bool | None
+    target: int | float | bool | None
+    missing: int | float | None
+
+    @property
+    def is_met(self) -> bool:
+        return self.status == "met"
 
 
 def latest_ruleset() -> Ruleset | None:
@@ -71,6 +92,15 @@ def next_phase(ruleset: Ruleset, current_phase_key: str | None = None) -> PhaseS
     return _phase_summary(phases[0])
 
 
+def phase_requirement_statuses(
+    phase: PhaseSummary | PhaseDefinition,
+    facts: list[ProgressionFact],
+) -> list[RequirementStatus]:
+    fact_map = {(fact.kind, fact.key): fact for fact in facts}
+    requirements = phase.requirements
+    return [_requirement_status(requirement, fact_map) for requirement in requirements]
+
+
 def _phase_summary(phase: PhaseDefinition) -> PhaseSummary:
     return PhaseSummary(
         key=phase.key,
@@ -87,4 +117,42 @@ def _phase_summary(phase: PhaseDefinition) -> PhaseSummary:
             )
             for unlock in phase.unlocks.all()
         ],
+    )
+
+
+def _requirement_status(
+    requirement: dict[str, Any],
+    fact_map: dict[tuple[str, str], ProgressionFact],
+) -> RequirementStatus:
+    kind = requirement.get("kind")
+    key = requirement.get("key", "")
+    if not kind:
+        return RequirementStatus(
+            requirement=requirement,
+            status="unknown",
+            current=None,
+            target=None,
+            missing=None,
+        )
+
+    fact = fact_map.get((kind, key))
+    target = requirement.get("amount")
+    if target is None:
+        current = bool(fact and fact.completed)
+        return RequirementStatus(
+            requirement=requirement,
+            status="met" if current else "missing",
+            current=current,
+            target=True,
+            missing=None,
+        )
+
+    current = fact.amount if fact and fact.amount is not None else 0
+    missing = max(target - current, 0)
+    return RequirementStatus(
+        requirement=requirement,
+        status="met" if missing == 0 else "missing",
+        current=current,
+        target=target,
+        missing=missing,
     )

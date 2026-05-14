@@ -1,7 +1,13 @@
 import pytest
 
 from progression.models import PhaseDefinition, PhaseUnlock, TitleDefinition
-from progression.services import next_phase, phase_catalog, title_catalog
+from progression.services import (
+    ProgressionFact,
+    next_phase,
+    phase_catalog,
+    phase_requirement_statuses,
+    title_catalog,
+)
 from rulesets.models import Ruleset
 
 
@@ -97,3 +103,54 @@ def test_next_phase_returns_following_phase_or_none_at_end(ruleset):
 
     assert next_phase(ruleset, "founding").key == "settlement"
     assert next_phase(ruleset, "settlement") is None
+
+
+@pytest.mark.django_db
+def test_phase_requirement_statuses_reports_met_and_missing_amounts(ruleset):
+    phase = PhaseDefinition.objects.create(
+        ruleset=ruleset,
+        key="settlement",
+        name="Settlement",
+        requirements=[
+            {"kind": "building_count", "key": "any", "amount": 3},
+            {"kind": "resource", "key": "wood", "amount": 10},
+        ],
+    )
+
+    statuses = phase_requirement_statuses(
+        phase,
+        [
+            ProgressionFact(kind="building_count", key="any", amount=4),
+            ProgressionFact(kind="resource", key="wood", amount=6),
+        ],
+    )
+
+    assert [status.status for status in statuses] == ["met", "missing"]
+    assert statuses[0].is_met is True
+    assert statuses[0].missing == 0
+    assert statuses[1].current == 6
+    assert statuses[1].target == 10
+    assert statuses[1].missing == 4
+
+
+@pytest.mark.django_db
+def test_phase_requirement_statuses_handles_boolean_and_unknown_requirements(ruleset):
+    phase = PhaseDefinition.objects.create(
+        ruleset=ruleset,
+        key="settlement",
+        name="Settlement",
+        requirements=[
+            {"kind": "approval", "key": "game_maker"},
+            {"label": "Unstructured requirement"},
+        ],
+    )
+
+    statuses = phase_requirement_statuses(
+        phase,
+        [ProgressionFact(kind="approval", key="game_maker", completed=True)],
+    )
+
+    assert statuses[0].status == "met"
+    assert statuses[0].current is True
+    assert statuses[0].target is True
+    assert statuses[1].status == "unknown"
