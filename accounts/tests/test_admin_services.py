@@ -149,7 +149,11 @@ def test_default_settings_include_anonymous_telemetry_toggle():
     assert ApplicationSetting.objects.get(key="telemetry_enabled").value == "true"
     assert ApplicationSetting.objects.get(key="telemetry_endpoint").value == ""
     assert ApplicationSetting.objects.get(key="sentry_enabled").value == "true"
-    assert ApplicationSetting.objects.get(key="sentry_dsn").value == ""
+    assert (
+        ApplicationSetting.objects.get(key="sentry_dsn").value
+        == "https://538e7483cd26762751c6535ff2428f5c"
+        "@o4511390011949056.ingest.us.sentry.io/4511390014177280"
+    )
     assert ApplicationSetting.objects.get(key="sentry_traces_sample_rate").value == "0.05"
 
 
@@ -431,6 +435,7 @@ def test_sentry_configures_without_default_pii(monkeypatch):
 @pytest.mark.django_db
 def test_sentry_does_not_configure_without_dsn(monkeypatch):
     ensure_default_application_settings()
+    ApplicationSetting.objects.filter(key="sentry_dsn").update(value="")
     init_calls = []
 
     class FakeSentry:

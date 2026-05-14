@@ -151,7 +151,10 @@ DEFAULT_APPLICATION_SETTINGS = [
     {
         "key": "sentry_dsn",
         "label": "Sentry DSN",
-        "value": "",
+        "value": (
+            "https://538e7483cd26762751c6535ff2428f5c"
+            "@o4511390011949056.ingest.us.sentry.io/4511390014177280"
+        ),
         "description": (
             "Optional Sentry project DSN. Use the maintainer-provided DSN to share "
             "anonymous install telemetry, or use your own Sentry project."
