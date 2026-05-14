@@ -199,7 +199,7 @@ FastAPI/React split app to a Django monolith.
 - [ ] Show unlocks.
 - [ ] Show missing requirements for next phase.
 - [ ] Add admin tools for progression correction.
-- [ ] Add tests for phase requirement calculations.
+- [x] Add tests for phase requirement calculations.
 
 ## 12. Dependency Solver
 
