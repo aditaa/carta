@@ -366,7 +366,62 @@ def test_building_registry_page_filters_visible_buildings(client):
     assert b"Visible Keep" in response.content
     assert b"Visible Orchard" not in response.content
     assert b"Hidden Keep" not in response.content
+    assert b"defensive: 1" in response.content
+    assert b"basic: 1" not in response.content
     assert response.context["summary"]["total"] == 1
+
+
+def test_htmx_building_registry_filter_returns_results_partial(client):
+    ruleset = create_ruleset()
+    orchard = create_definition(ruleset)
+    keep = BuildingDefinition.objects.create(
+        ruleset=ruleset,
+        key="keep",
+        name="Keep",
+        category="defensive",
+    )
+    viewer = create_user()
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=orchard,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=viewer,
+        nickname="Visible Orchard",
+        status=OwnedBuilding.Status.ACTIVE,
+    )
+    OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=keep,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=viewer,
+        nickname="Visible Keep",
+        status=OwnedBuilding.Status.DAMAGED,
+    )
+    client.force_login(viewer)
+
+    response = client.get(
+        reverse("buildings:index"),
+        {"status": OwnedBuilding.Status.DAMAGED},
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert b"Visible Keep" in response.content
+    assert b"Visible Orchard" not in response.content
+    assert b"<h1>Buildings</h1>" not in response.content
+    assert b"Total: 1" in response.content
+    assert response.context["summary"]["total"] == 1
+
+
+def test_building_registry_filter_form_targets_results_with_htmx(client):
+    user = create_user()
+    client.force_login(user)
+
+    response = client.get(reverse("buildings:index"))
+
+    assert response.status_code == 200
+    assert b'hx-target="#building-registry-results"' in response.content
+    assert b'id="building-registry-results"' in response.content
 
 
 def test_building_registry_page_filters_by_owner(client):
@@ -842,6 +897,55 @@ def test_user_can_delete_visible_building(client):
     entry = BuildingLedgerEntry.objects.get(action=BuildingLedgerEntry.Action.DELETED)
     assert entry.building is None
     assert entry.building_label == "Old Orchard"
+
+
+def test_htmx_delete_request_returns_confirmation_modal(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        nickname="Old Orchard",
+    )
+    client.force_login(user)
+
+    response = client.get(
+        reverse("buildings:delete", args=[building.id]),
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert b"Delete building" in response.content
+    assert b"Old Orchard" in response.content
+    assert b"hx-post" in response.content
+    assert b"building-modal-container" in response.content
+    assert b"<!doctype html>" not in response.content
+
+
+def test_htmx_delete_post_redirects_to_registry(client):
+    ruleset = create_ruleset()
+    definition = create_definition(ruleset)
+    user = create_user()
+    building = OwnedBuilding.objects.create(
+        ruleset=ruleset,
+        definition=definition,
+        owner_scope=OwnedBuilding.OwnerScope.DENIZEN,
+        user=user,
+        nickname="Old Orchard",
+    )
+    client.force_login(user)
+
+    response = client.post(
+        reverse("buildings:delete", args=[building.id]),
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert response["HX-Redirect"] == reverse("buildings:index")
+    assert not OwnedBuilding.objects.filter(id=building.id).exists()
 
 
 def test_user_cannot_delete_hidden_building(client):

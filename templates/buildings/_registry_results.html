@@ -1,0 +1,49 @@
+<div class="summary-row">
+  <span>Total: {{ summary.total }}</span>
+  {% for status in summary.by_status %}
+    <span>{{ status.status }}: {{ status.count }}</span>
+  {% endfor %}
+  {% for category in summary.by_category %}
+    <span>{{ category.definition__category }}: {{ category.count }}</span>
+  {% endfor %}
+</div>
+{% if buildings %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Building</th>
+          <th>Category</th>
+          <th>Owner</th>
+          <th>Status</th>
+          <th>Location</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for building in buildings %}
+          <tr>
+            <td>
+              {{ building }}
+              <span class="muted">{{ building.definition.name }}</span>
+            </td>
+            <td>{{ building.definition.category }}</td>
+            <td>{{ building.owner_label }}</td>
+            <td>{{ building.get_status_display }}</td>
+            <td>{{ building.location|default:"-" }}</td>
+            <td>
+              {% if building.id in editable_building_ids %}
+                <button class="btn-link" hx-get="{% url 'buildings:edit' building.id %}" hx-target="#building-modal-container" hx-swap="innerHTML">Edit</button>
+                <button class="btn-link" hx-get="{% url 'buildings:delete' building.id %}" hx-target="#building-modal-container" hx-swap="innerHTML">Delete</button>
+              {% else %}
+                <span class="muted">Read only</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p>No visible buildings.</p>
+{% endif %}
