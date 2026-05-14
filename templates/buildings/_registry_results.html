@@ -3,6 +3,9 @@
   {% for status in summary.by_status %}
     <span>{{ status.status }}: {{ status.count }}</span>
   {% endfor %}
+  {% for category in summary.by_category %}
+    <span>{{ category.definition__category }}: {{ category.count }}</span>
+  {% endfor %}
 </div>
 {% if buildings %}
   <div class="table-wrap">

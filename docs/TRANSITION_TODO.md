@@ -151,8 +151,8 @@ FastAPI/React split app to a Django monolith.
 - [x] Add building create form.
 - [x] Add HTMX partials for inline edits and filters.
 - [x] Add status, category, and owner-scope filters.
-- [ ] Add specific owner filters.
-- [ ] Add registry summary counts.
+- [x] Add specific owner filters.
+- [x] Add registry summary counts.
 - [x] Add audit ledger entries for building changes.
 - [x] Add tests for registry visibility.
 - [x] Add tests for create/update/delete permissions.

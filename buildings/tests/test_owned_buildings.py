@@ -366,6 +366,8 @@ def test_building_registry_page_filters_visible_buildings(client):
     assert b"Visible Keep" in response.content
     assert b"Visible Orchard" not in response.content
     assert b"Hidden Keep" not in response.content
+    assert b"defensive: 1" in response.content
+    assert b"basic: 1" not in response.content
     assert response.context["summary"]["total"] == 1
 
 
