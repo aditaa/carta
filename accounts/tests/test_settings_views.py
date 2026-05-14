@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.urls import reverse
 
+from accounts.bug_reports import CRASH_REPORT_SESSION_KEY
 from accounts.models import ApplicationSetting, AuditLogEntry, DenizenProfile, MembershipInvitation
 from ownership.models import House, HouseMembership, Kingdom, KingdomMembership, Role
 
@@ -333,6 +334,69 @@ def test_report_bug_redirects_to_prefilled_github_issue(client, monkeypatch):
     assert "## Anonymous diagnostics" in body
     assert "Git commit: abc123" in body
     assert "email" not in body.lower()
+
+
+@pytest.mark.django_db
+def test_recent_crash_notification_prefills_bug_report(client, monkeypatch):
+    user = create_user("denizen@example.test")
+    client.force_login(user)
+    session = client.session
+    session[CRASH_REPORT_SESSION_KEY] = {
+        "when": "2026-05-14T20:20:00+00:00",
+        "exception_type": "ValueError",
+        "route": "accounts:user_access_detail",
+        "method": "GET",
+        "query_count": "2",
+    }
+    session.save()
+    monkeypatch.setattr(
+        "accounts.views.bug_report_diagnostics",
+        lambda: {
+            "Release channel": "stable",
+            "Git commit": "abc123",
+        },
+    )
+
+    response = client.get(reverse("accounts:report_bug"))
+
+    assert response.status_code == 200
+    assert b"Recent crash detected" in response.content
+    assert b"Crash report: accounts:user_access_detail" in response.content
+    assert b"ValueError on accounts:user_access_detail" in response.content
+
+
+@pytest.mark.django_db
+def test_crash_context_is_added_to_prefilled_issue_and_cleared(client, monkeypatch):
+    user = create_user("denizen@example.test")
+    client.force_login(user)
+    session = client.session
+    session[CRASH_REPORT_SESSION_KEY] = {
+        "when": "2026-05-14T20:20:00+00:00",
+        "exception_type": "ValueError",
+        "route": "accounts:user_access_detail",
+        "method": "GET",
+        "query_count": "2",
+    }
+    session.save()
+    monkeypatch.setattr("accounts.bug_reports._git_value", lambda command: "abc123")
+
+    response = client.post(
+        reverse("accounts:report_bug"),
+        {
+            "title": "Crash report",
+            "what_happened": "A crash happened.",
+            "expected": "No crash.",
+            "steps": "Open the page.",
+            "include_diagnostics": "on",
+        },
+    )
+
+    assert response.status_code == 302
+    body = parse_qs(urlparse(response.url).query)["body"][0]
+    assert "## Detected crash" in body
+    assert "exception_type: ValueError" in body
+    assert "route: accounts:user_access_detail" in body
+    assert CRASH_REPORT_SESSION_KEY not in client.session
 
 
 @pytest.mark.django_db

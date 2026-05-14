@@ -4,10 +4,12 @@ from urllib.parse import urlencode
 
 from django import get_version
 from django.conf import settings
+from django.utils import timezone
 
 from accounts.services import application_setting_map, configured_release_branch
 
 DEFAULT_BUG_REPORT_REPOSITORY = "aditaa/carta"
+CRASH_REPORT_SESSION_KEY = "last_crash_report"
 
 
 def bug_report_issue_url(report: dict[str, str], *, include_diagnostics: bool = True) -> str:
@@ -32,6 +34,9 @@ def bug_report_issue_body(report: dict[str, str], *, include_diagnostics: bool =
         "## Steps to reproduce",
         report.get("steps", "").strip() or "_No steps provided._",
     ]
+    crash_context = report.get("crash_context")
+    if include_diagnostics and isinstance(crash_context, dict):
+        sections.extend(["", "## Detected crash", _crash_context_markdown(crash_context)])
     if include_diagnostics:
         sections.extend(["", "## Anonymous diagnostics", _diagnostics_markdown()])
     sections.extend(
@@ -60,6 +65,48 @@ def bug_report_diagnostics() -> dict[str, str]:
         "Debug mode": str(bool(settings.DEBUG)).lower(),
         "Rules file": settings.CURRENT_RULES_FILE.name,
     }
+
+
+def record_crash_for_bug_report(request, exc: Exception, *, query_count: int) -> None:
+    session = getattr(request, "session", None)
+    if session is None:
+        return
+    resolver_match = getattr(request, "resolver_match", None)
+    route_name = getattr(resolver_match, "view_name", "") or "unknown"
+    session[CRASH_REPORT_SESSION_KEY] = {
+        "when": timezone.now().isoformat(),
+        "exception_type": exc.__class__.__name__,
+        "route": route_name,
+        "method": getattr(request, "method", ""),
+        "query_count": str(query_count),
+    }
+    if hasattr(session, "modified"):
+        session.modified = True
+
+
+def crash_report_initial(crash_context: dict[str, str] | None) -> dict[str, str | bool]:
+    if not crash_context:
+        return {"title": "Bug report", "include_diagnostics": True}
+    route = crash_context.get("route", "unknown")
+    exception_type = crash_context.get("exception_type", "ServerError")
+    return {
+        "title": f"Crash report: {route}",
+        "what_happened": (
+            f"Carta Arcanum detected an unhandled {exception_type} on route `{route}`."
+        ),
+        "steps": "Please describe what you were doing before the crash.",
+        "include_diagnostics": True,
+    }
+
+
+def _crash_context_markdown(crash_context: dict[str, str]) -> str:
+    safe_keys = ("when", "exception_type", "route", "method", "query_count")
+    lines = ["```text"]
+    for key in safe_keys:
+        if key in crash_context:
+            lines.append(f"{key}: {crash_context[key]}")
+    lines.append("```")
+    return "\n".join(lines)
 
 
 def _diagnostics_markdown() -> str:

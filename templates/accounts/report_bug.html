@@ -8,6 +8,12 @@
     <h1>Report a Bug</h1>
     <p class="muted">Create a prefilled GitHub issue with anonymous app diagnostics.</p>
 
+    {% if crash_context %}
+      <section class="maintenance-notice" aria-label="Detected crash">
+        A recent crash was detected. This report has been prefilled with safe crash details.
+      </section>
+    {% endif %}
+
     <form class="auth-form" method="post">
       {% csrf_token %}
       {{ form.non_field_errors }}
@@ -42,6 +48,12 @@
 
     <details class="upgrade-details" open>
       <summary>Anonymous diagnostics included by default</summary>
+      {% if crash_context %}
+        <div class="crash-summary">
+          <strong>Detected crash</strong>
+          <p>{{ crash_context.exception_type }} on {{ crash_context.route }}</p>
+        </div>
+      {% endif %}
       <dl class="diagnostics-list">
         {% for label, value in diagnostics.items %}
           <div>

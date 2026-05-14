@@ -9,6 +9,7 @@ from django.test import RequestFactory, override_settings
 
 import accounts.services as account_services
 import carta.telemetry as telemetry
+from accounts.bug_reports import CRASH_REPORT_SESSION_KEY
 from accounts.models import ApplicationSetting, AuditLogEntry
 from accounts.permissions import AuditAction, RolePresetKey
 from accounts.services import (
@@ -407,6 +408,28 @@ def test_middleware_skips_telemetry_without_endpoint(monkeypatch):
     middleware(request)
 
     assert started_threads == []
+
+
+@pytest.mark.django_db
+@override_settings(CARTA_SLOW_QUERY_MS=0)
+def test_middleware_records_crash_for_bug_report(monkeypatch):
+    request = RequestFactory().get("/accounts/users/123/?email=secret@example.test")
+    request.resolver_match = SimpleNamespace(view_name="accounts:user_access_detail")
+    request.session = {}
+    middleware = SlowQueryLoggingMiddleware(
+        lambda request: (_ for _ in ()).throw(ValueError("secret email"))
+    )
+    monkeypatch.setattr("carta.middleware.capture_sentry_exception", lambda *args, **kwargs: None)
+
+    with pytest.raises(ValueError):
+        middleware(request)
+
+    crash_report = request.session[CRASH_REPORT_SESSION_KEY]
+    assert crash_report["exception_type"] == "ValueError"
+    assert crash_report["route"] == "accounts:user_access_detail"
+    assert crash_report["method"] == "GET"
+    assert "path" not in crash_report
+    assert "secret" not in str(crash_report).lower()
 
 
 @pytest.mark.django_db

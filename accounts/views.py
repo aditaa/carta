@@ -12,7 +12,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.bug_reports import bug_report_diagnostics, bug_report_issue_url
+from accounts.bug_reports import (
+    CRASH_REPORT_SESSION_KEY,
+    bug_report_diagnostics,
+    bug_report_issue_url,
+    crash_report_initial,
+)
 from accounts.forms import (
     AdminPasswordChangeForm,
     ApplicationSettingForm,
@@ -141,26 +146,26 @@ class CartaPasswordResetView(PasswordResetView):
 @login_required
 def report_bug(request):
     diagnostics = bug_report_diagnostics()
+    crash_context = request.session.get(CRASH_REPORT_SESSION_KEY)
     if request.method == "POST":
         form = BugReportForm(request.POST)
         if form.is_valid():
+            report = dict(form.cleaned_data)
+            if crash_context:
+                report["crash_context"] = crash_context
+                request.session.pop(CRASH_REPORT_SESSION_KEY, None)
             return redirect(
                 bug_report_issue_url(
-                    form.cleaned_data,
-                    include_diagnostics=form.cleaned_data["include_diagnostics"],
+                    report,
+                    include_diagnostics=report["include_diagnostics"],
                 )
             )
     else:
-        form = BugReportForm(
-            initial={
-                "title": "Bug report",
-                "include_diagnostics": True,
-            }
-        )
+        form = BugReportForm(initial=crash_report_initial(crash_context))
     return render(
         request,
         "accounts/report_bug.html",
-        {"form": form, "diagnostics": diagnostics},
+        {"form": form, "diagnostics": diagnostics, "crash_context": crash_context},
     )
 
 

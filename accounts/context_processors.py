@@ -1,6 +1,8 @@
 from django.db import DatabaseError, ProgrammingError
+from django.urls import reverse
 
-from accounts.notifications import notifications_for_user
+from accounts.bug_reports import CRASH_REPORT_SESSION_KEY
+from accounts.notifications import InAppNotification, notifications_for_user
 from accounts.services import application_setting_map
 from ownership.models import HouseMembership, KingdomMembership
 
@@ -11,6 +13,9 @@ def application_settings(request):
     except (DatabaseError, ProgrammingError, RuntimeError):
         settings_map = {}
     notifications = notifications_for_user(getattr(request, "user", None))
+    crash_notification = _crash_notification(request)
+    if crash_notification:
+        notifications = [crash_notification, *notifications]
     return {
         "application_site_name": settings_map.get("site_name", "Carta Arcanum"),
         "application_maintenance_notice": settings_map.get("maintenance_notice", ""),
@@ -31,6 +36,23 @@ def _has_house_admin(request) -> bool:
         return HouseMembership.objects.filter(user=user, active=True, role="admin").exists()
     except (DatabaseError, ProgrammingError, RuntimeError):
         return False
+
+
+def _crash_notification(request) -> InAppNotification | None:
+    user = getattr(request, "user", None)
+    if not getattr(user, "is_authenticated", False):
+        return None
+    session = getattr(request, "session", None)
+    if not session or not session.get(CRASH_REPORT_SESSION_KEY):
+        return None
+    return InAppNotification(
+        key="recent_crash",
+        level="warning",
+        title="Recent crash detected",
+        message="Carta Arcanum saved safe crash details for a bug report.",
+        url=reverse("accounts:report_bug"),
+        action_label="Report crash",
+    )
 
 
 def _has_kingdom_admin(request) -> bool:

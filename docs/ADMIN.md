@@ -151,6 +151,12 @@ release branch, Git branch and commit, Python and Django versions, database
 engine, debug mode, and rules file name. Users can uncheck diagnostics before
 opening the GitHub issue.
 
+When Carta Arcanum detects an unhandled server exception during a request, it
+saves a small crash context in that user's session and shows a `Recent crash
+detected` notification on the next page. The crash context includes exception
+type, route name, HTTP method, query count, and timestamp. It does not store raw
+URLs, query strings, request bodies, SQL, or user identifiers.
+
 ## Query Monitoring
 
 Set `CARTA_SLOW_QUERY_MS` to log database queries that exceed that threshold
