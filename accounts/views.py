@@ -184,6 +184,7 @@ def settings_home(request):
         "audit_entry_count": AuditLogEntry.objects.count(),
         "health_checks": checks,
         "all_health_checks_ok": all(check.ok for check in checks),
+        "upgrade_available": upgrade_available(),
     }
     return render(request, "accounts/settings_home.html", context)
 

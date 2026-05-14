@@ -59,6 +59,19 @@
           {{ application_maintenance_notice }}
         </section>
       {% endif %}
+      {% if in_app_notifications %}
+        <section class="notification-stack" aria-label="Notifications">
+          {% for notification in in_app_notifications %}
+            <article class="notification-card is-{{ notification.level }}">
+              <div>
+                <strong>{{ notification.title }}</strong>
+                <p>{{ notification.message }}</p>
+              </div>
+              <a class="button-link" href="{{ notification.url }}">{{ notification.action_label }}</a>
+            </article>
+          {% endfor %}
+        </section>
+      {% endif %}
       {% if messages %}
         <section class="messages" aria-label="Messages">
           {% for message in messages %}

@@ -188,6 +188,43 @@ p {
   font-weight: 700;
 }
 
+.notification-stack {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+}
+
+.notification-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid #c8bea9;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.notification-card strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.notification-card p {
+  margin: 0;
+  color: #4d5a51;
+}
+
+.notification-card.is-warning {
+  border-color: #bfa05a;
+  background: #fff7d7;
+}
+
+.notification-card.is-info {
+  border-color: #aab5a8;
+  background: #e6eadf;
+}
+
 .error-message,
 .errorlist {
   color: #9d2f2f;
@@ -594,6 +631,10 @@ p {
   margin-top: 20px;
 }
 
+.priority-section {
+  margin: 20px 0;
+}
+
 .settings-card,
 .settings-section {
   padding: 16px;
@@ -907,6 +948,11 @@ p {
   .nav-menu-panel {
     left: 0;
     right: auto;
+  }
+
+  .notification-card {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .form-table-row {

@@ -1,5 +1,6 @@
 from django.db import DatabaseError, ProgrammingError
 
+from accounts.notifications import notifications_for_user
 from accounts.services import application_setting_map
 from ownership.models import HouseMembership, KingdomMembership
 
@@ -9,9 +10,12 @@ def application_settings(request):
         settings_map = application_setting_map()
     except (DatabaseError, ProgrammingError, RuntimeError):
         settings_map = {}
+    notifications = notifications_for_user(getattr(request, "user", None))
     return {
         "application_site_name": settings_map.get("site_name", "Carta Arcanum"),
         "application_maintenance_notice": settings_map.get("maintenance_notice", ""),
+        "in_app_notifications": notifications,
+        "in_app_notification_count": sum(notification.count for notification in notifications),
         "show_house_admin_nav": _has_house_admin(request),
         "show_kingdom_admin_nav": _has_kingdom_admin(request),
     }

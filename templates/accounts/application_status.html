@@ -9,6 +9,19 @@
     <p class="muted">Health checks, editable application settings, and upgrade controls.</p>
     {% include "accounts/_admin_nav.html" %}
 
+    <section class="settings-section upgrade-section priority-section">
+      <h2>Upgrade</h2>
+      <p class="muted">Reset the checkout to Git, switch to the stable branch, fetch latest code, fast-forward, run migrations, and collect static files.</p>
+      {% if upgrade_available %}
+        <form method="post" action="{% url 'accounts:start_upgrade' %}">
+          {% csrf_token %}
+          <button class="danger-button" type="submit">Upgrade to newest version</button>
+        </form>
+      {% else %}
+        <p class="status-pill is-ok">No upgrade available</p>
+      {% endif %}
+    </section>
+
     <section class="settings-section">
       <h2>Health Checks</h2>
       <div class="check-list">
@@ -91,19 +104,6 @@
         <button type="submit">Save settings</button>
       </div>
     </form>
-
-    <section class="settings-section upgrade-section">
-      <h2>Upgrade</h2>
-      <p class="muted">Reset the checkout to Git, switch to the stable branch, fetch latest code, fast-forward, run migrations, and collect static files.</p>
-      {% if upgrade_available %}
-        <form method="post" action="{% url 'accounts:start_upgrade' %}">
-          {% csrf_token %}
-          <button class="danger-button" type="submit">Upgrade to newest version</button>
-        </form>
-      {% else %}
-        <p class="status-pill is-ok">No upgrade available</p>
-      {% endif %}
-    </section>
 
     <section class="settings-section">
       <h2>Email Test</h2>
