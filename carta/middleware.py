@@ -9,6 +9,7 @@ from carta.telemetry import (
     capture_sentry_exception,
     finish_sentry_transaction,
     send_performance_telemetry,
+    sentry_span,
     start_sentry_transaction,
 )
 
@@ -30,7 +31,8 @@ class SlowQueryLoggingMiddleware:
             query_count += 1
             start = time.perf_counter()
             try:
-                return execute(sql, params, many, context)
+                with sentry_span("db.query", "database query"):
+                    return execute(sql, params, many, context)
             finally:
                 elapsed_ms = (time.perf_counter() - start) * 1000
                 if threshold_ms > 0 and elapsed_ms >= threshold_ms:

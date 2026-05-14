@@ -196,4 +196,8 @@ Sentry reports are filtered before sending. The app sets `send_default_pii` to
 false and strips Sentry event user data, raw request URLs, query strings,
 headers, request bodies, breadcrumbs, and extra data. It keeps route names,
 methods, status codes, elapsed time, and query counts so the maintainer can see
-where installs are slow or failing without receiving player data.
+where installs are slow or failing without receiving player data. Sentry release
+tracking uses the current Git tag when the checkout is exactly on a tag, and
+falls back to the short Git commit otherwise. The app also adds low-rate
+profiling and safe `db.query` spans without SQL text so slow request traces can
+show whether time is going into database work.

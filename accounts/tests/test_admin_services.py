@@ -156,6 +156,7 @@ def test_default_settings_include_anonymous_telemetry_toggle():
         "@o4511390011949056.ingest.us.sentry.io/4511390014177280"
     )
     assert ApplicationSetting.objects.get(key="sentry_traces_sample_rate").value == "0.05"
+    assert ApplicationSetting.objects.get(key="sentry_profiles_sample_rate").value == "0.01"
     assert ApplicationSetting.objects.get(key="bug_report_repository").value == "aditaa/carta"
 
 
@@ -356,6 +357,7 @@ def test_middleware_sends_anonymous_performance_telemetry(monkeypatch):
     ApplicationSetting.objects.filter(key="telemetry_endpoint").update(
         value="https://telemetry.example.test/carta"
     )
+    ApplicationSetting.objects.filter(key="sentry_enabled").update(value="false")
     sent_payloads = []
 
     class FakeThread:
@@ -391,6 +393,7 @@ def test_middleware_sends_anonymous_performance_telemetry(monkeypatch):
 @override_settings(CARTA_SLOW_QUERY_MS=0)
 def test_middleware_skips_telemetry_without_endpoint(monkeypatch):
     ensure_default_application_settings()
+    ApplicationSetting.objects.filter(key="sentry_enabled").update(value="false")
     started_threads = []
 
     class FakeThread:
@@ -439,21 +442,31 @@ def test_sentry_configures_without_default_pii(monkeypatch):
         value="https://public@example.ingest.sentry.io/1"
     )
     init_calls = []
+    tags = {}
 
     class FakeSentry:
         def init(self, **kwargs):
             init_calls.append(kwargs)
 
+        def set_tag(self, key, value):
+            tags[key] = value
+
     monkeypatch.setattr("carta.telemetry.sentry_sdk", FakeSentry())
     monkeypatch.setattr("carta.telemetry._SENTRY_CONFIGURED_KEY", None)
+    monkeypatch.setattr("carta.telemetry._git_value", lambda command: "abc123")
 
     config = telemetry.configure_sentry()
 
     assert config.dsn == "https://public@example.ingest.sentry.io/1"
     assert config.traces_sample_rate == 0.05
+    assert config.profiles_sample_rate == 0.01
+    assert config.release == "carta-arcanum@abc123"
     assert init_calls[0]["send_default_pii"] is False
+    assert init_calls[0]["release"] == "carta-arcanum@abc123"
+    assert init_calls[0]["profiles_sample_rate"] == 0.01
     assert init_calls[0]["before_send"] is telemetry._scrub_sentry_event
     assert init_calls[0]["before_send_transaction"] is telemetry._scrub_sentry_event
+    assert tags["git_commit"] == "abc123"
 
 
 @pytest.mark.django_db
@@ -493,3 +506,25 @@ def test_sentry_scrubber_removes_pii_shaped_event_data():
     assert scrubbed["request"] == {"method": "POST"}
     assert "breadcrumbs" not in scrubbed
     assert "extra" not in scrubbed
+
+
+def test_sentry_release_prefers_exact_tag(monkeypatch):
+    def fake_git_value(command):
+        if command == ["describe", "--tags", "--exact-match"]:
+            return "v0.1.0"
+        return "abc123"
+
+    monkeypatch.setattr("carta.telemetry._git_value", fake_git_value)
+
+    assert telemetry._sentry_release() == "carta-arcanum@v0.1.0"
+
+
+def test_sentry_release_falls_back_to_commit(monkeypatch):
+    def fake_git_value(command):
+        if command == ["describe", "--tags", "--exact-match"]:
+            return "unknown"
+        return "abc123"
+
+    monkeypatch.setattr("carta.telemetry._git_value", fake_git_value)
+
+    assert telemetry._sentry_release() == "carta-arcanum@abc123"

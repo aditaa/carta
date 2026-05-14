@@ -170,6 +170,15 @@ DEFAULT_APPLICATION_SETTINGS = [
         ),
     },
     {
+        "key": "sentry_profiles_sample_rate",
+        "label": "Sentry profiles sample rate",
+        "value": "0.01",
+        "description": (
+            "Fraction of sampled Sentry transactions that include code profiling data, "
+            "from 0.0 to 1.0. The default profiles about one percent."
+        ),
+    },
+    {
         "key": "sentry_environment",
         "label": "Sentry environment",
         "value": "community-install",

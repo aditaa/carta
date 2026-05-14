@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 import platform
+import subprocess
 import threading
 import urllib.request
+from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import Any
 
@@ -19,14 +21,16 @@ except ImportError:  # pragma: no cover - optional dependency during partial ins
     sentry_sdk = None
 
 _SENTRY_CONFIG_LOCK = threading.Lock()
-_SENTRY_CONFIGURED_KEY: tuple[str, float, str] | None = None
+_SENTRY_CONFIGURED_KEY: tuple[str, float, float, str, str] | None = None
 
 
 @dataclass(frozen=True)
 class SentryTelemetryConfig:
     dsn: str
     traces_sample_rate: float
+    profiles_sample_rate: float
     environment: str
+    release: str
 
 
 def send_performance_telemetry(request, response, *, elapsed_ms: float, query_count: int) -> None:
@@ -52,6 +56,15 @@ def start_sentry_transaction():
     return sentry_sdk.start_transaction(name="carta.request", op="http.server")
 
 
+def sentry_span(op: str, description: str):
+    if sentry_sdk is None:
+        return nullcontext()
+    try:
+        return sentry_sdk.start_span(op=op, description=description)
+    except Exception:
+        return nullcontext()
+
+
 def finish_sentry_transaction(
     transaction, request, response, *, elapsed_ms: float, query_count: int
 ):
@@ -64,6 +77,7 @@ def finish_sentry_transaction(
     _set_sentry_value(transaction, "status_code", getattr(response, "status_code", 0))
     _set_sentry_value(transaction, "elapsed_ms", round(elapsed_ms, 1))
     _set_sentry_value(transaction, "query_count", query_count)
+    _set_sentry_value(transaction, "release_channel", _release_channel())
 
 
 def capture_sentry_exception(exc: Exception, request, *, query_count: int) -> None:
@@ -81,17 +95,27 @@ def configure_sentry() -> SentryTelemetryConfig | None:
     config = _sentry_config()
     if not config or sentry_sdk is None:
         return None
-    config_key = (config.dsn, config.traces_sample_rate, config.environment)
+    config_key = (
+        config.dsn,
+        config.traces_sample_rate,
+        config.profiles_sample_rate,
+        config.environment,
+        config.release,
+    )
     with _SENTRY_CONFIG_LOCK:
         if _SENTRY_CONFIGURED_KEY != config_key:
             sentry_sdk.init(
                 dsn=config.dsn,
                 traces_sample_rate=config.traces_sample_rate,
+                profiles_sample_rate=config.profiles_sample_rate,
                 environment=config.environment,
+                release=config.release,
                 send_default_pii=False,
                 before_send=_scrub_sentry_event,
                 before_send_transaction=_scrub_sentry_event,
             )
+            sentry_sdk.set_tag("release_channel", _release_channel())
+            sentry_sdk.set_tag("git_commit", _git_value(["rev-parse", "--short", "HEAD"]))
             _SENTRY_CONFIGURED_KEY = config_key
     return config
 
@@ -107,11 +131,17 @@ def _sentry_config() -> SentryTelemetryConfig | None:
     if not telemetry_enabled or not sentry_enabled or not dsn:
         return None
     sample_rate = _sample_rate(settings_map.get("sentry_traces_sample_rate", "0.05"))
+    profiles_sample_rate = _sample_rate(
+        settings_map.get("sentry_profiles_sample_rate", "0.01"),
+        default=0.01,
+    )
     environment = settings_map.get("sentry_environment", "community-install").strip()
     return SentryTelemetryConfig(
         dsn=dsn,
         traces_sample_rate=sample_rate,
+        profiles_sample_rate=profiles_sample_rate,
         environment=environment or "community-install",
+        release=_sentry_release(),
     )
 
 
@@ -184,12 +214,45 @@ def _setting_bool(value: str) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _sample_rate(value: str) -> float:
+def _sample_rate(value: str, *, default: float = 0.05) -> float:
     try:
         sample_rate = float(value)
     except (TypeError, ValueError):
-        return 0.05
+        return default
     return min(max(sample_rate, 0.0), 1.0)
+
+
+def _sentry_release() -> str:
+    tag = _git_value(["describe", "--tags", "--exact-match"])
+    commit = _git_value(["rev-parse", "--short", "HEAD"])
+    version = tag if tag != "unknown" else commit
+    return f"carta-arcanum@{_sanitize_sentry_release(version)}"
+
+
+def _release_channel() -> str:
+    branch = _git_value(["rev-parse", "--abbrev-ref", "HEAD"])
+    return "testing" if branch == "main" else "stable"
+
+
+def _git_value(command: list[str]) -> str:
+    completed = subprocess.run(
+        ["git", *command],
+        cwd=settings.BASE_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=5,
+    )
+    if completed.returncode != 0:
+        return "unknown"
+    return completed.stdout.strip() or "unknown"
+
+
+def _sanitize_sentry_release(value: str) -> str:
+    sanitized = value.replace("/", "-").replace("\\", "-").strip()
+    if sanitized in {"", ".", ".."}:
+        return "unknown"
+    return sanitized[:180]
 
 
 def _set_sentry_transaction_name(transaction, route_name: str) -> None:
