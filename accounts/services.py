@@ -294,7 +294,7 @@ def upgrade_job_status(job_id: str) -> dict[str, str]:
 
 
 def _run_upgrade_job(job_id: str) -> None:
-    output = io.StringIO()
+    output = _UpgradeOutputLog(job_id)
     close_old_connections()
     try:
         release_branch = configured_release_branch()
@@ -311,10 +311,12 @@ def _run_upgrade_job(job_id: str) -> None:
         _append_completed_command(output, ["git", "pull", "--ff-only", "origin", release_branch])
 
         _update_upgrade_job(job_id, message="Running database migrations")
+        output.write("\n$ python manage.py migrate --noinput\n")
         call_command("migrate", stdout=output, no_input=True)
 
         _update_upgrade_job(job_id, message="Collecting static files")
-        call_command("collectstatic", stdout=output, no_input=True, verbosity=0)
+        output.write("\n$ python manage.py collectstatic --noinput\n")
+        call_command("collectstatic", stdout=output, no_input=True, verbosity=1)
 
         restart_command = application_setting_map().get("restart_command", "").strip()
         if restart_command:
@@ -342,7 +344,19 @@ def _run_upgrade_job(job_id: str) -> None:
         close_old_connections()
 
 
+class _UpgradeOutputLog(io.StringIO):
+    def __init__(self, job_id: str) -> None:
+        super().__init__()
+        self.job_id = job_id
+
+    def write(self, value: str) -> int:
+        written = super().write(value)
+        _update_upgrade_job(self.job_id, output=self.getvalue())
+        return written
+
+
 def _append_completed_command(output: io.StringIO, command: list[str]) -> None:
+    output.write(f"$ {' '.join(command)}\n")
     completed = subprocess.run(
         command,
         cwd=settings.BASE_DIR,
@@ -351,7 +365,6 @@ def _append_completed_command(output: io.StringIO, command: list[str]) -> None:
         check=False,
         timeout=120,
     )
-    output.write(f"$ {' '.join(command)}\n")
     output.write(completed.stdout)
     output.write(completed.stderr)
     if completed.returncode != 0:

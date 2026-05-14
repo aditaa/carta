@@ -242,6 +242,37 @@ def test_upgrade_job_checks_out_configured_release_branch(monkeypatch):
 
 
 @pytest.mark.django_db
+def test_upgrade_job_publishes_management_command_output(monkeypatch):
+    ensure_default_application_settings()
+    account_services.UPGRADE_JOBS["job-output"] = {
+        "status": "running",
+        "message": "Starting upgrade",
+        "output": "",
+        "error": "",
+    }
+
+    def fake_completed_command(output, command):
+        output.write(f"$ {' '.join(command)}\n")
+
+    def fake_call_command(command_name, *, stdout, **kwargs):
+        stdout.write(f"{command_name} started\n")
+        assert f"{command_name} started" in upgrade_job_status("job-output")["output"]
+
+    monkeypatch.setattr("accounts.services._append_completed_command", fake_completed_command)
+    monkeypatch.setattr("accounts.services.call_command", fake_call_command)
+    monkeypatch.setattr("accounts.services.close_old_connections", lambda: None)
+
+    account_services._run_upgrade_job("job-output")
+
+    job = upgrade_job_status("job-output")
+    assert "$ python manage.py migrate --noinput" in job["output"]
+    assert "migrate started" in job["output"]
+    assert "$ python manage.py collectstatic --noinput" in job["output"]
+    assert "collectstatic started" in job["output"]
+    account_services.UPGRADE_JOBS.pop("job-output", None)
+
+
+@pytest.mark.django_db
 @override_settings(CARTA_SLOW_QUERY_MS=0)
 def test_slow_query_middleware_can_be_disabled():
     request = RequestFactory().get("/")

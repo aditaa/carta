@@ -213,6 +213,28 @@ def test_upgrade_status_json_reports_job(client, monkeypatch):
 
 
 @pytest.mark.django_db
+def test_upgrade_status_renders_expandable_output(client, monkeypatch):
+    staff = create_user("admin@example.test", staff=True, superuser=True)
+    client.force_login(staff)
+    monkeypatch.setattr(
+        "accounts.views.upgrade_job_status",
+        lambda job_id: {
+            "status": "running",
+            "message": "Running database migrations",
+            "output": "$ python manage.py migrate --noinput\nApplying accounts.0001_initial...",
+            "error": "",
+        },
+    )
+
+    response = client.get(reverse("accounts:upgrade_status", args=["job-123"]))
+
+    assert response.status_code == 200
+    assert b"<details" in response.content
+    assert b"Upgrade details" in response.content
+    assert b"Applying accounts.0001_initial" in response.content
+
+
+@pytest.mark.django_db
 def test_restore_git_file_logs_audit_entry(client, monkeypatch):
     staff = create_user("admin@example.test", staff=True, superuser=True)
     client.force_login(staff)

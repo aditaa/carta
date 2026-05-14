@@ -762,6 +762,19 @@ p {
   margin-top: 12px;
 }
 
+.upgrade-details {
+  margin-top: 12px;
+}
+
+.upgrade-details summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.upgrade-details .installer-output {
+  margin-top: 10px;
+}
+
 .danger-button {
   min-height: 40px;
   padding: 8px 16px;
