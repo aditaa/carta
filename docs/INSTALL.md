@@ -384,6 +384,13 @@ values such as the displayed site name, maintenance notice, restart command,
 restart-needed flag, anonymous performance telemetry, and email backend
 settings.
 
+Anonymous telemetry is opt-in by destination. The telemetry toggles default to
+enabled, but no off-server telemetry is sent until a superuser configures either
+a generic telemetry endpoint or a Sentry DSN. To share anonymous install health
+and performance data with the Carta Arcanum maintainer, paste the
+maintainer-provided Sentry DSN into `Sentry DSN`. To keep all monitoring private,
+leave that blank or use a Sentry project owned by the install admin.
+
 Email sending can use Django's console backend for development, a local SMTP
 relay, a provider SMTP service, or another Django email backend. Linux server
 mail often needs extra system configuration, so use the status page's email

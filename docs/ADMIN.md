@@ -149,7 +149,7 @@ This is meant to catch heavy queries that only appear after real player usage
 creates larger datasets. Treat slow-query logs as leads for future service-level
 profiling, indexes, pagination, or query shape changes.
 
-## Anonymous Performance Telemetry
+## Anonymous Telemetry
 
 New installs include an `Anonymous performance telemetry` setting that defaults
 to enabled. Telemetry is only sent when a superuser also configures a telemetry
@@ -165,3 +165,16 @@ other player/game data.
 Use a collector endpoint you control for incoming telemetry. Sending directly to
 GitHub is possible only through an authenticated proxy or automation because the
 app should not ship with a GitHub token embedded in settings.
+
+Carta Arcanum can also send anonymous error and performance reports to Sentry.
+Set `Sentry telemetry` to enabled, paste a Sentry project DSN into `Sentry DSN`,
+and choose a `Sentry traces sample rate`. The default sample rate is `0.05`,
+which sends about five percent of request performance traces. The Sentry DSN can
+point to a maintainer-owned project for community install feedback, or to an
+admin's own project for private monitoring.
+
+Sentry reports are filtered before sending. The app sets `send_default_pii` to
+false and strips Sentry event user data, raw request URLs, query strings,
+headers, request bodies, breadcrumbs, and extra data. It keeps route names,
+methods, status codes, elapsed time, and query counts so the maintainer can see
+where installs are slow or failing without receiving player data.

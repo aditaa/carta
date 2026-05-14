@@ -139,6 +139,39 @@ DEFAULT_APPLICATION_SETTINGS = [
             "Leave blank to avoid sending data off this install."
         ),
     },
+    {
+        "key": "sentry_enabled",
+        "label": "Sentry telemetry",
+        "value": "true",
+        "description": (
+            "Allow anonymous error and performance reports to be sent to Sentry when a "
+            "Sentry DSN is configured."
+        ),
+    },
+    {
+        "key": "sentry_dsn",
+        "label": "Sentry DSN",
+        "value": "",
+        "description": (
+            "Optional Sentry project DSN. Use the maintainer-provided DSN to share "
+            "anonymous install telemetry, or use your own Sentry project."
+        ),
+    },
+    {
+        "key": "sentry_traces_sample_rate",
+        "label": "Sentry traces sample rate",
+        "value": "0.05",
+        "description": (
+            "Fraction of request performance traces sent to Sentry, from 0.0 to 1.0. "
+            "The default samples about five percent of requests."
+        ),
+    },
+    {
+        "key": "sentry_environment",
+        "label": "Sentry environment",
+        "value": "community-install",
+        "description": "Environment label used for Sentry events from this installation.",
+    },
 ]
 
 UPGRADE_JOBS: dict[str, dict[str, str]] = {}

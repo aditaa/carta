@@ -4,7 +4,12 @@ import time
 from django.conf import settings
 from django.db import connection
 
-from carta.telemetry import send_performance_telemetry
+from carta.telemetry import (
+    capture_sentry_exception,
+    finish_sentry_transaction,
+    send_performance_telemetry,
+    start_sentry_transaction,
+)
 
 logger = logging.getLogger("carta.slow_queries")
 
@@ -37,8 +42,26 @@ class SlowQueryLoggingMiddleware:
                     )
 
         request_start = time.perf_counter()
-        with connection.execute_wrapper(wrapper):
-            response = self.get_response(request)
+        transaction = start_sentry_transaction()
+        try:
+            if transaction is None:
+                with connection.execute_wrapper(wrapper):
+                    response = self.get_response(request)
+            else:
+                with transaction:
+                    with connection.execute_wrapper(wrapper):
+                        response = self.get_response(request)
+                    elapsed_ms = (time.perf_counter() - request_start) * 1000
+                    finish_sentry_transaction(
+                        transaction,
+                        request,
+                        response,
+                        elapsed_ms=elapsed_ms,
+                        query_count=query_count,
+                    )
+        except Exception as exc:
+            capture_sentry_exception(exc, request, query_count=query_count)
+            raise
         elapsed_ms = (time.perf_counter() - request_start) * 1000
         send_performance_telemetry(
             request,

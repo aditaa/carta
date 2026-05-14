@@ -175,6 +175,11 @@ class ApplicationSettingForm(forms.ModelForm):
         ("stable", "Stable"),
         ("main", "Testing"),
     )
+    BOOLEAN_SETTING_KEYS = {"telemetry_enabled", "sentry_enabled"}
+    BOOLEAN_CHOICES = (
+        ("true", "Enabled"),
+        ("false", "Disabled"),
+    )
 
     class Meta:
         model = ApplicationSetting
@@ -186,6 +191,8 @@ class ApplicationSettingForm(forms.ModelForm):
         if self.instance and self.instance.key == "release_branch":
             self.fields["value"].widget = forms.Select(choices=self.RELEASE_BRANCH_CHOICES)
             self.fields["value"].help_text = "Stable tracks the stable branch. Testing tracks main."
+        if self.instance and self.instance.key in self.BOOLEAN_SETTING_KEYS:
+            self.fields["value"].widget = forms.Select(choices=self.BOOLEAN_CHOICES)
 
 
 class HouseForm(forms.ModelForm):

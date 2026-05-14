@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 
 import accounts.services as account_services
+import carta.telemetry as telemetry
 from accounts.models import ApplicationSetting, AuditLogEntry
 from accounts.permissions import AuditAction, RolePresetKey
 from accounts.services import (
@@ -147,6 +148,9 @@ def test_default_settings_include_anonymous_telemetry_toggle():
 
     assert ApplicationSetting.objects.get(key="telemetry_enabled").value == "true"
     assert ApplicationSetting.objects.get(key="telemetry_endpoint").value == ""
+    assert ApplicationSetting.objects.get(key="sentry_enabled").value == "true"
+    assert ApplicationSetting.objects.get(key="sentry_dsn").value == ""
+    assert ApplicationSetting.objects.get(key="sentry_traces_sample_rate").value == "0.05"
 
 
 @pytest.mark.django_db
@@ -398,3 +402,65 @@ def test_middleware_skips_telemetry_without_endpoint(monkeypatch):
     middleware(request)
 
     assert started_threads == []
+
+
+@pytest.mark.django_db
+def test_sentry_configures_without_default_pii(monkeypatch):
+    ensure_default_application_settings()
+    ApplicationSetting.objects.filter(key="sentry_dsn").update(
+        value="https://public@example.ingest.sentry.io/1"
+    )
+    init_calls = []
+
+    class FakeSentry:
+        def init(self, **kwargs):
+            init_calls.append(kwargs)
+
+    monkeypatch.setattr("carta.telemetry.sentry_sdk", FakeSentry())
+    monkeypatch.setattr("carta.telemetry._SENTRY_CONFIGURED_KEY", None)
+
+    config = telemetry.configure_sentry()
+
+    assert config.dsn == "https://public@example.ingest.sentry.io/1"
+    assert config.traces_sample_rate == 0.05
+    assert init_calls[0]["send_default_pii"] is False
+    assert init_calls[0]["before_send"] is telemetry._scrub_sentry_event
+    assert init_calls[0]["before_send_transaction"] is telemetry._scrub_sentry_event
+
+
+@pytest.mark.django_db
+def test_sentry_does_not_configure_without_dsn(monkeypatch):
+    ensure_default_application_settings()
+    init_calls = []
+
+    class FakeSentry:
+        def init(self, **kwargs):
+            init_calls.append(kwargs)
+
+    monkeypatch.setattr("carta.telemetry.sentry_sdk", FakeSentry())
+    monkeypatch.setattr("carta.telemetry._SENTRY_CONFIGURED_KEY", None)
+
+    assert telemetry.configure_sentry() is None
+    assert init_calls == []
+
+
+def test_sentry_scrubber_removes_pii_shaped_event_data():
+    event = {
+        "user": {"email": "denizen@example.test"},
+        "request": {
+            "url": "https://example.test/accounts/users/123/?email=denizen@example.test",
+            "query_string": "email=denizen@example.test",
+            "data": {"password": "secret"},
+            "headers": {"cookie": "sessionid=secret"},
+            "method": "POST",
+        },
+        "breadcrumbs": {"values": [{"message": "secret"}]},
+        "extra": {"sql": "SELECT * FROM accounts_user"},
+    }
+
+    scrubbed = telemetry._scrub_sentry_event(event, {})
+
+    assert "user" not in scrubbed
+    assert scrubbed["request"] == {"method": "POST"}
+    assert "breadcrumbs" not in scrubbed
+    assert "extra" not in scrubbed
