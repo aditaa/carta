@@ -208,7 +208,7 @@ FastAPI/React split app to a Django monolith.
 - [x] Build dependency chain traversal.
 - [x] Calculate required buildings for a desired output.
 - [x] Calculate required inputs.
-- [ ] Calculate resulting deficits and surpluses.
+- [x] Calculate resulting deficits and surpluses.
 - [x] Detect circular dependencies.
 - [ ] Generate minimal stable production loops.
 - [x] Add solver page with target selection.

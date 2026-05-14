@@ -92,6 +92,8 @@ def test_solver_calculates_required_buildings_and_missing_inputs():
     assert result.required_inputs[0].quantity == Decimal("4")
     assert result.missing_inputs[0].item_key == "wood"
     assert result.missing_inputs[0].quantity == Decimal("4")
+    assert result.surplus_outputs[0].item_key == "food"
+    assert result.surplus_outputs[0].quantity == Decimal("2.00")
     assert result.dependency_chain[0].recipe_key == "orchard_food"
     assert result.dependency_chain[0].output_quantity == Decimal("8.00")
 
@@ -135,6 +137,39 @@ def test_solver_resolves_transitive_recipe_dependencies():
         "orchard_food",
         "mill_planks",
     ]
+
+
+def test_solver_reports_surplus_outputs_for_transitive_dependencies():
+    ruleset = create_ruleset()
+    orchard = create_building(ruleset, "orchard")
+    lumber_mill = create_building(ruleset, "lumber_mill")
+    create_recipe(
+        ruleset,
+        key="orchard_food",
+        building=orchard,
+        inputs=[("plank", "3")],
+        outputs=[("food", "4")],
+    )
+    create_recipe(
+        ruleset,
+        key="mill_planks",
+        building=lumber_mill,
+        inputs=[("wood", "3")],
+        outputs=[("plank", "2")],
+    )
+
+    result = solve_required_chain(
+        ruleset=ruleset,
+        target=SolverTarget(
+            item_type=ItemReference.ItemType.RESOURCE,
+            item_key="food",
+            quantity=Decimal("4"),
+        ),
+    )
+
+    surplus_outputs = {line.item_key: line.quantity for line in result.surplus_outputs}
+
+    assert surplus_outputs == {"plank": Decimal("1.00")}
 
 
 def test_solver_reports_unknown_target_as_missing_input():

@@ -73,6 +73,15 @@
         </section>
 
         <section class="dashboard-panel">
+          <h2>Surplus Outputs</h2>
+          {% for item in result.surplus_outputs %}
+            <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
+          {% empty %}
+            <p class="muted">No surplus from recipe run rounding.</p>
+          {% endfor %}
+        </section>
+
+        <section class="dashboard-panel">
           <h2>Blockers</h2>
           {% if result.missing_inputs %}
             <h3>Missing Inputs</h3>

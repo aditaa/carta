@@ -45,6 +45,7 @@ class SolverResult:
     required_buildings: list[RequiredBuilding]
     required_inputs: list[RequiredInput]
     missing_inputs: list[RequiredInput]
+    surplus_outputs: list[RequiredInput]
     dependency_chain: list[DependencyStep]
     circular_dependencies: list[list[str]]
 
@@ -67,6 +68,7 @@ class _SolverContext:
         self.building_names = {}
         self.required_inputs = defaultdict(Decimal)
         self.missing_inputs = defaultdict(Decimal)
+        self.surplus_outputs = defaultdict(Decimal)
         self.dependency_chain = []
         self.circular_dependencies = []
         self.stack = []
@@ -84,6 +86,10 @@ class _SolverContext:
             return
 
         runs = _required_runs(demand.quantity, output_ref.amount)
+        output_quantity = output_ref.amount * runs
+        surplus_quantity = output_quantity - demand.quantity
+        if surplus_quantity > 0:
+            self.surplus_outputs[(demand.item_type, demand.item_key)] += surplus_quantity
         building_key = recipe.building.key
         self.required_buildings[building_key] += runs
         self.building_names[building_key] = recipe.building.name
@@ -93,7 +99,7 @@ class _SolverContext:
                 building_key=building_key,
                 output_item_type=demand.item_type,
                 output_item_key=demand.item_key,
-                output_quantity=output_ref.amount * runs,
+                output_quantity=output_quantity,
                 runs=runs,
             )
         )
@@ -124,6 +130,7 @@ class _SolverContext:
             ],
             required_inputs=_input_lines(self.required_inputs),
             missing_inputs=_input_lines(self.missing_inputs),
+            surplus_outputs=_input_lines(self.surplus_outputs),
             dependency_chain=self.dependency_chain,
             circular_dependencies=self.circular_dependencies,
         )

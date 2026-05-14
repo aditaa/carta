@@ -115,4 +115,5 @@ def test_solver_page_shows_solution_for_selected_target(client):
     assert b"Required Buildings" in response.content
     assert b"2 Orchard" in response.content
     assert b"4.00 resource:wood" in response.content
+    assert b"2.00 resource:food" in response.content
     assert b"orchard_food" in response.content
