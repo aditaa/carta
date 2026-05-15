@@ -45,6 +45,7 @@ from accounts.services import (
     application_setting_map,
     can_manage_user,
     changed_fields,
+    editable_application_settings,
     ensure_default_application_settings,
     git_changed_files,
     log_audit,
@@ -235,7 +236,7 @@ def application_status(request):
     if request.method == "POST":
         formset = settings_formset_class(
             request.POST,
-            queryset=ApplicationSetting.objects.all(),
+            queryset=editable_application_settings(),
         )
         if formset.is_valid():
             submitted_settings = {
@@ -265,7 +266,7 @@ def application_status(request):
                 messages.success(request, "Application settings updated.")
                 return redirect("accounts:application_status")
     else:
-        formset = settings_formset_class(queryset=ApplicationSetting.objects.all())
+        formset = settings_formset_class(queryset=editable_application_settings())
 
     checks = status_health_checks()
     return render(

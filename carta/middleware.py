@@ -8,7 +8,6 @@ from accounts.bug_reports import record_crash_for_bug_report
 from carta.telemetry import (
     capture_sentry_exception,
     finish_sentry_transaction,
-    send_performance_telemetry,
     sentry_span,
     start_sentry_transaction,
 )
@@ -66,11 +65,4 @@ class SlowQueryLoggingMiddleware:
             record_crash_for_bug_report(request, exc, query_count=query_count)
             capture_sentry_exception(exc, request, query_count=query_count)
             raise
-        elapsed_ms = (time.perf_counter() - request_start) * 1000
-        send_performance_telemetry(
-            request,
-            response,
-            elapsed_ms=elapsed_ms,
-            query_count=query_count,
-        )
         return response

@@ -6,21 +6,16 @@ from django import get_version
 from django.conf import settings
 from django.utils import timezone
 
-from accounts.services import application_setting_map, configured_release_branch
+from accounts.services import configured_release_branch
 
 DEFAULT_BUG_REPORT_REPOSITORY = "aditaa/carta"
 CRASH_REPORT_SESSION_KEY = "last_crash_report"
 
 
 def bug_report_issue_url(report: dict[str, str], *, include_diagnostics: bool = True) -> str:
-    settings_map = application_setting_map()
-    repository = settings_map.get("bug_report_repository", DEFAULT_BUG_REPORT_REPOSITORY).strip()
-    if not _valid_repository(repository):
-        repository = DEFAULT_BUG_REPORT_REPOSITORY
-
     body = bug_report_issue_body(report, include_diagnostics=include_diagnostics)
     query = urlencode({"title": report.get("title", "Carta Arcanum bug report"), "body": body})
-    return f"https://github.com/{repository}/issues/new?{query}"
+    return f"https://github.com/{DEFAULT_BUG_REPORT_REPOSITORY}/issues/new?{query}"
 
 
 def bug_report_issue_body(report: dict[str, str], *, include_diagnostics: bool = True) -> str:
@@ -117,21 +112,17 @@ def _diagnostics_markdown() -> str:
 
 
 def _git_value(command: list[str]) -> str:
-    completed = subprocess.run(
-        ["git", *command],
-        cwd=settings.BASE_DIR,
-        text=True,
-        capture_output=True,
-        check=False,
-        timeout=5,
-    )
+    try:
+        completed = subprocess.run(
+            ["git", *command],
+            cwd=settings.BASE_DIR,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=5,
+        )
+    except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+        return "unknown"
     if completed.returncode != 0:
         return "unknown"
     return completed.stdout.strip() or "unknown"
-
-
-def _valid_repository(repository: str) -> bool:
-    if repository.count("/") != 1:
-        return False
-    owner, name = repository.split("/", 1)
-    return bool(owner and name and " " not in repository)

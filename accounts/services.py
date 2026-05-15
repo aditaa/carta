@@ -36,6 +36,12 @@ RESERVED_RELEASE_BRANCH_NAMES = {
     "MERGE_HEAD",
     "CHERRY_PICK_HEAD",
 }
+INTERNAL_APPLICATION_SETTING_KEYS = {
+    "bug_report_repository",
+    "restart_required",
+    "sentry_enabled",
+    "telemetry_endpoint",
+}
 
 DEFAULT_APPLICATION_SETTINGS = [
     {
@@ -110,10 +116,7 @@ DEFAULT_APPLICATION_SETTINGS = [
         "key": "release_branch",
         "label": "Release branch",
         "value": RELEASE_BRANCH_DEFAULT,
-        "description": (
-            "Git branch used by in-app upgrades. "
-            "Use stable for releases or main for dev/test installs."
-        ),
+        "description": "Git branch used by in-app upgrades.",
     },
     {
         "key": "restart_required",
@@ -127,25 +130,7 @@ DEFAULT_APPLICATION_SETTINGS = [
         "value": "true",
         "description": (
             "Allow Carta Arcanum to send anonymous route timing, status, and query-count "
-            "metrics when a telemetry endpoint is configured."
-        ),
-    },
-    {
-        "key": "telemetry_endpoint",
-        "label": "Telemetry endpoint",
-        "value": "",
-        "description": (
-            "Optional HTTPS URL that receives anonymous performance telemetry. "
-            "Leave blank to avoid sending data off this install."
-        ),
-    },
-    {
-        "key": "sentry_enabled",
-        "label": "Sentry telemetry",
-        "value": "true",
-        "description": (
-            "Allow anonymous error and performance reports to be sent to Sentry when a "
-            "Sentry DSN is configured."
+            "metrics when a Sentry DSN is configured."
         ),
     },
     {
@@ -184,12 +169,6 @@ DEFAULT_APPLICATION_SETTINGS = [
         "value": "community-install",
         "description": "Environment label used for Sentry events from this installation.",
     },
-    {
-        "key": "bug_report_repository",
-        "label": "Bug report GitHub repository",
-        "value": "aditaa/carta",
-        "description": "GitHub owner/repository used for prefilled in-app bug reports.",
-    },
 ]
 
 UPGRADE_JOBS: dict[str, dict[str, str]] = {}
@@ -227,6 +206,11 @@ def ensure_default_application_settings() -> list[ApplicationSetting]:
 def application_setting_map() -> dict[str, str]:
     ensure_default_application_settings()
     return dict(ApplicationSetting.objects.values_list("key", "value"))
+
+
+def editable_application_settings():
+    ensure_default_application_settings()
+    return ApplicationSetting.objects.exclude(key__in=INTERNAL_APPLICATION_SETTING_KEYS)
 
 
 def status_health_checks() -> list[HealthCheck]:
@@ -562,9 +546,6 @@ def validate_support_settings(settings_map: dict[str, str]) -> tuple[str, ...]:
             continue
         if not 0.0 <= sample_rate <= 1.0:
             errors.append(f"{label} must be a number from 0.0 to 1.0.")
-    repository = settings_map.get("bug_report_repository", "").strip()
-    if repository.count("/") != 1 or " " in repository:
-        errors.append("Bug report GitHub repository must use owner/repository format.")
     return tuple(errors)
 
 

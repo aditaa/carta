@@ -142,9 +142,8 @@ Audit detail pages are superuser-only.
 ## Bug Reports
 
 Authenticated users can open `Report a bug` from the account menu. The form
-opens a prefilled GitHub issue in the configured `Bug report GitHub repository`
-setting, which defaults to `aditaa/carta`. The app does not need a GitHub token
-because the user reviews and submits the issue in GitHub.
+opens a prefilled GitHub issue in `aditaa/carta`. The app does not need a GitHub
+token because the user reviews and submits the issue in GitHub.
 
 Reports include anonymous diagnostics by default: release channel, configured
 release branch, Git branch and commit, Python and Django versions, database
@@ -171,26 +170,19 @@ profiling, indexes, pagination, or query shape changes.
 ## Anonymous Telemetry
 
 New installs include an `Anonymous performance telemetry` setting that defaults
-to enabled. Telemetry is only sent when a superuser also configures a telemetry
-endpoint in `Settings -> Application Status`; leaving the endpoint blank keeps
-all telemetry local to the install.
+to enabled. Telemetry is sent through Sentry when a Sentry DSN is configured in
+`Settings -> Application Status`; clearing the DSN or disabling the telemetry
+toggle keeps telemetry local to the install.
 
-Performance payloads include route name, HTTP method, status code, elapsed
-milliseconds, database query count, Django version, Python version, debug mode,
-and database engine. They intentionally do not include raw paths, query strings,
-request bodies, SQL, IP addresses, email addresses, usernames, owner names, or
-other player/game data.
+Sentry performance data includes route name, HTTP method, status code, elapsed
+milliseconds, and database query count. It intentionally does not include raw
+paths, query strings, request bodies, SQL, IP addresses, email addresses,
+usernames, owner names, or other player/game data.
 
-Use a collector endpoint you control for incoming telemetry. Sending directly to
-GitHub is possible only through an authenticated proxy or automation because the
-app should not ship with a GitHub token embedded in settings.
-
-Carta Arcanum can also send anonymous error and performance reports to Sentry.
-Set `Sentry telemetry` to enabled, paste a Sentry project DSN into `Sentry DSN`,
-and choose a `Sentry traces sample rate`. The default sample rate is `0.05`,
-which sends about five percent of request performance traces. The Sentry DSN can
-point to a maintainer-owned project for community install feedback, or to an
-admin's own project for private monitoring.
+New installs default to the maintainer-provided Sentry DSN for community install
+feedback. Admins can clear the DSN or replace it with their own Sentry project
+for private monitoring. The default `Sentry traces sample rate` is `0.05`, which
+sends about five percent of request performance traces.
 
 Sentry reports are filtered before sending. The app sets `send_default_pii` to
 false and strips Sentry event user data, raw request URLs, query strings,
