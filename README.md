@@ -15,9 +15,9 @@ The app is meant to answer practical planning questions:
 
 ## What This Is
 
-Carta Arcanum is being rebuilt as a Django monolith. The old FastAPI backend
-and React frontend have been removed; new work should target the current Django
-app structure.
+Carta Arcanum is a Django monolith backed by MySQL. It favors server-rendered
+pages, Django forms, service-layer domain logic, and focused HTMX interactions
+over a separate API/frontend split.
 
 Current foundations include:
 
@@ -97,5 +97,5 @@ python -m pytest
 - [Install guide](docs/INSTALL.md)
 - [Project structure](docs/ARCHITECTURE.md)
 - [Roadmap](docs/ROADMAP.md)
-- [Django transition checklist](docs/TRANSITION_TODO.md)
+- [Backlog](docs/BACKLOG.md)
 - [Contributing](CONTRIBUTING.md)

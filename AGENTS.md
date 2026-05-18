@@ -17,8 +17,9 @@ The app should eventually answer planning questions like:
 
 ## Expected Stack
 
-Carta Arcanum is being rewritten as a Django monolith. The previous FastAPI
-backend and React frontend have been removed; new work should target Django.
+Carta Arcanum is a Django monolith. New work should target Django, MySQL,
+server-rendered templates, HTMX interactions, and domain services inside the
+current app structure.
 
 - Web framework: Python with Django.
 - Database: MySQL.
@@ -90,7 +91,7 @@ When rules change:
 - Prefer `rg` for searching.
 - Keep install and runtime documentation Linux-first.
 - Use clear names for domain concepts from the game.
-- Add tests near the behavior being changed once the Django skeleton exists.
+- Add tests near the behavior being changed.
 - Prefer larger pull requests when the work belongs to one coherent feature or
   branch goal, but keep them scoped and reviewable.
 - Keep branches focused on one task, improvement, or bug fix. A branch may be
@@ -114,7 +115,7 @@ When rules change:
 ## Documentation Guidelines
 
 - Keep `README.md` focused on what the project is and how to use it.
-- Put longer setup, architecture, roadmap, and transition details in `docs/`.
+- Put longer setup, architecture, roadmap, and backlog details in `docs/`.
 - Update `docs/INSTALL.md` when setup steps change.
 - Update `CONTRIBUTING.md` when the development workflow changes.
 - Update this file when conventions for future agents change.

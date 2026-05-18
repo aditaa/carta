@@ -1,20 +1,16 @@
 # Roadmap
 
-This is the high-level todo list for rebuilding Carta Arcanum as a Django
-monolith. The previous FastAPI and React implementation has been removed and
-should not drive the new architecture.
+This is the high-level todo list for Carta Arcanum as a Django monolith.
 
-Use [TRANSITION_TODO.md](TRANSITION_TODO.md) for the detailed task checklist.
+Use [BACKLOG.md](BACKLOG.md) for the detailed implementation tracker.
 
-## Phase 0: Rewrite Preparation
+## Phase 0: Project Foundation
 
 - [x] Choose Django monolith architecture.
-- [x] Remove uncommitted installer and first-run setup work from the old stack.
-- [x] Update planning docs for the Django rewrite.
-- [x] Delete the legacy `backend/` and `frontend/` directories before
-  scaffolding Django.
+- [x] Keep the repository focused on the current Django application.
+- [x] Update planning docs for the current architecture.
 - [x] Choose the Django project/app layout and package names.
-- [x] Update CI to target the Django app once the skeleton exists.
+- [x] Update CI to target the Django app.
 
 ## Phase 1: Django Skeleton
 
@@ -105,16 +101,10 @@ Use [TRANSITION_TODO.md](TRANSITION_TODO.md) for the detailed task checklist.
 
 ## Later Ideas
 
-- [ ] Add a superuser status and settings section for checking app health and
-  configuring runtime options after install.
-- [ ] Add a web-based maintenance and upgrade flow to the superuser
-  status/settings area so admins can check the current version, review upgrade
-  readiness, run safe maintenance steps, and see clear backup/rollback
-  guidance.
-- [ ] Surface `.env.local` and `installer.lock` write-permission checks on the
-  future superuser status page.
-- [ ] Add an optional Linux service helper for running Carta Arcanum from a
-  cloned release branch.
+- [ ] Expand admin maintenance dashboards with deeper rules import, migration,
+  backup, and restore guidance.
+- [ ] Add an optional production WSGI service helper for running Carta Arcanum
+  beyond the temporary test-server unit.
 - [ ] Scenario save/load.
 - [ ] Multiple campaigns or worlds.
 - [ ] Owner/faction filters.

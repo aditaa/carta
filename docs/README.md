@@ -16,8 +16,8 @@ Arcanum is and how to run it.
 - [Release checklist](RELEASE.md): stable promotion, required checks, release
   tags, and rollback notes.
 - [Roadmap](ROADMAP.md): high-level milestone plan.
-- [Django transition checklist](TRANSITION_TODO.md): detailed rewrite task
-  tracker.
+- [Backlog](BACKLOG.md): detailed implementation tracker and captured follow-up
+  work.
 - [Reference files](reference/README.md): source material used while maintaining the
   structured rules data.
 
