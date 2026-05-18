@@ -6,7 +6,7 @@ import sys
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 
@@ -18,7 +18,7 @@ class Window:
 
 
 def iso_z(value: datetime) -> str:
-    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 def parse_dt(value: str | None) -> datetime | None:
@@ -224,7 +224,7 @@ def summarize_group_counts(rows: list[dict[str, Any]], key: str, *, blank_label:
 
 
 def main() -> int:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     current = Window("current", now - timedelta(days=7), now)
     previous = Window("previous", now - timedelta(days=14), now - timedelta(days=7))
     client = SentryClient()
@@ -290,7 +290,7 @@ def main() -> int:
     )
 
     lines = [
-        f"# Weekly Sentry Review",
+        "# Weekly Sentry Review",
         "",
         f"Window: {current.start.date()} to {current.end.date()} UTC",
         f"Comparison: {previous.start.date()} to {previous.end.date()} UTC",
@@ -298,14 +298,17 @@ def main() -> int:
         "## Issues",
     ]
     if unresolved:
+        issues_dashboard_url = client.issues_dashboard_url()
         lines.append(
-            f"- {len(unresolved)} unresolved issues in the last 7 days. [Issues dashboard]({client.issues_dashboard_url()})"
+            f"- {len(unresolved)} unresolved issues in the last 7 days. "
+            f"[Issues dashboard]({issues_dashboard_url})"
         )
         for issue in unresolved[:5]:
             lines.append(f"- {summarize_issue(issue)}")
     else:
+        issues_dashboard_url = client.issues_dashboard_url()
         lines.append(
-            f"- No unresolved issues in the last 7 days. [Issues dashboard]({client.issues_dashboard_url()})"
+            f"- No unresolved issues in the last 7 days. [Issues dashboard]({issues_dashboard_url})"
         )
 
     if new_issues:
@@ -367,15 +370,18 @@ def main() -> int:
     recommendations: list[str] = []
     if unresolved:
         recommendations.append(
-            "Triage unresolved issues first and confirm whether any should be escalated into code fixes this week."
+            "Triage unresolved issues first and confirm whether any should be "
+            "escalated into code fixes this week."
         )
     if any((row.get("release_channel") or "") == "" for row in release_channels.get("data", [])):
         recommendations.append(
-            "Normalize release tagging so more events carry the `release_channel` tag; unlabeled traffic is still present."
+            "Normalize release tagging so more events carry the `release_channel` "
+            "tag; unlabeled traffic is still present."
         )
     if route_regressions:
         recommendations.append(
-            "Review the regressed routes in Sentry traces and compare recent code or data-shape changes before the next release."
+            "Review the regressed routes in Sentry traces and compare recent code "
+            "or data-shape changes before the next release."
         )
     if db_regressions:
         recommendations.append(
@@ -383,7 +389,8 @@ def main() -> int:
         )
     if not recommendations:
         recommendations.append(
-            "No urgent follow-up from this window; keep watching for first unresolved issues and unlabeled releases."
+            "No urgent follow-up from this window; keep watching for first "
+            "unresolved issues and unlabeled releases."
         )
 
     lines.extend(["", "## Recommended Follow-Up"])
