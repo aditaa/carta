@@ -42,6 +42,7 @@ INTERNAL_APPLICATION_SETTING_KEYS = {
     "sentry_enabled",
     "telemetry_endpoint",
 }
+UPGRADE_REF_FETCH_TTL_SECONDS = 300
 
 DEFAULT_APPLICATION_SETTINGS = [
     {
@@ -173,6 +174,8 @@ DEFAULT_APPLICATION_SETTINGS = [
 
 UPGRADE_JOBS: dict[str, dict[str, str]] = {}
 UPGRADE_JOBS_LOCK = threading.Lock()
+UPGRADE_REF_FETCH_CACHE: dict[str, float] = {}
+UPGRADE_REF_FETCH_LOCK = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -280,6 +283,10 @@ def git_status_check() -> HealthCheck:
 
 def upgrade_available() -> bool:
     release_branch = configured_release_branch()
+    valid, _error = validate_release_branch(release_branch)
+    if not valid:
+        return False
+    _refresh_release_branch(release_branch)
     target_ref = f"origin/{release_branch}"
     if not _git_ref_exists(target_ref):
         return False
@@ -592,6 +599,36 @@ def _run_git(command: list[str]) -> subprocess.CompletedProcess[str]:
         check=False,
         timeout=5,
     )
+
+
+def _fetch_release_branch(branch: str) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            [
+                "git",
+                "fetch",
+                "--prune",
+                "origin",
+                f"refs/heads/{branch}:refs/remotes/origin/{branch}",
+            ],
+            cwd=settings.BASE_DIR,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=15,
+        )
+    except (FileNotFoundError, OSError, subprocess.TimeoutExpired) as exc:
+        return subprocess.CompletedProcess(["git", "fetch"], 1, stdout="", stderr=str(exc))
+
+
+def _refresh_release_branch(branch: str) -> None:
+    now = time.monotonic()
+    with UPGRADE_REF_FETCH_LOCK:
+        last_fetch = UPGRADE_REF_FETCH_CACHE.get(branch)
+        if last_fetch is not None and now - last_fetch < UPGRADE_REF_FETCH_TTL_SECONDS:
+            return
+        _fetch_release_branch(branch)
+        UPGRADE_REF_FETCH_CACHE[branch] = now
 
 
 def _run_git_checked(command: list[str]) -> None:
