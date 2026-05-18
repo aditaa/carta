@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "ownership",
     "holdings",
     "buildings",
+    "campaign_map",
     "transports",
     "production",
     "progression",

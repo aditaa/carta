@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Campaign Map - Carta Arcanum{% endblock %}
+
+{% block content %}
+  <section class="map-shell"{% if map_version %} data-map-image="{{ map_version.image.url }}" data-map-width="{{ map_version.image_width }}" data-map-height="{{ map_version.image_height }}" data-playable-width="{{ map_version.playable_width }}" data-hex-size="{{ map_version.hex_size }}" data-hex-origin-x="{{ map_version.hex_origin_x }}" data-hex-origin-y="{{ map_version.hex_origin_y }}"{% endif %}>
+    <div class="map-heading">
+      <div>
+        <p class="eyebrow">Campaign space</p>
+        <h1>Campaign Map</h1>
+        {% if map_version %}
+          <p class="muted">{{ map_version.name }} {{ map_version.version }} · {{ map_version.get_map_type_display }}</p>
+        {% endif %}
+      </div>
+      <div class="map-actions" aria-label="Map controls">
+        <button type="button" data-map-action="zoom-out" aria-label="Zoom out">-</button>
+        <button type="button" data-map-action="fit">Fit</button>
+        <button type="button" data-map-action="zoom-in" aria-label="Zoom in">+</button>
+      </div>
+    </div>
+
+    {% if map_version %}
+      {% if map_versions %}
+        <nav class="map-version-nav" aria-label="Available maps">
+          {% for available_map in map_versions %}
+            <a
+              href="{% url 'campaign_map:index' %}?map={{ available_map.key }}"
+              class="{% if available_map.id == map_version.id %}is-active{% endif %}"
+            >
+              {{ available_map.name }}
+            </a>
+          {% endfor %}
+        </nav>
+      {% endif %}
+
+      <div class="map-toolbar" aria-live="polite">
+        <span>Hex <strong data-map-readout="hex">none</strong></span>
+        <span>Zoom <strong data-map-readout="zoom">100%</strong></span>
+        <span>{{ map_version.image_width }} x {{ map_version.image_height }}</span>
+      </div>
+
+      <div class="map-canvas-frame">
+        <canvas id="map-canvas" width="1100" height="680" aria-label="Interactive hex campaign map"></canvas>
+      </div>
+    {% else %}
+      <section class="dashboard-panel">
+        <p class="muted">No campaign map has been imported yet.</p>
+      </section>
+    {% endif %}
+  </section>
+{% endblock %}
+
+{% block head %}
+  <script src="{% static 'js/campaign_map.js' %}" defer></script>
+{% endblock %}
