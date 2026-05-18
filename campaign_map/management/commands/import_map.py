@@ -10,7 +10,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("map_file", type=Path)
-        parser.add_argument("--key", default="known-world")
+        parser.add_argument("--key")
         parser.add_argument("--name", default="Known World")
         parser.add_argument("--map-version", required=True)
         parser.add_argument("--map-type", choices=["world", "detail"], default="world")
@@ -23,10 +23,16 @@ class Command(BaseCommand):
         parser.add_argument("--inactive", action="store_true")
 
     def handle(self, *args, **options):
+        key = options["key"]
+        if options["map_type"] == "detail" and not key:
+            raise CommandError("Detail map imports require --key.")
+        if not key:
+            key = "known-world"
+
         try:
             result = import_campaign_map(
                 options["map_file"],
-                key=options["key"],
+                key=key,
                 name=options["name"],
                 version=options["map_version"],
                 map_type=options["map_type"],

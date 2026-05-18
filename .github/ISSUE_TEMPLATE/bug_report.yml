@@ -1,0 +1,54 @@
+name: Bug report
+description: Report something that is broken or surprising.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Carta Arcanum. Please avoid posting secrets,
+        private player data, or security reports here.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the smallest set of steps that shows the problem.
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: App version, Git commit, branch, or PR where you saw this.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Installer or setup
+        - Accounts or permissions
+        - Buildings
+        - Holdings
+        - Production or solver
+        - Campaign map
+        - Rules import
+        - Admin or operations
+        - Documentation
+        - Other
+  - type: textarea
+    id: context
+    attributes:
+      label: Extra context
+      description: Add logs, screenshots, or notes. Remove secrets first.

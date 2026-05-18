@@ -1,7 +1,8 @@
 # Architecture Notes
 
-Carta Arcanum is a Django monolith. The previous FastAPI backend and React
-frontend have been removed and should not guide new feature work.
+Carta Arcanum is a Django monolith for campaign logistics, ownership,
+production planning, and map workflows. New work should strengthen the current
+Django app structure rather than introduce a separate API/frontend split.
 
 ## Stack
 
@@ -73,9 +74,9 @@ python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
 The installer uses `CURRENT_RULES_FILE`, which defaults to the current rules
 JSON file and can be overridden with `CARTA_CURRENT_RULES_FILE`.
 
-## Current Status
+## Current Foundation
 
-The Django foundation includes a custom email-based user model,
-`DenizenProfile`, MySQL settings, a dashboard home page, a health endpoint,
-building registry pages, holdings pages, production balance services, a
-first-run installer, and smoke tests.
+The app includes a custom email-based user model, `DenizenProfile`, MySQL
+settings, a dashboard home page, a health endpoint, building registry pages,
+holdings pages, production balance services, map import/rendering foundations,
+a first-run installer, and smoke tests.

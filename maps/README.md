@@ -3,6 +3,11 @@
 This folder stores source campaign map versions that should travel with the
 repository. These are not served directly by the app.
 
+The source map files are intentionally versioned because installs and release
+verification need the same canonical campaign assets. As the map library grows,
+move these large binary assets to Git LFS so normal clones stay lighter while
+release artifacts remain reproducible.
+
 Import a map version into the Django-managed active map records with:
 
 ```text

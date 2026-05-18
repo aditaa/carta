@@ -31,6 +31,7 @@ from carta.middleware import SlowQueryLoggingMiddleware
 def reset_telemetry_state(monkeypatch):
     monkeypatch.setattr("carta.telemetry._GIT_METADATA_CACHE", None)
     monkeypatch.setattr("carta.telemetry._SENTRY_CONFIGURED_KEY", None)
+    account_services.UPGRADE_REF_FETCH_CACHE.clear()
 
 
 def create_user(email: str, *, staff: bool = False, superuser: bool = False):
@@ -201,6 +202,7 @@ def test_upgrade_available_uses_configured_release_branch(monkeypatch):
     ApplicationSetting.objects.filter(key="release_branch").update(value="main")
     checked_refs = []
     commands = []
+    fetched_branches = []
 
     def fake_git_ref_exists(ref):
         checked_refs.append(ref)
@@ -215,12 +217,30 @@ def test_upgrade_available_uses_configured_release_branch(monkeypatch):
             stderr="",
         )
 
+    def fake_fetch_release_branch(branch):
+        fetched_branches.append(branch)
+        return subprocess.CompletedProcess(["git", "fetch"], 0, stdout="", stderr="")
+
+    monkeypatch.setattr("accounts.services._fetch_release_branch", fake_fetch_release_branch)
     monkeypatch.setattr("accounts.services._git_ref_exists", fake_git_ref_exists)
     monkeypatch.setattr("accounts.services._run_git", fake_run_git)
 
     assert upgrade_available()
+    assert fetched_branches == ["main"]
     assert checked_refs == ["origin/main"]
     assert commands == [["rev-list", "--left-right", "--count", "HEAD...origin/main"]]
+
+
+def test_fetch_release_branch_degrades_when_git_fetch_times_out(monkeypatch):
+    def fail_run(*args, **kwargs):
+        raise subprocess.TimeoutExpired(["git", "fetch"], timeout=15)
+
+    monkeypatch.setattr("accounts.services.subprocess.run", fail_run)
+
+    completed = account_services._fetch_release_branch("main")
+
+    assert completed.returncode == 1
+    assert "timed out" in completed.stderr
 
 
 def test_reset_git_checkout_preserves_untracked_runtime_files(monkeypatch):

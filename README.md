@@ -1,8 +1,14 @@
 # Carta Arcanum
 
-Carta Arcanum is a Django web app for tracking buildings, resources,
-ownership, upkeep, production chains, deficits, surpluses, and phase
-progression for Carta Arcanum play.
+[![CI](https://github.com/aditaa/carta/actions/workflows/ci.yml/badge.svg)](https://github.com/aditaa/carta/actions/workflows/ci.yml)
+[![Stable release verification](https://github.com/aditaa/carta/actions/workflows/stable-release-verification.yml/badge.svg)](https://github.com/aditaa/carta/actions/workflows/stable-release-verification.yml)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![Django](https://img.shields.io/badge/django-5.x-0c4b33)
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
+
+Carta Arcanum is a Django web app for campaign logistics: buildings, resources,
+ownership, holdings, upkeep, production chains, deficits, surpluses, map
+assets, and phase progression for Carta Arcanum play.
 
 The app is meant to answer practical planning questions:
 
@@ -15,9 +21,9 @@ The app is meant to answer practical planning questions:
 
 ## What This Is
 
-Carta Arcanum is being rebuilt as a Django monolith. The old FastAPI backend
-and React frontend have been removed; new work should target the current Django
-app structure.
+Carta Arcanum is a Django monolith backed by MySQL. It favors server-rendered
+pages, Django forms, service-layer domain logic, and focused HTMX interactions
+over a separate API/frontend split.
 
 Current foundations include:
 
@@ -28,7 +34,19 @@ Current foundations include:
 - Building registry workflows.
 - Denizen, house, kingdom, and Three Crowns holdings.
 - Production, upkeep, deficit, and surplus services.
+- Canvas campaign map rendering with versioned map imports.
 - A first-run installer for local setup.
+
+| Area | Current support |
+| --- | --- |
+| Accounts | Email login, denizen profiles, first-admin setup, user access management, and invitation workflows. |
+| Rulesets | Versioned JSON rules, schema validation, idempotent SQL import, and admin inspection. |
+| Buildings | Player-owned building registry with filters, create/edit/delete flows, and audit ledger entries. |
+| Holdings | Denizen, house, kingdom, and Three Crowns accounts with deposits, withdrawals, transfers, and corrections. |
+| Production | Upkeep totals, production totals, deficits, surpluses, alerts, and owner balance views. |
+| Solver | Desired-output planning with required buildings, inputs, dependency chains, and missing-input handling. |
+| Campaign map | Canvas map viewer, pan/zoom controls, coordinate readout, and versioned world/detail map imports. |
+| Operations | First-run installer, health checks, editable app settings, upgrade flow, audit logs, and CI-backed release checks. |
 
 Rules data lives in `rules/` and is imported into MySQL. Game values should
 stay in versioned rules files instead of being hard-coded into views, templates,
@@ -74,22 +92,20 @@ and writes `installer.lock` when setup is complete.
 
 ## Common Commands
 
-Run checks that do not require a local MySQL server:
+Run the quick local checks:
 
 ```bash
-python -m ruff check .
-python -m ruff format --check .
-python manage.py check
-python -m pytest dashboard/tests tests
+./scripts/check.sh quick
 ```
 
 Run the full suite after MySQL is configured:
 
 ```bash
-python manage.py migrate
-python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
-python -m pytest
+./scripts/check.sh full
 ```
+
+Windows users working outside WSL can use `.\scripts\check.ps1 quick` for the
+same smoke checks.
 
 ## More Documentation
 
@@ -97,5 +113,5 @@ python -m pytest
 - [Install guide](docs/INSTALL.md)
 - [Project structure](docs/ARCHITECTURE.md)
 - [Roadmap](docs/ROADMAP.md)
-- [Django transition checklist](docs/TRANSITION_TODO.md)
+- [Backlog](docs/BACKLOG.md)
 - [Contributing](CONTRIBUTING.md)

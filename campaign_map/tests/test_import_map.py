@@ -1,5 +1,6 @@
 import pytest
 from django.core.management import call_command
+from django.core.management.base import CommandError
 
 from campaign_map.models import CampaignMapVersion
 from campaign_map.services import (
@@ -136,3 +137,28 @@ def test_import_map_command_imports_file(settings, tmp_path):
     map_version = CampaignMapVersion.objects.get(key="known-world", version="2026-05-15")
     assert map_version.image_width == 50
     assert map_version.playable_width == 40
+
+
+@pytest.mark.django_db
+def test_import_map_command_requires_key_for_detail_map(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path / "media"
+    world_path = tmp_path / "known-world.jpg"
+    detail_path = tmp_path / "hellfire-detail.jpg"
+    write_fake_jpeg(world_path, width=50, height=30)
+    write_fake_jpeg(detail_path, width=25, height=15)
+
+    world = import_campaign_map(world_path, version="2026-05-15").map_version
+
+    with pytest.raises(CommandError, match="Detail map imports require --key"):
+        call_command(
+            "import_map",
+            detail_path,
+            "--map-version",
+            "2026-05-16",
+            "--map-type",
+            "detail",
+        )
+
+    world.refresh_from_db()
+    assert world.is_active is True
+    assert CampaignMapVersion.objects.count() == 1

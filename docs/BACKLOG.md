@@ -1,13 +1,11 @@
-# Django Transition Todo
+# Backlog
 
-This checklist tracks the work needed to move Carta Arcanum from the removed
-FastAPI/React split app to a Django monolith.
+This checklist tracks Carta Arcanum's implemented foundation and captured
+follow-up work. Completed items document useful project decisions; unchecked
+items are the active backlog.
 
-## 1. Transition Decisions
+## 1. Foundation Decisions
 
-- [x] Decide whether to delete the legacy `backend/` and `frontend/`
-  directories immediately or archive them until the Django app reaches feature
-  parity. Decision: delete legacy code now.
 - [x] Decide the top-level Django project name. Decision: `carta`.
 - [x] Decide the first Django app set. Decision:
   - [x] `accounts`
@@ -20,7 +18,8 @@ FastAPI/React split app to a Django monolith.
   - [x] `progression`
   - [x] `solver`
   - [x] `dashboard`
-  Decision: start with this app set unless scaffolding reveals a clearer split.
+  Decision: keep this app set unless future domain boundaries call for a clearer
+  split.
 - [x] Decide whether to use Django's default `User` model with a denizen
   profile or a custom user model before the first migration. Decision: custom
   email-based user model plus `DenizenProfile`.
@@ -29,23 +28,20 @@ FastAPI/React split app to a Django monolith.
 - [x] Decide whether to use plain Django tests or `pytest-django`. Decision:
   use pytest and `pytest-django`.
 
-## 2. Repository Cleanup
+## 2. Repository Baseline
 
-- [x] Remove or archive the legacy FastAPI backend.
-- [x] Remove or archive the legacy React frontend.
-- [x] Remove Alembic configuration with the legacy backend.
-- [x] Remove old Vite, TypeScript, and frontend package files if React is not
-  retained.
-- [x] Remove old API-only docs after Django docs replace them.
+- [x] Keep the repository focused on the current Django application.
+- [x] Remove obsolete app code, tooling, and docs that no longer describe the
+  supported product.
 - [x] Update `.gitignore` for Django artifacts, static output, local env files,
   and MySQL/dev database leftovers.
 - [x] Update `pyproject.toml` for Django package names and lint paths.
-- [x] Update CI to stop running old FastAPI and React checks.
+- [x] Update CI to run the current Django lint and test checks.
 
-## 3. Django Framework Skeleton
+## 3. Framework Skeleton
 
-- [x] Create a Python virtual environment workflow for the new app.
-- [x] Add root `requirements.txt` or equivalent dependency file.
+- [x] Create a Python virtual environment workflow for the app.
+- [x] Add root `requirements.txt`.
 - [x] Add Django.
 - [x] Add MySQL driver.
 - [x] Add environment configuration support.
@@ -77,7 +73,7 @@ FastAPI/React split app to a Django monolith.
 - [x] Add a first smoke test for settings import.
 - [x] Add a first database migration test or documented migration check.
 - [x] Update GitHub Actions for Django lint/test checks.
-- [x] Add a MySQL-backed CI job once models exist.
+- [x] Add a MySQL-backed CI job for model and service tests.
 - [x] Document local quality commands in `README.md` and `CONTRIBUTING.md`.
 
 ## 5. Rules Data Foundation
@@ -182,6 +178,7 @@ FastAPI/React split app to a Django monolith.
 - [x] Add map page.
 - [x] Add pan, zoom, and fit-to-map controls.
 - [x] Add coordinate readout for cursor/selected hex.
+- [ ] Move large source map files to Git LFS once the asset workflow is stable.
 
 ## 11. Dependency Solver
 
@@ -196,7 +193,7 @@ FastAPI/React split app to a Django monolith.
 - [x] Add tests for known simple scenarios.
 - [x] Add tests for circular and missing-input scenarios.
 
-## 12. Django Admin And Operations
+## 12. Admin And Operations
 
 - [x] Register core models in Django admin.
 - [x] Add useful list displays, filters, and search fields.
@@ -209,33 +206,34 @@ FastAPI/React split app to a Django monolith.
   migration/rules import readiness checks, upgrade progress, and rollback
   guidance.
 - [x] Add `.env.local` and `installer.lock` write-permission checks to the
-  future superuser status page.
+  superuser status page.
 - [x] Add an optional systemd service helper or documented command for running
   the app from a cloned release branch.
 - [x] Add deployment health checks.
 - [x] Add static file collection docs.
 - [x] Add production service docs for Linux.
 - [x] Add backup and restore notes for MySQL.
+- [ ] Update GitHub Actions versions after Node 24-compatible action releases
+  are available.
 
 ## 13. Documentation
 
-- [x] Update `README.md` after the Django skeleton exists.
+- [x] Keep `README.md` focused on what Carta Arcanum is and how to run it.
 - [x] Update `docs/INSTALL.md` with exact Django setup commands.
 - [x] Update `CONTRIBUTING.md` with exact lint, test, migration, and rules
   import commands.
 - [x] Update `AGENTS.md` when the app layout is finalized.
-- [x] Keep `docs/ROADMAP.md` high-level and use this file for transition detail.
+- [x] Keep `docs/ROADMAP.md` high-level and use this file for detailed backlog
+  tracking.
 - [x] Add user-facing notes for first-run setup or admin creation.
 
-## 14. Feature Parity Check
+## 14. Current Foundation Check
 
-- [x] Rules validation/import exists in Django.
-- [x] Login exists in Django.
-- [ ] Visibility scopes exist in Django.
-- [x] Holdings foundations exist in Django.
-- [x] Building registry exists in Django.
-- [x] Upkeep preview exists in Django.
-- [x] Dashboard shell exists in Django.
-- [x] Tests cover core migrated behavior.
-- [x] Legacy FastAPI code can be safely removed.
-- [x] Legacy React code can be safely removed.
+- [x] Rules validation/import exists.
+- [x] Login exists.
+- [ ] Visibility scopes are complete.
+- [x] Holdings foundations exist.
+- [x] Building registry exists.
+- [x] Upkeep preview exists.
+- [x] Dashboard shell exists.
+- [x] Tests cover core behavior.

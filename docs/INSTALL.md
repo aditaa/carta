@@ -3,11 +3,11 @@
 Carta Arcanum is supported on Linux. If you are developing from Windows, use
 WSL with Ubuntu.
 
-## Rewrite Status
+## App Status
 
-Carta Arcanum is being rewritten as a Django monolith. The first Django
-skeleton is in place, and the app now includes a working dashboard, building
-registry pages, holdings flows, and production balance services.
+Carta Arcanum is a Django monolith with a working dashboard, building registry
+pages, holdings flows, production balance services, map import/rendering
+foundations, first-run setup, and admin maintenance tools.
 
 ## System Requirements
 
