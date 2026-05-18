@@ -37,6 +37,17 @@ Current foundations include:
 - Canvas campaign map rendering with versioned map imports.
 - A first-run installer for local setup.
 
+| Area | Current support |
+| --- | --- |
+| Accounts | Email login, denizen profiles, first-admin setup, user access management, and invitation workflows. |
+| Rulesets | Versioned JSON rules, schema validation, idempotent SQL import, and admin inspection. |
+| Buildings | Player-owned building registry with filters, create/edit/delete flows, and audit ledger entries. |
+| Holdings | Denizen, house, kingdom, and Three Crowns accounts with deposits, withdrawals, transfers, and corrections. |
+| Production | Upkeep totals, production totals, deficits, surpluses, alerts, and owner balance views. |
+| Solver | Desired-output planning with required buildings, inputs, dependency chains, and missing-input handling. |
+| Campaign map | Canvas map viewer, pan/zoom controls, coordinate readout, and versioned world/detail map imports. |
+| Operations | First-run installer, health checks, editable app settings, upgrade flow, audit logs, and CI-backed release checks. |
+
 Rules data lives in `rules/` and is imported into MySQL. Game values should
 stay in versioned rules files instead of being hard-coded into views, templates,
 models, migrations, or solver logic.
