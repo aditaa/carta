@@ -250,6 +250,23 @@ version in `rules/`:
 python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
 ```
 
+If the campaign map changed, add the new source image under `maps/` and import
+it with a new map version:
+
+```bash
+python manage.py import_map maps/known-world/known-world-2026-05-15.jpg --map-version 2026-05-15 --name "Known World" --playable-width 4096
+```
+
+The import copies the selected image into `MEDIA_ROOT` and marks it active
+unless `--inactive` is provided.
+
+Detail map imports use the same command with `--map-type detail` and
+`--parent-key known-world`:
+
+```bash
+python manage.py import_map maps/known-world/details/hellfire-2025-09-20.png --key hellfire --name "Hellfire" --map-version 2025-09-20 --map-type detail --parent-key known-world
+```
+
 Do not remove `installer.lock` during a normal upgrade. Keeping it prevents the
 first-run installer from reopening on an existing database.
 

@@ -64,7 +64,7 @@ FastAPI/React split app to a Django monolith.
 - [x] Create base template layout.
 - [x] Create static CSS entrypoint.
 - [x] Add HTMX to the base template.
-- [ ] Prototype the map renderer with Canvas or PixiJS.
+- [x] Prototype the map renderer with Canvas or PixiJS.
 - [x] Add a dashboard home page.
 - [x] Add a health/status page for deployment checks.
 
@@ -112,8 +112,8 @@ FastAPI/React split app to a Django monolith.
 - [x] Create house membership model.
 - [x] Create kingdom membership model.
 - [x] Define role choices: read-only, member, manager, admin.
-- [ ] Create scoped permission grant model if Django groups/permissions are not
-  enough.
+- [x] Use Django groups/permissions for scoped platform grants unless a future
+  boundary needs a custom grant model.
 - [x] Create visibility service for denizen, house, and kingdom scopes.
 - [ ] Add Three Crowns visibility scopes.
 - [x] Add login/logout pages.
@@ -166,42 +166,24 @@ FastAPI/React split app to a Django monolith.
 - [x] Calculate surpluses.
 - [x] Create dashboard panels for upkeep, production, deficits, and surplus.
 - [x] Add alerts like "missing X to sustain Y."
-- [ ] Add owner-specific and settlement-wide views.
 - [x] Add tests for known upkeep examples.
 - [x] Add tests for known production examples.
 - [x] Add tests for deficit and surplus calculations.
 
 ## 10. Interactive Map
 
-- [ ] Define the first map use case: view-only campaign map, editable hex map,
+- [x] Define the first map use case: view-only campaign map, editable hex map,
   or both.
-- [ ] Prototype Canvas rendering for the hex map.
-- [ ] Prototype PixiJS rendering for the hex map if Canvas performance or
-  interaction complexity needs WebGL acceleration.
-- [ ] Choose Canvas or PixiJS for the first production map implementation.
-- [ ] Define map coordinate and hex-coordinate systems.
-- [ ] Add map image or tile asset storage strategy.
-- [ ] Add map page.
-- [ ] Add pan, zoom, and fit-to-map controls.
-- [ ] Add coordinate readout for cursor/selected hex.
-- [ ] Add territory overlays.
-- [ ] Add settlement and point-of-interest overlays.
-- [ ] Add visibility filters for denizen, house, kingdom, and settlement views.
-- [ ] Add tests for map data generation.
-- [ ] Add browser/manual verification notes for map rendering.
+- [x] Prototype Canvas rendering for the hex map.
+- [x] Choose Canvas or PixiJS for the first production map implementation.
+- [x] Define map coordinate and hex-coordinate systems.
+- [x] Add map image or tile asset storage strategy.
+- [x] Add versioned world map and detail map imports for release artifacts.
+- [x] Add map page.
+- [x] Add pan, zoom, and fit-to-map controls.
+- [x] Add coordinate readout for cursor/selected hex.
 
-## 11. Progression Tracker
-
-- [ ] Model campaign or settlement progression state.
-- [ ] Model current phase.
-- [ ] Model completed requirements.
-- [ ] Show phase requirements.
-- [ ] Show unlocks.
-- [ ] Show missing requirements for next phase.
-- [ ] Add admin tools for progression correction.
-- [x] Add tests for phase requirement calculations.
-
-## 12. Dependency Solver
+## 11. Dependency Solver
 
 - [x] Define solver input shape.
 - [x] Define solver result shape.
@@ -210,33 +192,32 @@ FastAPI/React split app to a Django monolith.
 - [x] Calculate required inputs.
 - [x] Calculate resulting deficits and surpluses.
 - [x] Detect circular dependencies.
-- [ ] Generate minimal stable production loops.
 - [x] Add solver page with target selection.
 - [x] Add tests for known simple scenarios.
 - [x] Add tests for circular and missing-input scenarios.
 
-## 13. Django Admin And Operations
+## 12. Django Admin And Operations
 
-- [ ] Register core models in Django admin.
-- [ ] Add useful list displays, filters, and search fields.
+- [x] Register core models in Django admin.
+- [x] Add useful list displays, filters, and search fields.
 - [ ] Protect dangerous admin edits where rules data should stay import-owned.
 - [ ] Add admin-only import status page or command output guidance.
-- [ ] Add a superuser status page for install health and core runtime checks.
-- [ ] Add a superuser settings section for app configuration.
-- [ ] Add a web-based upgrade and maintenance plan to the superuser
+- [x] Add a superuser status page for install health and core runtime checks.
+- [x] Add a superuser settings section for app configuration.
+- [x] Add a web-based upgrade and maintenance plan to the superuser
   status/settings area, including current version display, backup reminders,
   migration/rules import readiness checks, upgrade progress, and rollback
   guidance.
-- [ ] Add `.env.local` and `installer.lock` write-permission checks to the
+- [x] Add `.env.local` and `installer.lock` write-permission checks to the
   future superuser status page.
-- [ ] Add an optional systemd service helper or documented command for running
+- [x] Add an optional systemd service helper or documented command for running
   the app from a cloned release branch.
-- [ ] Add deployment health checks.
-- [ ] Add static file collection docs.
-- [ ] Add production service docs for Linux.
-- [ ] Add backup and restore notes for MySQL.
+- [x] Add deployment health checks.
+- [x] Add static file collection docs.
+- [x] Add production service docs for Linux.
+- [x] Add backup and restore notes for MySQL.
 
-## 14. Documentation
+## 13. Documentation
 
 - [x] Update `README.md` after the Django skeleton exists.
 - [x] Update `docs/INSTALL.md` with exact Django setup commands.
@@ -246,25 +227,15 @@ FastAPI/React split app to a Django monolith.
 - [x] Keep `docs/ROADMAP.md` high-level and use this file for transition detail.
 - [x] Add user-facing notes for first-run setup or admin creation.
 
-## 15. Feature Parity Check
+## 14. Feature Parity Check
 
-- [ ] Rules validation/import exists in Django.
-- [ ] Login exists in Django.
+- [x] Rules validation/import exists in Django.
+- [x] Login exists in Django.
 - [ ] Visibility scopes exist in Django.
 - [x] Holdings foundations exist in Django.
-- [ ] Building registry exists in Django.
-- [ ] Upkeep preview exists in Django.
+- [x] Building registry exists in Django.
+- [x] Upkeep preview exists in Django.
 - [x] Dashboard shell exists in Django.
 - [x] Tests cover core migrated behavior.
 - [x] Legacy FastAPI code can be safely removed.
 - [x] Legacy React code can be safely removed.
-
-## 16. Game Update Lifecycle
-
-- [ ] Model game update status choices: planned, confirmed, and verified.
-- [ ] Queue planned game updates for player modification before events.
-- [ ] Let players confirm completed updates at or after an event.
-- [ ] Let staff or authorized users mark confirmed updates as verified after
-  success confirmation.
-- [ ] Apply the lifecycle consistently to holdings, building registry,
-  production, and future progression changes.

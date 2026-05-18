@@ -74,10 +74,17 @@ Use [TRANSITION_TODO.md](TRANSITION_TODO.md) for the detailed task checklist.
 
 ## Phase 6: Interactive Map
 
-- [ ] Prototype the map renderer with Canvas or PixiJS.
-- [ ] Add a map page with pan, zoom, and coordinate readout.
-- [ ] Support the hex grid used by Carta Arcanum maps.
-- [ ] Add territory, settlement, and point-of-interest overlays.
+- [x] Prototype the map renderer with Canvas or PixiJS.
+- [x] Add a map page with pan, zoom, and coordinate readout.
+- [x] Support the hex grid used by Carta Arcanum maps.
+- [x] Add versioned world and detail map image imports for release artifacts.
+- [ ] Model map overlay records for territories, borders, settlements, landmarks,
+  points of interest, routes, and event markers.
+- [ ] Link map overlay records to ownership/faction data where applicable.
+- [ ] Add territory and faction-control overlays.
+- [ ] Add settlement, landmark, and point-of-interest overlays.
+- [ ] Add player-owned building markers for map-visible assets.
+- [ ] Add overlay toggles for territory, settlements, buildings, routes, and events.
 - [ ] Respect visibility permissions in map data.
 
 ## Phase 7: Progression Tracker
@@ -113,3 +120,5 @@ Use [TRANSITION_TODO.md](TRANSITION_TODO.md) for the detailed task checklist.
 - [ ] Owner/faction filters.
 - [ ] Export planning reports.
 - [ ] Compare two plans side by side.
+- [ ] Prototype PixiJS rendering if Canvas performance or interaction
+  complexity needs WebGL acceleration.
