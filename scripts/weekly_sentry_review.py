@@ -336,7 +336,12 @@ def main() -> int:
         )
 
     lines.extend(["", "## Releases"])
-    lines.append("- Top releases: " + "; ".join(summarize_group_counts(releases.get("data", [])[:5], "release", blank_label="unknown")))
+    lines.append(
+        "- Top releases: "
+        + "; ".join(
+            summarize_group_counts(releases.get("data", [])[:5], "release", blank_label="unknown")
+        )
+    )
     lines.append(
         "- Release channels: "
         + "; ".join(
@@ -355,19 +360,31 @@ def main() -> int:
         for item in db_regressions:
             lines.append(f"- DB span regression: {item}")
     else:
-        lines.append("- No notable route or database latency regressions versus the previous 7-day window.")
+        lines.append(
+            "- No notable route or database latency regressions versus the previous 7-day window."
+        )
 
     recommendations: list[str] = []
     if unresolved:
-        recommendations.append("Triage unresolved issues first and confirm whether any should be escalated into code fixes this week.")
+        recommendations.append(
+            "Triage unresolved issues first and confirm whether any should be escalated into code fixes this week."
+        )
     if any((row.get("release_channel") or "") == "" for row in release_channels.get("data", [])):
-        recommendations.append("Normalize release tagging so more events carry the `release_channel` tag; unlabeled traffic is still present.")
+        recommendations.append(
+            "Normalize release tagging so more events carry the `release_channel` tag; unlabeled traffic is still present."
+        )
     if route_regressions:
-        recommendations.append("Review the regressed routes in Sentry traces and compare recent code or data-shape changes before the next release.")
+        recommendations.append(
+            "Review the regressed routes in Sentry traces and compare recent code or data-shape changes before the next release."
+        )
     if db_regressions:
-        recommendations.append("Inspect the slowest database-heavy routes for query count growth or missing indexes.")
+        recommendations.append(
+            "Inspect the slowest database-heavy routes for query count growth or missing indexes."
+        )
     if not recommendations:
-        recommendations.append("No urgent follow-up from this window; keep watching for first unresolved issues and unlabeled releases.")
+        recommendations.append(
+            "No urgent follow-up from this window; keep watching for first unresolved issues and unlabeled releases."
+        )
 
     lines.extend(["", "## Recommended Follow-Up"])
     for item in recommendations[:4]:
