@@ -15,6 +15,8 @@ Arcanum is and how to run it.
   handling, and future map direction.
 - [Release checklist](RELEASE.md): stable promotion, required checks, release
   tags, and rollback notes.
+- [Release notes template](RELEASE_NOTES_TEMPLATE.md): structure for the next
+  stable release notes.
 - [Roadmap](ROADMAP.md): high-level milestone plan.
 - [Backlog](BACKLOG.md): detailed implementation tracker and captured follow-up
   work.

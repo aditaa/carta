@@ -8,7 +8,7 @@
     <p class="muted">Owner type: {{ owner_type }} / ID: {{ owner_id }}</p>
     <section class="dashboard-panel">
       <h2>Owner Production Balance</h2>
-      <p class="muted">{{ balance_panel.building_count }} visible buildings included.</p>
+      <p class="muted">{{ balance_panel.building_count }} visible buildings in scope.</p>
       <section class="alerts-panel">
         <h3>Alerts</h3>
         <ul class="alerts-list">
@@ -23,7 +23,7 @@
           {% for item in balance_panel.upkeep %}
             <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
           {% empty %}
-            <p class="muted">No upkeep.</p>
+            <p class="muted">No upkeep recorded.</p>
           {% endfor %}
         </article>
         <article>
@@ -31,7 +31,7 @@
           {% for item in balance_panel.production_inputs %}
             <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
           {% empty %}
-            <p class="muted">No inputs.</p>
+            <p class="muted">No inputs recorded.</p>
           {% endfor %}
         </article>
         <article>
@@ -39,7 +39,7 @@
           {% for item in balance_panel.production_outputs %}
             <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
           {% empty %}
-            <p class="muted">No outputs.</p>
+            <p class="muted">No outputs recorded.</p>
           {% endfor %}
         </article>
         <article>
@@ -47,7 +47,7 @@
           {% for item in balance_panel.deficits %}
             <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
           {% empty %}
-            <p class="muted">No deficits.</p>
+            <p class="muted">No deficits detected.</p>
           {% endfor %}
         </article>
         <article>
@@ -55,7 +55,7 @@
           {% for item in balance_panel.surpluses %}
             <span class="balance-pill">{{ item.quantity }} {{ item.item_type }}:{{ item.item_key }}</span>
           {% empty %}
-            <p class="muted">No surpluses.</p>
+            <p class="muted">No surpluses detected.</p>
           {% endfor %}
         </article>
       </div>

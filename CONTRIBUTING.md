@@ -45,6 +45,20 @@ For a faster local pass that does not require MySQL, run:
 Windows users working outside WSL can use `.\scripts\check.ps1 quick` or
 `.\scripts\check.ps1 full`.
 
+## Pre-Commit
+
+Optional pre-commit hooks are available for local formatting, linting, and a
+settings smoke test:
+
+```bash
+python -m pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
+The hooks use the Python environment already active in your shell, so install
+the project requirements before running them.
+
 ## Rules Updates
 
 Rules are manually maintained versioned data files in `rules/`.

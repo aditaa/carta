@@ -1,0 +1,65 @@
+# Repository label taxonomy.
+#
+# Apply with GitHub CLI, for example:
+# gh label create "area:accounts" --color "1d76db" --description "Accounts, auth, users, invitations, or permissions" --force
+
+- name: area:accounts
+  color: "1d76db"
+  description: Accounts, auth, users, invitations, or permissions
+- name: area:admin
+  color: "1d76db"
+  description: Admin, settings, health checks, audit logs, or upgrades
+- name: area:buildings
+  color: "1d76db"
+  description: Building registry, owned buildings, or building rules
+- name: area:docs
+  color: "0075ca"
+  description: Documentation, project metadata, or contributor experience
+- name: area:holdings
+  color: "1d76db"
+  description: Holdings accounts, balances, transfers, or ledger entries
+- name: area:maps
+  color: "1d76db"
+  description: Campaign maps, map imports, coordinates, or overlays
+- name: area:production
+  color: "1d76db"
+  description: Production, upkeep, deficits, surpluses, or balancing
+- name: area:rules
+  color: "1d76db"
+  description: Rules data, schema validation, or rules import
+- name: area:solver
+  color: "1d76db"
+  description: Dependency solving and planning workflows
+- name: type:bug
+  color: "d73a4a"
+  description: Something is broken or regressed
+- name: type:cleanup
+  color: "cfd3d7"
+  description: Refactor, tidy-up, maintenance, or repo hygiene
+- name: type:docs
+  color: "0075ca"
+  description: Documentation-only change
+- name: type:feature
+  color: "a2eeef"
+  description: New user-facing capability
+- name: type:release
+  color: "5319e7"
+  description: Release preparation, verification, or promotion
+- name: type:test
+  color: "0e8a16"
+  description: Test coverage, fixtures, or CI validation
+- name: priority:high
+  color: "b60205"
+  description: Needs attention soon
+- name: priority:normal
+  color: "fbca04"
+  description: Normal priority
+- name: priority:low
+  color: "0e8a16"
+  description: Nice to have
+- name: good first issue
+  color: "7057ff"
+  description: Good for newcomers
+- name: help wanted
+  color: "008672"
+  description: Extra attention is welcome

@@ -28,7 +28,7 @@
                       {{ balance.quantity }} {{ balance.item_type }}:{{ balance.item_key }}
                     </span>
                   {% empty %}
-                    <span class="muted">No balances</span>
+                    <span class="muted">No balances recorded</span>
                   {% endfor %}
                 </td>
                 <td>
@@ -36,7 +36,7 @@
                     <button class="btn-link" onclick="showAdjustModal({{ account.id }})">Adjust</button>
                     <a href="{% url 'holdings:transfer' account.id %}">Transfer</a>
                   {% else %}
-                    <span class="muted">Read only</span>
+                    <span class="muted">Read-only</span>
                   {% endif %}
                 </td>
               </tr>
@@ -45,7 +45,7 @@
         </table>
       </div>
     {% else %}
-      <p>No visible holding accounts.</p>
+      <p>No visible holding accounts found.</p>
     {% endif %}
   </section>
 

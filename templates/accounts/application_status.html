@@ -11,7 +11,7 @@
 
     <section class="settings-section upgrade-section priority-section">
       <h2>Upgrade</h2>
-      <p class="muted">Reset the checkout to Git, switch to the stable branch, fetch latest code, fast-forward, run migrations, and collect static files.</p>
+      <p class="muted">Reset tracked files to Git, refresh the configured release branch, fast-forward, run migrations, and collect static files.</p>
       {% if upgrade_available %}
         <form method="post" action="{% url 'accounts:start_upgrade' %}">
           {% csrf_token %}
@@ -39,7 +39,7 @@
     <section class="settings-section">
       <h2>Git File Check</h2>
       {% if changed_files %}
-        <p class="error-message">Tracked files differ from Git. Git is the source of truth for app code.</p>
+        <p class="error-message">Tracked files differ from Git. Git is the source of truth for application code.</p>
         <div class="table-wrap">
           <table class="data-table">
             <thead>

@@ -23,8 +23,9 @@ at the exact commit deployed by production installs.
 - Confirm the normal CI workflow is green on `main`. Normal CI is intentionally
   lighter than stable verification: quality checks plus one representative
   MySQL-backed full suite.
-- Confirm the release notes or PR description list user-visible changes,
-  upgrade notes, and any known risks.
+- Draft release notes from [RELEASE_NOTES_TEMPLATE.md](RELEASE_NOTES_TEMPLATE.md)
+  or confirm the stable PR description lists user-visible changes, upgrade
+  notes, and any known risks.
 - Confirm the database and `.env` backup plan for the target deployment.
 
 ## Stable PR

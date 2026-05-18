@@ -589,7 +589,7 @@ def test_holdings_page_hides_actions_for_read_only_accounts(client):
 
     assert response.status_code == 200
     assert str(account).encode() in response.content
-    assert b"Read only" in response.content
+    assert b"Read-only" in response.content
     assert reverse("holdings:transfer", args=[account.id]).encode() not in response.content
     assert b"showAdjustModal" in response.content
 
