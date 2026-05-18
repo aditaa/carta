@@ -13,7 +13,8 @@ from campaign_map.services import (
 def write_fake_jpeg(path, *, width=3, height=2):
     path.write_bytes(
         b"\xff\xd8"
-        b"\xff\xe0\x00\x10" + (b"\x00" * 14)
+        b"\xff\xe0\x00\x10"
+        + (b"\x00" * 14)
         + b"\xff\xc0\x00\x11"
         + bytes([8])
         + height.to_bytes(2, "big")

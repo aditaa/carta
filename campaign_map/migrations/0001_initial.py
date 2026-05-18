@@ -4,36 +4,43 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='CampaignMapVersion',
+            name="CampaignMapVersion",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('key', models.SlugField(max_length=120)),
-                ('name', models.CharField(max_length=160)),
-                ('version', models.CharField(max_length=80)),
-                ('image', models.FileField(upload_to='campaign_maps/')),
-                ('image_width', models.PositiveIntegerField()),
-                ('image_height', models.PositiveIntegerField()),
-                ('playable_width', models.PositiveIntegerField()),
-                ('hex_size', models.DecimalField(decimal_places=3, default=22, max_digits=8)),
-                ('hex_origin_x', models.DecimalField(decimal_places=3, default=7, max_digits=8)),
-                ('hex_origin_y', models.DecimalField(decimal_places=3, default=12, max_digits=8)),
-                ('source_path', models.CharField(max_length=500)),
-                ('notes', models.TextField(blank=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('imported_at', models.DateTimeField(auto_now=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("key", models.SlugField(max_length=120)),
+                ("name", models.CharField(max_length=160)),
+                ("version", models.CharField(max_length=80)),
+                ("image", models.FileField(upload_to="campaign_maps/")),
+                ("image_width", models.PositiveIntegerField()),
+                ("image_height", models.PositiveIntegerField()),
+                ("playable_width", models.PositiveIntegerField()),
+                ("hex_size", models.DecimalField(decimal_places=3, default=22, max_digits=8)),
+                ("hex_origin_x", models.DecimalField(decimal_places=3, default=7, max_digits=8)),
+                ("hex_origin_y", models.DecimalField(decimal_places=3, default=12, max_digits=8)),
+                ("source_path", models.CharField(max_length=500)),
+                ("notes", models.TextField(blank=True)),
+                ("is_active", models.BooleanField(default=True)),
+                ("imported_at", models.DateTimeField(auto_now=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                'ordering': ['-imported_at', '-id'],
-                'constraints': [models.UniqueConstraint(fields=('key', 'version'), name='unique_campaign_map_key_version')],
+                "ordering": ["-imported_at", "-id"],
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("key", "version"), name="unique_campaign_map_key_version"
+                    )
+                ],
             },
         ),
     ]

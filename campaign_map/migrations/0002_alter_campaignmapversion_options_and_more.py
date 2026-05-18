@@ -4,24 +4,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('campaign_map', '0001_initial'),
+        ("campaign_map", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='campaignmapversion',
-            options={'ordering': ['map_type', 'name', '-imported_at', '-id']},
+            name="campaignmapversion",
+            options={"ordering": ["map_type", "name", "-imported_at", "-id"]},
         ),
         migrations.AddField(
-            model_name='campaignmapversion',
-            name='map_type',
-            field=models.CharField(choices=[('world', 'World'), ('detail', 'Detail')], default='world', max_length=20),
+            model_name="campaignmapversion",
+            name="map_type",
+            field=models.CharField(
+                choices=[("world", "World"), ("detail", "Detail")], default="world", max_length=20
+            ),
         ),
         migrations.AddField(
-            model_name='campaignmapversion',
-            name='parent_key',
+            model_name="campaignmapversion",
+            name="parent_key",
             field=models.SlugField(blank=True, max_length=120),
         ),
     ]
