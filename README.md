@@ -1,8 +1,14 @@
 # Carta Arcanum
 
-Carta Arcanum is a Django web app for tracking buildings, resources,
-ownership, upkeep, production chains, deficits, surpluses, and phase
-progression for Carta Arcanum play.
+[![CI](https://github.com/aditaa/carta/actions/workflows/ci.yml/badge.svg)](https://github.com/aditaa/carta/actions/workflows/ci.yml)
+[![Stable release verification](https://github.com/aditaa/carta/actions/workflows/stable-release-verification.yml/badge.svg)](https://github.com/aditaa/carta/actions/workflows/stable-release-verification.yml)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![Django](https://img.shields.io/badge/django-5.x-0c4b33)
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
+
+Carta Arcanum is a Django web app for campaign logistics: buildings, resources,
+ownership, holdings, upkeep, production chains, deficits, surpluses, map
+assets, and phase progression for Carta Arcanum play.
 
 The app is meant to answer practical planning questions:
 
@@ -28,6 +34,7 @@ Current foundations include:
 - Building registry workflows.
 - Denizen, house, kingdom, and Three Crowns holdings.
 - Production, upkeep, deficit, and surplus services.
+- Canvas campaign map rendering with versioned map imports.
 - A first-run installer for local setup.
 
 Rules data lives in `rules/` and is imported into MySQL. Game values should
@@ -74,22 +81,20 @@ and writes `installer.lock` when setup is complete.
 
 ## Common Commands
 
-Run checks that do not require a local MySQL server:
+Run the quick local checks:
 
 ```bash
-python -m ruff check .
-python -m ruff format --check .
-python manage.py check
-python -m pytest dashboard/tests tests
+./scripts/check.sh quick
 ```
 
 Run the full suite after MySQL is configured:
 
 ```bash
-python manage.py migrate
-python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
-python -m pytest
+./scripts/check.sh full
 ```
+
+Windows users working outside WSL can use `.\scripts\check.ps1 quick` for the
+same smoke checks.
 
 ## More Documentation
 

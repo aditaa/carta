@@ -29,19 +29,21 @@ Read these before changing code:
 Before opening a pull request, run:
 
 ```bash
-python -m ruff format --check .
-python -m ruff check .
-python manage.py check
-python manage.py makemigrations --check --dry-run
-python manage.py migrate --noinput
-python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
-python manage.py import_rules rules/carta-arcanum-2.1.4.rules.json
-python -m pytest
+./scripts/check.sh full
 ```
 
 The full test suite expects MySQL to be running. If MySQL is not available
 locally, run the narrower smoke checks from the README and let CI be the source
 of truth for MySQL-only coverage.
+
+For a faster local pass that does not require MySQL, run:
+
+```bash
+./scripts/check.sh quick
+```
+
+Windows users working outside WSL can use `.\scripts\check.ps1 quick` or
+`.\scripts\check.ps1 full`.
 
 ## Rules Updates
 

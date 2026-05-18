@@ -178,6 +178,7 @@ items are the active backlog.
 - [x] Add map page.
 - [x] Add pan, zoom, and fit-to-map controls.
 - [x] Add coordinate readout for cursor/selected hex.
+- [ ] Move large source map files to Git LFS once the asset workflow is stable.
 
 ## 11. Dependency Solver
 
@@ -212,6 +213,8 @@ items are the active backlog.
 - [x] Add static file collection docs.
 - [x] Add production service docs for Linux.
 - [x] Add backup and restore notes for MySQL.
+- [ ] Update GitHub Actions versions after Node 24-compatible action releases
+  are available.
 
 ## 13. Documentation
 

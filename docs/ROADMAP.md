@@ -105,6 +105,10 @@ Use [BACKLOG.md](BACKLOG.md) for the detailed implementation tracker.
   backup, and restore guidance.
 - [ ] Add an optional production WSGI service helper for running Carta Arcanum
   beyond the temporary test-server unit.
+- [ ] Move large source map and reference assets to Git LFS while preserving
+  reproducible release imports.
+- [ ] Update GitHub Actions to newer action versions after official Node 24
+  support is available for the checkout and Python setup actions.
 - [ ] Scenario save/load.
 - [ ] Multiple campaigns or worlds.
 - [ ] Owner/faction filters.
